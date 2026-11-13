@@ -36,10 +36,14 @@ services:
     ports:
       - "${HTTP_PORT:-80}:80"
       - "${HTTPS_PORT:-443}:443"
+    # Caddyfile reads these at load time (HE-003); see infra/.env.example.
     environment:
       APP_DOMAIN: ${APP_DOMAIN:-localhost}
+      ACME_EMAIL: ${ACME_EMAIL:-}
+      HSTS: ${HSTS:-off}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./site-verification:/srv/site-verification:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
@@ -162,7 +166,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # Internal only until a notify ticket exposes it; deny-all until users are provisioned.
+  # Reached only via Caddy at ntfy.APP_DOMAIN (HE-003); deny-all until users are provisioned.
   ntfy:
     <<: *base
     image: binwiederhier/ntfy:v2.14.0
@@ -174,6 +178,7 @@ services:
       NTFY_AUTH_FILE: /var/lib/ntfy/auth.db
       NTFY_AUTH_DEFAULT_ACCESS: deny-all
       NTFY_BEHIND_PROXY: "true"
+      NTFY_BASE_URL: https://ntfy.${APP_DOMAIN:-localhost}
     volumes:
       - ntfydata:/var/lib/ntfy
     healthcheck:

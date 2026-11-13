@@ -1,7 +1,58 @@
-# HE-002: plain HTTP routing only. HE-003 switches the site address to {$APP_DOMAIN}
-# for automatic HTTPS, HSTS and security headers (Security doc §6).
-:80 {
+# HackEvents edge proxy (TRD §3, Security doc §6, Runbook B6).
+# The domain comes only from APP_DOMAIN (AGENTS.md). Env vars are read when
+# Caddy loads this file:
+#   APP_DOMAIN  public hostname; `localhost` = Caddy internal CA (local dev)
+#   ACME_EMAIL  optional Let's Encrypt account email (empty = none)
+#   HSTS        `on` only once the domain is final (Security §6); default `off`
+# Automatic HTTPS issues certs for {$APP_DOMAIN} and ntfy.{$APP_DOMAIN} and
+# redirects HTTP -> HTTPS.
+{
+	email "{$ACME_EMAIL}"
+	servers {
+		# Only TCP 443 is opened (Security §7), so don't advertise HTTP/3.
+		protocols h1 h2
+	}
+}
+
+(hsts-on) {
+	header Strict-Transport-Security "max-age=31536000"
+}
+
+(hsts-off) {
+}
+
+# Headers shared by every site. -Server/-X-Powered-By/-Via hide the stack.
+(common_headers) {
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()"
+		-Server
+		-X-Powered-By
+		-Via
+		defer
+	}
+	import hsts-{$HSTS:off}
+}
+
+{$APP_DOMAIN:localhost} {
+	import common_headers
+
+	# Default CSP; `?` keeps any CSP the upstream sets, so the web app can
+	# later send a nonce-based policy that replaces this one (Security §6).
+	# 'unsafe-inline' for scripts is required until then: Next.js App Router
+	# emits inline bootstrap scripts.
+	header ?Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+
 	encode zstd gzip
+
+	# Google Search Console HTML-file verification (Runbook B6 step 4).
+	@site_verification path_regexp ^/google[0-9a-f]+\.html$
+	handle @site_verification {
+		root * /srv/site-verification
+		file_server
+	}
 
 	handle /api/* {
 		reverse_proxy api:8000
@@ -10,4 +61,11 @@
 	handle {
 		reverse_proxy web:3000
 	}
+}
+
+# Self-hosted push (Runbook B6 step 2). ntfy ships its own web UI, so no app CSP here.
+ntfy.{$APP_DOMAIN:localhost} {
+	import common_headers
+	encode zstd gzip
+	reverse_proxy ntfy:80
 }
