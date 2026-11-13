@@ -21,6 +21,14 @@ x-py: &py
 x-db-env: &db-env
   DATABASE_URL: postgresql+asyncpg://hackevents:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in infra/.env}@postgres:5432/hackevents
 
+# Email (HE-030): only api (gmail_authorize, send_test_email) and worker-notify get these.
+x-gmail-env: &gmail-env
+  APP_DOMAIN: ${APP_DOMAIN:-localhost}
+  GMAIL_SENDER: ${GMAIL_SENDER:-}
+  GMAIL_OAUTH_REFRESH_TOKEN: ${GMAIL_OAUTH_REFRESH_TOKEN:-}
+  GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+  GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+
 x-worker-health: &worker-health
   interval: 30s
   timeout: 10s
@@ -73,7 +81,7 @@ services:
     mem_limit: 512m
     cpus: 1.0
     environment:
-      <<: [*py-env, *db-env]
+      <<: [*py-env, *db-env, *gmail-env]
       # Only Caddy can reach api (no published port); trust its X-Forwarded-For so the
       # per-IP login rate limit sees the real client, not Caddy.
       FORWARDED_ALLOW_IPS: "*"
@@ -131,7 +139,7 @@ services:
     mem_limit: 256m
     cpus: 0.25
     environment:
-      <<: [*py-env, *db-env]
+      <<: [*py-env, *db-env, *gmail-env]
     depends_on: *db-deps
     healthcheck:
       <<: *worker-health

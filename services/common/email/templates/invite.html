@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block body %}
+<p>{{ inviter }} invited you to HackEvents.</p>
+<p><a href="{{ app_url('/invite/' ~ token) }}" style="display:inline-block;padding:10px 16px;background:#2563EB;color:#FFFFFF;text-decoration:none;border-radius:6px">Accept invite</a></p>
+<p style="color:#475569">This link works once and expires in {{ expires_hours }} hours. If you did not expect it, ignore this email.</p>
+{% endblock %}

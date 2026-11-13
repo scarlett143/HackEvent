@@ -1,0 +1,6 @@
+This is a test email from HackEvents.
+
+If it reached your Inbox, email delivery works. If it landed in Spam, mark it as not spam and report it to the Admin.
+
+--
+HackEvents · {{ app_url('/') }}

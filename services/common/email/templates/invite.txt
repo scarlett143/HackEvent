@@ -1,0 +1,9 @@
+{{ inviter }} invited you to HackEvents.
+
+Accept the invite:
+{{ app_url('/invite/' ~ token) }}
+
+This link works once and expires in {{ expires_hours }} hours. If you did not expect it, ignore this email.
+
+--
+HackEvents · {{ app_url('/') }}

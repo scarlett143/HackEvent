@@ -21,6 +21,7 @@ Design docs: [docs/](docs/README.md) — PRD, TRD, schema, API, security, AI gua
 | HE-007 | Log redaction filter (tokens, keys, cookies, DSN passwords) on API + worker logs | Done |
 | HE-011 | Password login (Argon2id), hashed sliding sessions, logout, /me, 5-per-15-min login rate limit | Done |
 | HE-016 | Audit log writer: 17 security actions, secrets dropped/redacted from metadata | Done |
+| HE-030 | Gmail API email sender (refresh-token OAuth, retries, revoked-token alert) + autoescaped invite/test templates | Done |
 
 Full ticket list: [docs/09-Feature-Ticket-List.md](docs/09-Feature-Ticket-List.md).
 
