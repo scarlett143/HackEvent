@@ -1,5 +1,7 @@
 # HackEvent
 
+[![CI](https://github.com/scarlett143/HackEvent/actions/workflows/ci.yml/badge.svg)](https://github.com/scarlett143/HackEvent/actions/workflows/ci.yml)
+
 Hackathon discovery and reminder platform for professors and college management.
 
 **Build order:** web application first. Mobile work (PWA install, FCM push, Android) comes after the web app ships.
@@ -12,6 +14,7 @@ Design docs: [docs/](docs/README.md) — PRD, TRD, schema, API, security, AI gua
 |---|---|---|
 | HE-001 | Monorepo scaffold (Next.js web, FastAPI api, workers, common) | Done |
 | HE-002 | Docker Compose stack: 10 services, memory caps, healthchecks, smoke test | Done |
+| HE-005 | CI: ruff, mypy, pytest, lint, typecheck, build, dependency audits, Trivy image scan | Done |
 
 Full ticket list: [docs/09-Feature-Ticket-List.md](docs/09-Feature-Ticket-List.md).
 
