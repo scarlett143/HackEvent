@@ -1,0 +1,5 @@
+# Google Search Console verification files (google<hex>.html) go here on the
+# server only; Caddy serves them at /google<hex>.html (Runbook B6 step 4).
+# They are account-specific, so keep them out of the public repo.
+*
+!.gitignore
