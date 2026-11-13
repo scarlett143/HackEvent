@@ -13,6 +13,7 @@ from typing import Any
 
 from sqlalchemy import (
     ARRAY,
+    BigInteger,
     Boolean,
     CheckConstraint,
     DateTime,
@@ -170,6 +171,8 @@ class User(IdMixin, TimestampMixin, Base):
     role: Mapped[UserRole] = mapped_column(user_role)
     password_hash: Mapped[str | None] = mapped_column(Text)
     totp_secret_enc: Mapped[bytes | None] = mapped_column(LargeBinary)
+    totp_enabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    totp_last_step: Mapped[int | None] = mapped_column(BigInteger)  # replay guard
     google_sub: Mapped[str | None] = mapped_column(Text, unique=True)
     timezone: Mapped[str] = mapped_column(Text, server_default=text("'Asia/Kolkata'"))
     quiet_start: Mapped[time | None] = mapped_column(Time)
@@ -186,6 +189,7 @@ class Session(IdMixin, TimestampMixin, Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     ip: Mapped[str] = mapped_column(Text)
     user_agent: Mapped[str] = mapped_column(Text)
+    totp_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class Invite(IdMixin, TimestampMixin, Base):

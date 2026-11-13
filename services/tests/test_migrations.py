@@ -92,9 +92,10 @@ def test_all_datetimes_are_timestamptz() -> None:
                 assert col.type.timezone is True, f"{table.name}.{col.name}"  # type: ignore[attr-defined]
 
 
-def test_single_baseline_head() -> None:
+def test_single_linear_head_on_baseline() -> None:
     script = ScriptDirectory.from_config(_config())
-    assert script.get_heads() == ["0001"]
+    assert script.get_heads() == ["0002"]
+    assert script.get_revision("0002").down_revision == "0001"
     assert script.get_revision("0001").down_revision is None
 
 
