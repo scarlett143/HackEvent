@@ -15,6 +15,7 @@ Design docs: [docs/](docs/README.md) — PRD, TRD, schema, API, security, AI gua
 | HE-001 | Monorepo scaffold (Next.js web, FastAPI api, workers, common) | Done |
 | HE-002 | Docker Compose stack: 10 services, memory caps, healthchecks, smoke test | Done |
 | HE-005 | CI: ruff, mypy, pytest, lint, typecheck, build, dependency audits, Trivy image scan | Done |
+| HE-007 | Log redaction filter (tokens, keys, cookies, DSN passwords) on API + worker logs | Done |
 
 Full ticket list: [docs/09-Feature-Ticket-List.md](docs/09-Feature-Ticket-List.md).
 

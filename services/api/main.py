@@ -1,6 +1,10 @@
 from fastapi import FastAPI, Request, Response
 
 from api import health
+from common.logging import configure_logging
+
+# uvicorn runs its dictConfig before importing this module, so its handlers exist now.
+configure_logging()
 
 app = FastAPI(title="HackEvents API", docs_url=None, redoc_url=None, lifespan=health.lifespan)
 
