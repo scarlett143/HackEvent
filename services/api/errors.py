@@ -23,10 +23,14 @@ class ApiError(Exception):
         self.headers = headers
 
 
-async def handle_api_error(request: Request, exc: Exception) -> JSONResponse:
-    assert isinstance(exc, ApiError)
+def error_response(exc: ApiError) -> JSONResponse:
     return JSONResponse(
         {"error": {"code": exc.code, "message": exc.message, "details": exc.details}},
         status_code=exc.status,
         headers=exc.headers,
     )
+
+
+async def handle_api_error(request: Request, exc: Exception) -> JSONResponse:
+    assert isinstance(exc, ApiError)
+    return error_response(exc)
