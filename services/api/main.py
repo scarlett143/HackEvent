@@ -1,12 +1,15 @@
 from fastapi import FastAPI, Request, Response
 
-from api import health
+from api import auth, health
+from api.errors import ApiError, handle_api_error
 from common.logging import configure_logging
 
 # uvicorn runs its dictConfig before importing this module, so its handlers exist now.
 configure_logging()
 
 app = FastAPI(title="HackEvents API", docs_url=None, redoc_url=None, lifespan=health.lifespan)
+app.add_exception_handler(ApiError, handle_api_error)
+app.include_router(auth.router)
 
 
 @app.get("/api/v1/health/live")
