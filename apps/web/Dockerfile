@@ -10,6 +10,11 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter @hackevents/web build
 
 FROM node:24-alpine
+# Runtime needs only `node`: drop the bundled npm/corepack (unused, and the source of
+# their transitive CVEs) and pick up Alpine security fixes.
+RUN apk upgrade --no-cache \
+ && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+    /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     HOSTNAME=0.0.0.0 \

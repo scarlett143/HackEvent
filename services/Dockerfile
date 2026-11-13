@@ -3,6 +3,8 @@
 FROM ghcr.io/astral-sh/uv:0.12.13 AS uv
 
 FROM python:3.12-slim
+# Pick up Debian security fixes newer than the base image tag (Trivy gate in CI).
+RUN apt-get update && apt-get upgrade -y --no-install-recommends && rm -rf /var/lib/apt/lists/*
 COPY --from=uv /uv /usr/local/bin/uv
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
