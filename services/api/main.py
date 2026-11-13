@@ -1,9 +1,25 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 
-app = FastAPI(title="HackEvents API", docs_url=None, redoc_url=None)
+from api import health
+
+app = FastAPI(title="HackEvents API", docs_url=None, redoc_url=None, lifespan=health.lifespan)
+
+
+@app.get("/api/v1/health/live")
+def live() -> dict[str, str]:
+    """Process liveness only; used by the Docker healthcheck."""
+    return {"status": "ok"}
 
 
 @app.get("/api/v1/health")
-def health() -> dict[str, str]:
-    # ponytail: liveness only; HE-002 adds db/redis/worker checks (Runbook Part D).
-    return {"status": "ok"}
+async def ready(request: Request, response: Response) -> dict[str, str]:
+    """Dependency status. 503 if any dependency is down."""
+    deps = request.app.state.deps
+    result = {
+        "db": await health.check_db(deps),
+        "redis": await health.check_redis(deps),
+        "workers": await health.check_workers(deps),
+    }
+    if not all(result.values()):
+        response.status_code = 503
+    return {k: "ok" if v else "down" for k, v in result.items()}

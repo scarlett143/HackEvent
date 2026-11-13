@@ -31,4 +31,4 @@
 - Backend: `uv run pytest`, `uv run ruff check`, `uv run mypy`
 - Frontend: `pnpm test`, `pnpm lint`, `pnpm typecheck`, `pnpm build`
 - E2E: `pnpm e2e`
-- Full stack: `docker compose up -d && ./infra/smoke.sh`
+- Full stack: `cd infra && docker compose up -d --build && ./smoke.sh` (config from `infra/.env.example`)

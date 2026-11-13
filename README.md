@@ -1,5 +1,32 @@
 # HackEvent
 
-Hackathon discovery and reminder platform for professors and college management. Android + web (PWA).
+Hackathon discovery and reminder platform for professors and college management.
 
-Status: design locked, pre-build. See [docs/](docs/README.md) for PRD, TRD, schema, API, security, AI guardrails, tickets, and runbook.
+**Build order:** web application first. Mobile work (PWA install, FCM push, Android) comes after the web app ships.
+
+Design docs: [docs/](docs/README.md) — PRD, TRD, schema, API, security, AI guardrails, tickets, runbook.
+
+## Progress
+
+| Ticket | What | Status |
+|---|---|---|
+| HE-001 | Monorepo scaffold (Next.js web, FastAPI api, workers, common) | Done |
+| HE-002 | Docker Compose stack: 10 services, memory caps, healthchecks, smoke test | Done |
+
+Full ticket list: [docs/09-Feature-Ticket-List.md](docs/09-Feature-Ticket-List.md).
+
+## Run locally
+
+Requirements: Docker with Compose v2, [uv](https://docs.astral.sh/uv/), Node 24 + pnpm.
+
+```bash
+# checks
+uv run pytest && uv run ruff check && uv run mypy services
+pnpm install && pnpm lint && pnpm typecheck && pnpm build
+
+# full stack (copy infra/.env.example to infra/.env first and fill it in)
+cd infra && docker compose up -d --build && ./smoke.sh
+```
+
+The stack serves the web app at `/` and the API at `/api/*` through Caddy.
+`GET /api/v1/health` returns `{"db":"ok","redis":"ok","workers":"ok"}` when everything is up.
