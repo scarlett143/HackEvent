@@ -21,3 +21,6 @@ __pycache__/
 
 # os
 .DS_Store
+
+# local agent worktrees
+.claude/worktrees/

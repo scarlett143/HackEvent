@@ -1,0 +1,190 @@
+# HackEvents stack (TRD §3). Run from infra/: `docker compose up -d && ./smoke.sh`.
+# Every service: mem_limit, cpus, restart, healthcheck (enforced by services/tests/test_compose.py).
+# Postgres/Redis/ntfy publish no ports (Security doc §7); only Caddy faces the host.
+name: hackevents
+
+x-base: &base
+  restart: unless-stopped
+  security_opt: ["no-new-privileges:true"]
+  logging:
+    driver: json-file
+    options: { max-size: "10m", max-file: "3" }
+
+x-py: &py
+  <<: *base
+  image: hackevents/services:local
+  build: { context: .., dockerfile: services/Dockerfile }
+  environment: &py-env
+    REDIS_URL: redis://redis:6379/0
+    DEFAULT_TZ: ${DEFAULT_TZ:-Asia/Kolkata}
+
+x-db-env: &db-env
+  DATABASE_URL: postgresql+asyncpg://hackevents:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in infra/.env}@postgres:5432/hackevents
+
+x-worker-health: &worker-health
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 20s
+
+services:
+  caddy:
+    <<: *base
+    image: caddy:2.10-alpine
+    mem_limit: 128m
+    cpus: 0.5
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web: { condition: service_healthy }
+      api: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:2019/config/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  web:
+    <<: *base
+    image: hackevents/web:local
+    build: { context: .., dockerfile: apps/web/Dockerfile }
+    mem_limit: 512m
+    cpus: 1.0
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  api:
+    <<: *py
+    mem_limit: 512m
+    cpus: 1.0
+    environment:
+      <<: [*py-env, *db-env]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health/live',timeout=3).status!=200)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  scheduler:
+    <<: *py
+    command: ["arq", "workers.settings.SchedulerWorker"]
+    mem_limit: 256m
+    cpus: 0.25
+    environment:
+      <<: [*py-env, *db-env]
+    depends_on: &db-deps
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      <<: *worker-health
+      test: ["CMD", "arq", "--check", "workers.settings.SchedulerWorker"]
+
+  # Security doc §8: the scraper container gets no DB credentials.
+  worker-scrape:
+    <<: *py
+    command: ["arq", "workers.settings.ScrapeWorker"]
+    mem_limit: 1536m
+    cpus: 1.0
+    depends_on:
+      redis: { condition: service_healthy }
+    healthcheck:
+      <<: *worker-health
+      test: ["CMD", "arq", "--check", "workers.settings.ScrapeWorker"]
+
+  worker-llm:
+    <<: *py
+    command: ["arq", "workers.settings.LlmWorker"]
+    mem_limit: 512m
+    cpus: 0.5
+    environment:
+      <<: [*py-env, *db-env]
+    depends_on: *db-deps
+    healthcheck:
+      <<: *worker-health
+      test: ["CMD", "arq", "--check", "workers.settings.LlmWorker"]
+
+  worker-notify:
+    <<: *py
+    command: ["arq", "workers.settings.NotifyWorker"]
+    mem_limit: 256m
+    cpus: 0.25
+    environment:
+      <<: [*py-env, *db-env]
+    depends_on: *db-deps
+    healthcheck:
+      <<: *worker-health
+      test: ["CMD", "arq", "--check", "workers.settings.NotifyWorker"]
+
+  postgres:
+    <<: *base
+    image: postgres:16-alpine
+    mem_limit: 1g
+    cpus: 1.0
+    environment:
+      POSTGRES_USER: hackevents
+      POSTGRES_DB: hackevents
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in infra/.env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hackevents -d hackevents"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Queue data must never be evicted; maxmemory stays under mem_limit.
+  redis:
+    <<: *base
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "200mb", "--maxmemory-policy", "noeviction"]
+    mem_limit: 256m
+    cpus: 0.5
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Internal only until a notify ticket exposes it; deny-all until users are provisioned.
+  ntfy:
+    <<: *base
+    image: binwiederhier/ntfy:v2.14.0
+    command: ["serve"]
+    mem_limit: 128m
+    cpus: 0.25
+    environment:
+      NTFY_CACHE_FILE: /var/lib/ntfy/cache.db
+      NTFY_AUTH_FILE: /var/lib/ntfy/auth.db
+      NTFY_AUTH_DEFAULT_ACCESS: deny-all
+      NTFY_BEHIND_PROXY: "true"
+    volumes:
+      - ntfydata:/var/lib/ntfy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --tries=1 http://127.0.0.1:80/v1/health -O - | grep -q '\"healthy\":true'"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  pgdata:
+  redisdata:
+  ntfydata:
+  caddy_data:
+  caddy_config:

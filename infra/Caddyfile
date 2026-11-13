@@ -1,0 +1,13 @@
+# HE-002: plain HTTP routing only. HE-003 switches the site address to {$APP_DOMAIN}
+# for automatic HTTPS, HSTS and security headers (Security doc §6).
+:80 {
+	encode zstd gzip
+
+	handle /api/* {
+		reverse_proxy api:8000
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+}
