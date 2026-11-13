@@ -15,6 +15,7 @@ from arq.connections import RedisSettings
 from arq.cron import CronJob, cron
 
 from common.config import get_settings
+from common.email import GmailSender, render
 from common.logging import configure_logging
 from common.queues import (
     LLM_QUEUE,
@@ -34,6 +35,20 @@ async def ping(ctx: dict[str, Any]) -> str:
 async def heartbeat(ctx: dict[str, Any]) -> None:
     """Runbook Part D: scheduler heartbeat must be < 2 min old."""
     await ctx["redis"].set(SCHEDULER_HEARTBEAT_KEY, str(int(time.time())), ex=600)
+
+
+async def send_email(
+    ctx: dict[str, Any], to: str, template: str, context: dict[str, Any] | None = None
+) -> str:
+    """Render `template` and send it via Gmail; returns the Gmail message id.
+
+    The sender lives in the worker ctx so its access-token cache survives across jobs.
+    TokenRevoked / EmailError fail the job (no arq retry: it needs a human or is logged).
+    """
+    if "gmail" not in ctx:
+        ctx["gmail"] = GmailSender.from_settings()
+    sender: GmailSender = ctx["gmail"]
+    return await sender.send(to, render(template, **(context or {})))
 
 
 async def install_log_redaction(ctx: dict[str, Any]) -> None:
@@ -69,7 +84,7 @@ class NotifyWorker:
     redis_settings = REDIS
     health_check_interval = HEALTH_CHECK_INTERVAL
     on_startup = install_log_redaction
-    functions: ClassVar[list[Any]] = [ping]
+    functions: ClassVar[list[Any]] = [ping, send_email]
 
 
 class SchedulerWorker:
