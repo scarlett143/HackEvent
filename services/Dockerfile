@@ -19,8 +19,10 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 
 COPY services ./services
+# ALEMBIC_CONFIG lets `docker compose exec api alembic upgrade head` run from WORKDIR /app.
 ENV PATH=/app/.venv/bin:$PATH \
-    PYTHONPATH=/app/services
+    PYTHONPATH=/app/services \
+    ALEMBIC_CONFIG=/app/services/alembic.ini
 
 RUN useradd --system --uid 10001 --no-create-home app
 USER app
