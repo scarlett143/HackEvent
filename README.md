@@ -17,6 +17,7 @@ Design docs: [docs/](docs/README.md) — PRD, TRD, schema, API, security, AI gua
 | HE-003 | Caddy driven by `APP_DOMAIN`: automatic HTTPS, security headers, TLS smoke check | Done |
 | HE-004 | Postgres schema (21 tables from doc 05) + Alembic baseline; upgrade/downgrade tested | Done |
 | HE-005 | CI: ruff, mypy, pytest, lint, typecheck, build, dependency audits, Trivy image scan | Done |
+| HE-006 | AES-256-GCM envelope encryption for secrets at rest (per-value data key wrapped by MASTER_KEY) | Done |
 | HE-007 | Log redaction filter (tokens, keys, cookies, DSN passwords) on API + worker logs | Done |
 
 Full ticket list: [docs/09-Feature-Ticket-List.md](docs/09-Feature-Ticket-List.md).
