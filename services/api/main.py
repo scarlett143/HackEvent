@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request, Response
 
 from api import auth, health
+from api.csrf import CSRFMiddleware
 from api.errors import ApiError, handle_api_error
 from common.logging import configure_logging
 
@@ -9,6 +10,7 @@ configure_logging()
 
 app = FastAPI(title="HackEvents API", docs_url=None, redoc_url=None, lifespan=health.lifespan)
 app.add_exception_handler(ApiError, handle_api_error)
+app.add_middleware(CSRFMiddleware, session_cookie=auth.SESSION_COOKIE)
 app.include_router(auth.router)
 
 
