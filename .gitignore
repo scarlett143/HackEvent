@@ -1,0 +1,23 @@
+# secrets — never commit (Security doc §5)
+.env
+.env.*
+!.env.example
+secrets/
+
+# node
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# os
+.DS_Store
