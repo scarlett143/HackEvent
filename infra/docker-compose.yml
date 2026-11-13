@@ -74,6 +74,9 @@ services:
     cpus: 1.0
     environment:
       <<: [*py-env, *db-env]
+      # Only Caddy can reach api (no published port); trust its X-Forwarded-For so the
+      # per-IP login rate limit sees the real client, not Caddy.
+      FORWARDED_ALLOW_IPS: "*"
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
