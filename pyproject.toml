@@ -44,7 +44,7 @@ target-version = "py312"
 extend-select = ["I"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["api", "workers", "common", "scripts"]
+known-first-party = ["api", "workers", "common", "scripts", "seeds"]
 
 [tool.mypy]
 mypy_path = "services"
