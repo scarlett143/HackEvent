@@ -1,0 +1,124 @@
+{
+  "_note": "Synthetic HE-047 duplicates. Candidates of one group must end up as `expected[group]` events. Upserted in file order.",
+  "expected": {
+    "exact": 1,
+    "fuzzy_auto": 1,
+    "fuzzy_review": 2,
+    "distinct_title": 2,
+    "distinct_org": 2,
+    "distinct_dates": 2
+  },
+  "candidates": [
+    {
+      "group": "exact",
+      "source_url": "https://devpost.example/codesprint",
+      "candidate": {
+        "title": "CodeSprint 2027", "organiser": "Example University",
+        "registration_deadline": "2027-02-06T18:29:59Z", "event_start": "2027-02-20T04:30:00Z",
+        "mode": "unknown", "eligibility": ["students"], "confidence": 1.0, "extractor": "devpost"
+      }
+    },
+    {
+      "group": "exact",
+      "source_url": "https://example.edu/events/codesprint",
+      "candidate": {
+        "title": "CodeSprint — Season 3", "organiser": "Example University.",
+        "registration_url": "https://example.edu/codesprint/register",
+        "registration_deadline": "2027-02-06T18:29:59Z", "event_start": "2027-02-20T10:00:00Z",
+        "event_end": "2027-02-21T12:00:00Z", "mode": "offline", "location": "Coimbatore",
+        "eligibility": ["students", "faculty"], "prize": "INR 1,00,000",
+        "evidence": "Registration closes 6 February 2027.", "confidence": 0.92,
+        "extractor": "gemini:gemini-flash"
+      }
+    },
+    {
+      "group": "exact",
+      "source_url": "https://feeds.example/hackathons.xml",
+      "candidate": {
+        "title": "codesprint (2027 edition)", "organiser": "EXAMPLE UNIVERSITY",
+        "event_start": "2027-02-20T00:00:00Z", "confidence": 0.8, "extractor": "rss"
+      }
+    },
+    {
+      "group": "fuzzy_auto",
+      "source_url": "https://unstop.example/hackfest",
+      "candidate": {
+        "title": "HackFest Coimbatore", "organiser": "Sample Institute of Technology",
+        "registration_deadline": "2027-03-01T18:29:59Z", "event_start": "2027-03-10T04:30:00Z",
+        "confidence": 0.95, "extractor": "unstop"
+      }
+    },
+    {
+      "group": "fuzzy_auto",
+      "source_url": "https://sample-tech.example/hackfest",
+      "candidate": {
+        "title": "Hackfest Coimbatore!", "organiser": "Sample Institute of Technology",
+        "event_start": "2027-03-11T04:30:00Z", "confidence": 0.9, "extractor": "gemini:gemini-flash"
+      }
+    },
+    {
+      "group": "fuzzy_review",
+      "source_url": "https://devpost.example/national",
+      "candidate": {
+        "title": "Bluefield National Hackathon", "organiser": "Bluefield Foundation",
+        "event_start": "2027-04-01T04:30:00Z", "confidence": 1.0, "extractor": "devpost"
+      }
+    },
+    {
+      "group": "fuzzy_review",
+      "source_url": "https://bluefield.example/finals",
+      "candidate": {
+        "title": "Bluefield National Hackathon Finals", "organiser": "Bluefield Foundation",
+        "event_start": "2027-04-02T04:30:00Z", "confidence": 0.9, "extractor": "gemini:gemini-flash"
+      }
+    },
+    {
+      "group": "distinct_title",
+      "source_url": "https://quantum.example/week",
+      "candidate": {
+        "title": "Quantum Hack Week", "organiser": "Quantum Club",
+        "event_start": "2027-05-01T04:30:00Z", "confidence": 1.0, "extractor": "rss"
+      }
+    },
+    {
+      "group": "distinct_title",
+      "source_url": "https://quantum.example/weekend",
+      "candidate": {
+        "title": "Quantum Hack Weekend", "organiser": "Quantum Club",
+        "event_start": "2027-05-02T04:30:00Z", "confidence": 1.0, "extractor": "rss"
+      }
+    },
+    {
+      "group": "distinct_org",
+      "source_url": "https://alpha.example/ideathon",
+      "candidate": {
+        "title": "Smart Campus Ideathon", "organiser": "Alpha College",
+        "event_start": "2027-06-01T04:30:00Z", "confidence": 1.0, "extractor": "rss"
+      }
+    },
+    {
+      "group": "distinct_org",
+      "source_url": "https://beta.example/ideathon",
+      "candidate": {
+        "title": "Smart Campus Ideathon", "organiser": "Beta College",
+        "event_start": "2027-06-01T04:30:00Z", "confidence": 1.0, "extractor": "rss"
+      }
+    },
+    {
+      "group": "distinct_dates",
+      "source_url": "https://gamma.example/buildathon-spring",
+      "candidate": {
+        "title": "Gamma Buildathon", "organiser": "Gamma Labs",
+        "event_start": "2027-07-01T04:30:00Z", "confidence": 1.0, "extractor": "rss"
+      }
+    },
+    {
+      "group": "distinct_dates",
+      "source_url": "https://gamma.example/buildathon-summer",
+      "candidate": {
+        "title": "Gamma Buildathon", "organiser": "Gamma Labs",
+        "event_start": "2027-07-11T04:30:00Z", "confidence": 1.0, "extractor": "rss"
+      }
+    }
+  ]
+}
