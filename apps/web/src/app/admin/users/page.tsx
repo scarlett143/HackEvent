@@ -110,9 +110,14 @@ export default function UsersPage() {
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 p-6">
       <header className="flex items-center justify-between border-b border-line pb-4">
         <h1 className="text-xl font-semibold">Users and invites</h1>
-        <Link className="link inline-flex min-h-11 items-center" href="/">
-          Back to HackEvents
-        </Link>
+        <nav aria-label="Admin" className="flex flex-wrap gap-4">
+          <Link className="link inline-flex min-h-11 items-center" href="/admin/sources">
+            Sources
+          </Link>
+          <Link className="link inline-flex min-h-11 items-center" href="/">
+            Back to HackEvents
+          </Link>
+        </nav>
       </header>
 
       <div aria-live="polite" className="min-h-5 text-sm">

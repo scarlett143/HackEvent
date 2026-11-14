@@ -5,7 +5,7 @@ const CSRF_COOKIE = "__Host-csrf";
 const CSRF_HEADER = "X-CSRF-Token";
 const WRITE = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
-export type ApiError = { code: string; message: string };
+export type ApiError = { code: string; message: string; details?: Record<string, unknown> };
 export type ApiResult<T> =
   | { ok: true; status: number; data: T }
   | { ok: false; status: number; error: ApiError };
