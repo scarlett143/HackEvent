@@ -8,6 +8,8 @@ Every route is gated by the router-level `require_admin_2fa`; admins see every r
   loader's `parse_csv`, all-or-nothing: any bad row → 422 listing every problem).
 - `GET/POST /admin/sources`, `GET/PATCH/DELETE /admin/sources/{id}`. URLs pass the SSRF
   guard (doc 07 §8) on create and on every URL change; create/edit/delete write audit rows.
+- `GET /admin/sources/health` (HE-092): every source with `common.source_health` status
+  (red / amber / green) and its reason, red first; same rule the scheduler alerts on.
 - `POST /admin/sources/{id}/run` enqueues one `scrape_source` job (the same payload the
   scheduler sends, own job id) and returns 202; the result lands on the source row
   (last_success_at / error_streak / last_error), which the UI polls via GET.
@@ -45,6 +47,7 @@ from common.models import (
     SourceKind,
 )
 from common.queues import SCRAPE_QUEUE
+from common.source_health import HealthStatus, source_health
 from seeds.load import SeedError, parse_csv, upsert
 from workers.scheduler import cadence_hours_for, scrape_payload
 from workers.scrape.adapters import ADAPTERS
@@ -399,6 +402,62 @@ async def create_source(
     await db.commit()
     await db.refresh(source)
     return _source_out(source, await _org_name(db, source.organisation_id))
+
+
+class HealthRow(BaseModel):
+    id: uuid.UUID
+    url: str
+    organisation_name: str | None
+    kind: SourceKind
+    adapter: SourceAdapter
+    is_enabled: bool
+    status: HealthStatus
+    reason: str
+    last_success_at: datetime | None
+    last_error: str | None
+    error_streak: int
+    empty_streak: int
+
+
+class HealthList(BaseModel):
+    items: list[HealthRow]
+    next_cursor: None = None
+
+
+HEALTH_ORDER = {HealthStatus.RED: 0, HealthStatus.AMBER: 1, HealthStatus.GREEN: 2}
+
+
+# Declared before /sources/{source_id} so "health" is not parsed as an id.
+@router.get("/sources/health")
+async def sources_health(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> HealthList:  # role: admin + 2FA (HE-092); red first, then amber, then green
+    rows = await db.execute(
+        select(Source, Organisation.name)
+        .outerjoin(Organisation, Organisation.id == Source.organisation_id)
+        .limit(SOURCE_MAX_ROWS)
+    )
+    items = []
+    for s, name in rows:
+        health = source_health(s.error_streak, s.empty_streak, s.last_error)
+        items.append(
+            HealthRow(
+                id=s.id,
+                url=s.url,
+                organisation_name=name,
+                kind=s.kind,
+                adapter=s.adapter,
+                is_enabled=s.is_enabled,
+                status=health.status,
+                reason=health.reason,
+                last_success_at=s.last_success_at,
+                last_error=s.last_error,
+                error_streak=s.error_streak,
+                empty_streak=s.empty_streak,
+            )
+        )
+    items.sort(key=lambda h: (HEALTH_ORDER[h.status], not h.is_enabled, h.url, str(h.id)))
+    return HealthList(items=items)
 
 
 @router.get("/sources/{source_id}")

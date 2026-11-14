@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { adminRedirect, api, type ApiError, type Me } from "@/lib/api";
 
-// App Flow F10 + doc 06 A7: organisations (tier, CSV import) and sources (create/edit,
-// Run now) for Admins (HE-091). Scraped/fetched text (last_error) is rendered as text only.
+// App Flow F10 + doc 06 A7: organisations (tier, CSV import), sources (create/edit,
+// Run now) for Admins (HE-091) and source health, red first (HE-092). Fetched text
+// (last_error, reason) is rendered as React text, never as HTML.
 // ponytail: plain tables; TanStack (design brief §4.6) once column sorting is needed.
 
 const HERE = "/admin/sources";
@@ -48,7 +49,28 @@ type Source = {
   last_error: string | null;
   updated_at: string;
 };
+type Health = {
+  id: string;
+  url: string;
+  organisation_name: string | null;
+  kind: string;
+  adapter: string;
+  is_enabled: boolean;
+  status: "red" | "amber" | "green";
+  reason: string;
+  last_success_at: string | null;
+  last_error: string | null;
+  error_streak: number;
+  empty_streak: number;
+};
 type List<T> = { items: T[]; next_cursor: null };
+
+// Design brief §3/§6: colour is decoration only; the text label carries the status.
+const STATUS = {
+  red: { label: "Red", dot: "bg-urgent", edge: "border-l-urgent" },
+  amber: { label: "Amber", dot: "bg-warning", edge: "border-l-warning" },
+  green: { label: "Green", dot: "bg-ok", edge: "border-l-ok" },
+} as const;
 type Failed = { status: number; error: ApiError };
 
 export default function SourcesPage() {
@@ -57,6 +79,7 @@ export default function SourcesPage() {
   const [orgs, setOrgs] = useState<Org[] | null>(null);
   const [allOrgs, setAllOrgs] = useState<Org[]>([]);
   const [sources, setSources] = useState<Source[] | null>(null);
+  const [health, setHealth] = useState<Health[] | null>(null);
   const [filter, setFilter] = useState({ kind: "", tier: "", region: "", q: "" });
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -85,6 +108,12 @@ export default function SourcesPage() {
     [fail],
   );
 
+  const loadHealth = useCallback(async () => {
+    const h = await api<List<Health>>("/api/v1/admin/sources/health");
+    if (!h.ok) return fail(h);
+    setHealth(h.data.items);
+  }, [fail]);
+
   const loadAll = useCallback(async () => {
     const [m, o, s] = await Promise.all([
       api<Me>("/api/v1/me"),
@@ -98,7 +127,8 @@ export default function SourcesPage() {
     setAllOrgs(o.data.items);
     setOrgs(o.data.items);
     setSources(s.data.items);
-  }, [fail]);
+    await loadHealth();
+  }, [fail, loadHealth]);
 
   useEffect(() => {
     // Mount-time fetch; every setState in loadAll runs after an await, not synchronously.
@@ -191,6 +221,7 @@ export default function SourcesPage() {
       isNew ? [...(list ?? []), r.data] : (list ?? []).map((x) => (x.id === r.data.id ? r.data : x)),
     );
     setEditing(null);
+    loadHealth();
     say(isNew ? `Source added: ${r.data.url}` : `Source saved: ${r.data.url}`);
   }
 
@@ -199,6 +230,7 @@ export default function SourcesPage() {
     const r = await api<void>(`/api/v1/admin/sources/${s.id}`, "DELETE");
     if (!r.ok) return fail(r);
     setSources((list) => list?.filter((x) => x.id !== s.id) ?? null);
+    setHealth((list) => list?.filter((x) => x.id !== s.id) ?? null);
     say(`Source deleted: ${s.url}`);
   }
 
@@ -220,6 +252,7 @@ export default function SourcesPage() {
         cur.last_success_at !== before.last_success_at || cur.error_streak > before.error_streak;
       if (!done) continue;
       setSources((list) => list?.map((x) => (x.id === cur.id ? cur : x)) ?? null);
+      loadHealth();
       return setRun(
         cur.error_streak > before.error_streak
           ? `Failed: ${cur.last_error ?? "unknown error"}`
@@ -248,6 +281,9 @@ export default function SourcesPage() {
           </a>
           <a className="link inline-flex min-h-11 items-center" href="#sources-heading">
             Sources
+          </a>
+          <a className="link inline-flex min-h-11 items-center" href="#health-heading">
+            Health
           </a>
           <Link className="link inline-flex min-h-11 items-center" href="/admin/users">
             Users
@@ -505,6 +541,67 @@ export default function SourcesPage() {
                         {runs[s.id]}
                       </p>
                     </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section aria-labelledby="health-heading" className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 id="health-heading" className="text-lg font-semibold">
+            Source health
+          </h2>
+          <button className="btn-secondary" onClick={() => loadHealth()}>
+            Refresh
+          </button>
+        </div>
+        <p className="text-muted text-sm">
+          Red after 3 failed runs or 5 runs with no events in a row. Admins get an email when a
+          source turns red.
+        </p>
+        {!health ? (
+          <p className="text-muted">Loading…</p>
+        ) : health.length === 0 ? (
+          <p className="text-muted">No sources yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <caption className="text-muted p-2 text-left">
+                {(["red", "amber", "green"] as const)
+                  .map((k) => `${health.filter((h) => h.status === k).length} ${STATUS[k].label.toLowerCase()}`)
+                  .join(", ")}
+              </caption>
+              <thead className="surface">
+                <tr>
+                  <th scope="col" className="p-2">Status</th>
+                  <th scope="col" className="p-2">Source</th>
+                  <th scope="col" className="p-2">Reason</th>
+                  <th scope="col" className="p-2">Last success</th>
+                  <th scope="col" className="p-2">Last error</th>
+                </tr>
+              </thead>
+              <tbody>
+                {health.map((h) => (
+                  <tr key={h.id} className={`border-t border-l-4 border-t-line align-top ${STATUS[h.status].edge}`}>
+                    <td className="p-2 font-medium whitespace-nowrap">
+                      <span className="inline-flex items-center gap-2">
+                        <span aria-hidden="true" className={`size-3 rounded-full ${STATUS[h.status].dot}`} />
+                        {STATUS[h.status].label}
+                      </span>
+                    </td>
+                    <th scope="row" className="max-w-64 p-2 font-medium break-all">
+                      {h.url}
+                      <span className="text-muted block font-normal">
+                        {h.organisation_name ?? "Aggregator"} · {h.kind} / {h.adapter}
+                        {h.is_enabled ? "" : " · disabled"}
+                      </span>
+                    </th>
+                    <td className="max-w-80 p-2 break-words">{h.reason}</td>
+                    <td className="p-2">{when(h.last_success_at)}</td>
+                    <td className="max-w-64 p-2 break-words">{h.last_error ?? "None"}</td>
                   </tr>
                 ))}
               </tbody>

@@ -378,3 +378,63 @@ def test_last_error_is_returned_as_plain_data(c: TestClient, admin: Actor) -> No
     r = c.get(f"{SOURCES}/{s['id']}", headers=admin.headers)
     assert r.headers["content-type"].startswith("application/json")
     assert r.json()["last_error"] == html and r.json()["error_streak"] == 2
+
+
+# --- HE-092: source health ---
+
+HEALTH = f"{SOURCES}/health"
+
+
+def test_health_status_reason_and_order(c: TestClient, admin: Actor) -> None:
+    acme = org("Acme")
+    for name, errors, empties, last_error, enabled in (
+        ("green", 0, 0, None, True),
+        ("amber-err", 1, 0, "HTTP 503", True),
+        ("red-empty", 0, 5, None, True),
+        ("amber-empty", 0, 2, None, True),
+        ("red-err", 3, 0, "<b>FetchError</b>: timed out", True),
+        ("red-off", 4, 0, None, False),
+    ):
+        sid = new_source(
+            c, admin, url=f"https://example.org/{name}", organisation_id=acme, is_enabled=enabled
+        ).json()["id"]
+        sql(
+            "UPDATE sources SET error_streak = :e, empty_streak = :m, last_error = :l"
+            " WHERE id = CAST(:i AS uuid)",
+            e=errors,
+            m=empties,
+            l=last_error,
+            i=sid,
+        )
+    r = c.get(HEALTH, headers=admin.headers)
+    assert r.status_code == 200
+    items = r.json()["items"]
+    assert [(i["url"].rsplit("/", 1)[1], i["status"], i["reason"]) for i in items] == [
+        ("red-empty", "red", "5 run(s) in a row with no events (red at 5)"),
+        (
+            "red-err",
+            "red",
+            "3 failed run(s) in a row (red at 3); last error: <b>FetchError</b>: timed out",
+        ),
+        ("red-off", "red", "4 failed run(s) in a row (red at 3)"),  # disabled: last within red
+        ("amber-empty", "amber", "2 run(s) in a row with no events (red at 5)"),
+        ("amber-err", "amber", "1 failed run(s) in a row (red at 3); last error: HTTP 503"),
+        ("green", "green", "OK"),
+    ]
+    first = items[0]
+    assert first["organisation_name"] == "Acme" and first["last_success_at"] is None
+    assert set(first) == {
+        "id", "url", "organisation_name", "kind", "adapter", "is_enabled", "status",
+        "reason", "last_success_at", "last_error", "error_streak", "empty_streak",
+    }  # fmt: skip
+    assert items[2]["is_enabled"] is False
+
+
+def test_health_refused_to_non_admins(c: TestClient) -> None:
+    for actor in (make_actor("prof@example.com"), make_actor("mgmt@example.com", "management")):
+        r = c.get(HEALTH, headers=actor.headers)
+        assert r.status_code == 403 and r.json()["error"]["code"] == "forbidden"
+    admin = make_actor("admin@example.com", "admin")
+    sql("UPDATE sessions SET totp_verified_at = NULL WHERE user_id = CAST(:u AS uuid)", u=admin.id)
+    assert c.get(HEALTH, headers=admin.headers).json()["error"]["code"] == "totp_required"
+    assert c.get(HEALTH).status_code == 401
