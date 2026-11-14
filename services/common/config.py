@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     # migrations) boot without it; common.crypto refuses to run when it is unset.
     master_key: SecretStr | None = None
 
+    # Scraper politeness (HE-022): min seconds between requests to one host, all workers.
+    fetch_domain_interval_s: float = 5.0
+
     # Email (HE-030, runbook B7). Empty = email not configured.
     gmail_sender: str = ""
     gmail_oauth_refresh_token: SecretStr = SecretStr("")
