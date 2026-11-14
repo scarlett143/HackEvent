@@ -14,10 +14,19 @@ import redis
 from alembic import command
 from alembic.config import Config
 from fastapi.testclient import TestClient
-from tests.test_auth import ALEMBIC_INI, DB_URL, GOOD_PASSWORD, REDIS_URL, needs_stack, sql
+from tests.test_auth import (
+    ALEMBIC_INI,
+    DB_URL,
+    GOOD_PASSWORD,
+    REDIS_URL,
+    needs_stack,
+    sql,
+    writes_as,
+)
 
 from api import totp
 from api.auth import SESSION_COOKIE, hash_password
+from api.csrf import CSRF_HEADER
 from api.main import app
 from common import crypto
 from common.config import get_settings
@@ -93,13 +102,22 @@ def make(email: str, role: str = "admin") -> str:
     return str(rows[0][0])
 
 
+def pre_csrf(c: TestClient) -> dict[str, str]:
+    """CSRF header for a pre-login write (HE-015); the cookie lands in the jar."""
+    return {CSRF_HEADER: c.get("/api/v1/auth/csrf").json()["csrf_token"]}
+
+
 def session(c: TestClient, email: str, **extra: Any) -> dict[str, str]:
-    """Log in and return headers for that session (cookie jar left empty)."""
-    r = c.post("/api/v1/auth/login", json={"email": email, "password": GOOD_PASSWORD, **extra})
+    """Log in and return write-capable headers for that session (cookie jar left empty)."""
+    r = c.post(
+        "/api/v1/auth/login",
+        json={"email": email, "password": GOOD_PASSWORD, **extra},
+        headers=pre_csrf(c),
+    )
     assert r.status_code == 200, r.text
     token = c.cookies[SESSION_COOKIE]
     c.cookies.clear()
-    return {"Cookie": f"{SESSION_COOKIE}={token}"}
+    return writes_as(token)
 
 
 def code(secret: str, delta: int = 0) -> str:
@@ -187,7 +205,9 @@ def test_login_with_totp_verifies_in_one_step(client: TestClient) -> None:
     r = client.post(
         "/api/v1/auth/login",
         json={"email": "admin@example.com", "password": GOOD_PASSWORD, "totp": wrong(secret)},
+        headers=pre_csrf(client),
     )
+    client.cookies.clear()
     assert err(r) == (400, "invalid_totp")
     assert SESSION_COOKIE not in r.headers.get("set-cookie", "")
     h = session(client, "admin@example.com", totp=after(secret, step))
