@@ -56,9 +56,11 @@ function Feed() {
   return (
     <main className="flex flex-col gap-4 p-4 md:p-6">
       <h1 className="sr-only">Hackathon feed</h1>
-      <FilterBar key={key} filters={filters} apply={apply} />
-      {/* Remount on every filter change: fresh list, fresh cursor. */}
-      <Results key={key} query={key} />
+      {/* Remount both on every filter change (fresh form state, fresh list + cursor).
+          Sibling keys must differ: a shared key made React keep the old FilterBar
+          and add a new one on every search. */}
+      <FilterBar key={`filters:${key}`} filters={filters} apply={apply} />
+      <Results key={`results:${key}`} query={key} />
     </main>
   );
 }
