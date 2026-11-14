@@ -16,7 +16,7 @@ import pytest
 from pydantic import SecretStr
 
 from common import crypto
-from common.llm import InvalidOutput, ProviderError, RateLimited, build_provider, call_llm
+from common.llm import InvalidOutput, ProviderError, RateLimited, build_provider
 from common.llm.anthropic import API_VERSION, AnthropicProvider, api_schema
 from common.llm.base import LLMProvider, validate
 from common.llm.gemini import GeminiProvider
@@ -151,8 +151,8 @@ def _provider(case: Case, fake: Fake) -> LLMProvider:
 
 
 async def _call(p: LLMProvider) -> Any:
-    return await call_llm(
-        p, system="sys prompt", user="page text", schema=SCHEMA, max_output_tokens=512
+    return await p.complete_json(
+        system="sys prompt", user="page text", schema=SCHEMA, max_output_tokens=512
     )
 
 
