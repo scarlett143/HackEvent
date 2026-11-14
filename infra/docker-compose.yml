@@ -13,7 +13,9 @@ x-base: &base
 x-py: &py
   <<: *base
   image: hackevents/services:local
-  build: { context: .., dockerfile: services/Dockerfile }
+  # Only `api` builds this image; the others reuse it. If all five declared `build`,
+  # `up --build` would build the same tag in parallel and race ("already exists").
+  pull_policy: never
   environment: &py-env
     REDIS_URL: redis://redis:6379/0
     DEFAULT_TZ: ${DEFAULT_TZ:-Asia/Kolkata}
@@ -78,6 +80,8 @@ services:
 
   api:
     <<: *py
+    build: { context: .., dockerfile: services/Dockerfile }
+    pull_policy: missing
     mem_limit: 512m
     cpus: 1.0
     environment:
