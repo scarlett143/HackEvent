@@ -7,7 +7,7 @@ settled afterwards, so the cap check sums it while the call is in flight. All nu
 existing rows need no backfill. Never holds prompts, page text or keys.
 
 Revision ID: 0004
-Revises: 0002 (set to 0003 once HE-031 merges; see down_revision)
+Revises: 0003
 Create Date: 2026-11-14 12:00:00
 """
 
@@ -17,8 +17,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "0004"
-# HE-031 takes 0003 but is not on main yet: change this to "0003" when merging after it.
-down_revision: str | Sequence[str] | None = "0002"
+down_revision: str | Sequence[str] | None = "0003"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
