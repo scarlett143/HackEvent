@@ -1,0 +1,632 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>DEV Community: Major League Hacking (MLH)</title>
+    <description>The latest articles on DEV Community by Major League Hacking (MLH) (mlh).</description>
+    <link>https://blog.mlh.com</link>
+    <image>
+      <url>https://media2.dev.to/dynamic/image/width=90,height=90,fit=cover,gravity=auto,format=auto/https:%2F%2Fdev-to-uploads.s3.us-east-2.amazonaws.com%2Fuploads%2Forganization%2Fprofile_image%2F2310%2F828f0108-477d-4d0d-8812-973f182358b4.jpg</url>
+      <title>DEV Community: Major League Hacking (MLH)</title>
+      <link>https://blog.mlh.com</link>
+    </image>
+    <atom:link rel="self" type="application/rss+xml" href="https://blog.mlh.com/feed"/>
+    <language>en</language>
+    <item>
+      <title>Can you merge at agent speed?</title>
+      <dc:creator>Major League Hacking</dc:creator>
+      <pubDate>Thu, 12 Nov 2026 17:40:59 +0000</pubDate>
+      <link>https://blog.mlh.com/can-you-merge-at-agent-speed-4m67</link>
+      <guid>https://blog.mlh.com/can-you-merge-at-agent-speed-4m67</guid>
+      <description>&lt;p&gt;&lt;em&gt;Major League Hacking and Entire are teaming up for a year of hackathons, DEV Challenges, and a new prize that puts the first Git forge for agent-human collaboration in hackers’ hands&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;Picture this: you’re 14 hours into a hackathon. You’ve got multiple agents running, you’ve tried three different approaches, and somewhere between your fifth coffee and your tenth prompt, you finally crack it. You’re ready to ship something you’re proud of and you hit your Git platform.&lt;/p&gt;
+
+&lt;p&gt;Your code goes through pull requests designed for humans reviewing human-generated code. And when your session ends, everything your agent learned about the project ends with it. The next prompt starts from scratch. Today’s Git forges were built for a human-paced loop, not for developers collaborating with agents.&lt;/p&gt;
+
+&lt;p&gt;That's why we're partnering with &lt;strong&gt;&lt;a href="http://entire.com" rel="noopener noreferrer"&gt;Entire&lt;/a&gt;&lt;/strong&gt;, the Git forge for agent-human collaboration, founded by former GitHub CEO Thomas Dohmke. Our partnership will help developers across the MLH and DEV community to merge changes as fast as their coding agents create them, and to capture, share, and learn from how they build with AI.&lt;/p&gt;
+
+&lt;h2&gt;
+  
+  
+  Where AI habits get formed
+&lt;/h2&gt;
+
+&lt;p&gt;There's no shortage of predictions about how AI will change software development. We don't pretend to have all the answers, but we have a pretty good idea of where some of them will come from.&lt;/p&gt;
+
+&lt;p&gt;Every weekend at hackathons around the world, hackers show up with technologies they've never used and ideas they're not sure how to execute. They try things, break things, learn from each other, and sometimes find approaches that surprise the people who built the tools.&lt;/p&gt;
+
+&lt;p&gt;Developers are still figuring out how to work effectively with AI agents. The habits they develop today, the tools they adopt, and the lessons they share will influence how software gets built in the years ahead. We want our community to have a hand in shaping that future, not just adapting to it.&lt;/p&gt;
+
+&lt;h2&gt;
+  
+  
+  Meet Entire
+&lt;/h2&gt;
+
+&lt;p&gt;On October 26, Entire launched the first Git forge built specifically for agent-human collaboration. Here are the highlights:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;
+&lt;strong&gt;Trails.&lt;/strong&gt; Unlike the classic pull request model of reviewing code changes with a diff, Trails offers developers a heads-up display similar to an airline pilot, with automated customizable evals that are scored by agents on every code push.&lt;/li&gt;
+&lt;li&gt;
+&lt;strong&gt;Distributed Git hosting.&lt;/strong&gt; Entire is built on a new source control server compatible with Git, which pushes up to 89x faster than GitHub and 6x faster than Cursor Origin. You can host your repo and replicate it in multiple regions around the world, offering data residency and scale for agentic traffic.&lt;/li&gt;
+&lt;li&gt;
+&lt;strong&gt;Continuous Memory&lt;/strong&gt;, a new approach for agents and developer teams that sync sessions and prompts into the Git repository, and makes that data constantly available and searchable to coding agents. It includes Graph, which maps how your codebase fits together, and Brain, which turns past sessions into memories your agents can query.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;And then there’s Sessions: the open-source Entire CLI saves your agent sessions as checkpoints linked to your commits, so your team can see the prompts and reasoning behind each change. Put together, it’s a Git forge built for the way developers collaborate with agents today.&lt;/p&gt;
+
+&lt;p&gt;For a hackathon team racing the clock, that means the ability to reason over the code your agents create so you can merge as fast as they write it, less time re-explaining context to your agents, fewer burned tokens, and a way to show something that’s always been hard to demo: the thinking behind the project.&lt;/p&gt;
+
+&lt;h2&gt;
+  
+  
+  What MLH and Entire are doing together
+&lt;/h2&gt;
+
+&lt;p&gt;Over the next 12 months, Entire will show up across MLH and DEV through hackathon prizes, DEV Challenges, and direct feedback.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;A new prize: Best Use of Entire.&lt;/strong&gt; At 150 MLH hackathons across North America, Europe, and Asia, teams can compete for a prize that rewards smarter AI workflows. Use as much of Entire as you can: Sessions to hand off context to teammates and agents, Graph to map your codebase and cut token usage, Brain so your agents remember past decisions, and Trails to assign and review agent work. Judges are looking for seamless human-AI collaboration, clean code history, and measurable token efficiency. Winners take home a mini portable projector, and MLH staff on-site will help you get set up.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Two DEV Challenges.&lt;/strong&gt; Not every idea fits in a 36-hour weekend. Entire will sponsor two DEV Challenges where you can explore its tooling at your own pace, build something, and write about what you learned. And unlike a weekend demo, those posts stick around for the next developer to learn from. Themes, dates, and prizes coming soon.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;A direct line to the team building the tools.&lt;/strong&gt; Hackathons are a great stress test. When you've got a weekend to build, you find out fast whether a tool is helping or getting in your way. MLH will work with community members to test Entire's tools and docs, flag friction, and bring that feedback straight to Entire's team. If a tool is supposed to make developers' lives better, developers should have a say in how it works.&lt;/p&gt;
+
+&lt;p&gt;None of this starts from scratch. Thomas kicked things off with a keynote at HackGT in September, and Entire joined us for Hacktoberfest 2026, where their team went live on DEV with the community and hackers took home Entire prizes in our Hacktoberfest Open-Source AI DEV Challenges. Now we’re taking it on the road.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Mike Swift, CEO &amp;amp; Co-Founder, Major League Hacking&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;“When Thomas started Entire, we knew it was a natural fit for our community. At a hackathon you have one weekend to turn an idea into something real, and your agents have to keep up with you. Entire is built for that kind of speed, and it keeps the reasoning behind the code instead of losing it. Hackers are already building on top of it: Abdul Wasih built Viva, a mock interview tool that reads your Entire sessions to find the code an AI wrote, then quizzes you on it. That’s what happens when you put new tools in front of this community. This is a dream partnership for us, and we think capturing how software gets built, not just what ships, will be table stakes for AI coding.”&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;“Many developers make their start at hackathons, and MLH is among the very best, giving them a third space beyond the classroom or office where they can find community, get hands-on with the latest technologies, and build at the pace of the industry,”&lt;/em&gt; &lt;strong&gt;said Thomas Dohmke, Entire CEO.&lt;/strong&gt; &lt;em&gt;“We’re proud to partner with the MLH team to bring our Git forge to the next generation of developers. Many are already agent natives with a new kind of technical leverage. They’ll set the standard for how humans and agents create software together. We built Entire for this new world, and we can’t wait to see what they ship.”&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;We can’t wait to see what you build. And this time, we might get to see a little more of how you got there.&lt;/p&gt;
+
+</description>
+      <category>hackathon</category>
+      <category>ai</category>
+      <category>opensource</category>
+      <category>entire</category>
+    </item>
+    <item>
+      <title>Everything You Need To Know About Hacktoberfest 2026: AI Belongs to Everyone 🎃</title>
+      <dc:creator>Major League Hacking</dc:creator>
+      <pubDate>Thu, 01 Oct 2026 16:19:06 +0000</pubDate>
+      <link>https://blog.mlh.com/everything-you-need-to-know-about-hacktoberfest-2026-ai-belongs-to-everyone-mdk</link>
+      <guid>https://blog.mlh.com/everything-you-need-to-know-about-hacktoberfest-2026-ai-belongs-to-everyone-mdk</guid>
+      <description>&lt;p&gt;It's October 1st, which means &lt;a href="https://hacktoberfest.com/" rel="noopener noreferrer"&gt;Hacktoberfest 2026&lt;/a&gt; is &lt;strong&gt;officially live&lt;/strong&gt;! 🎉&lt;/p&gt;
+
+&lt;p&gt;This year looks a little different. Hacktoberfest is now powered by &lt;a href="https://mlh.com/" rel="noopener noreferrer"&gt;Major League Hacking (MLH)&lt;/a&gt; and DEV, presented by &lt;a href="https://www.digitalocean.com/" rel="noopener noreferrer"&gt;DigitalOcean&lt;/a&gt;, and it's built around one idea:&lt;/p&gt;
+
+&lt;h2&gt;
+  
+  
+  &lt;strong&gt;AI belongs to everyone.&lt;/strong&gt;
+&lt;/h2&gt;
+
+&lt;p&gt;For the entire month, people around the world are coming together, online and in person, to discover, learn about, and build with open-source AI. Maybe you'll finally &lt;strong&gt;figure out what an "open-weight model" actually is&lt;/strong&gt;. Maybe you'll catch your first livestream, &lt;strong&gt;try an AI tool you can run and inspect yourself&lt;/strong&gt;, or &lt;strong&gt;build something with a friend at a local Fest&lt;/strong&gt;.&lt;/p&gt;
+
+&lt;p&gt;Maybe you'll write your first &lt;code&gt;skills.md&lt;/code&gt;, build an open-source agent, or fine-tune a model. Wherever you're starting from, there's a place for you this month.&lt;/p&gt;
+
+&lt;h2&gt;
+  
+  
+  Totally new to "Open-Source AI"? Here's what you need to know:
+&lt;/h2&gt;
+
+&lt;p&gt;You don't need to be a developer, or to have ever touched open source, to take part in Hacktoberfest. A few quick definitions to get you going:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;
+&lt;strong&gt;Open source&lt;/strong&gt; means the code is public. Anyone can look at how a project is made, learn from it, use it, and help improve it.&lt;/li&gt;
+&lt;li&gt;
+&lt;strong&gt;Open-weight models&lt;/strong&gt; are AI models whose "weights" (the learned knowledge that makes the model work) are publicly released, so anyone can download, run, study, and adapt them, rather than only accessing them through a company's app. Open-weight is not the same as open source.&lt;/li&gt;
+&lt;li&gt;
+&lt;strong&gt;Open-source AI tools&lt;/strong&gt; are the building blocks around those models (agents, frameworks, and utilities) that are shared openly for anyone to use and improve.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Why does this matter? When AI is open, more people get to understand it, access it, and shape how it's used. That's what "AI belongs to everyone" is all about, and Hacktoberfest is a month-long invitation to come see for yourself.&lt;/p&gt;
+
+
+&lt;div class="crayons-card c-embed"&gt;
+
+  
+&lt;h2&gt;
+  
+  
+  A quick note on what's changed
+&lt;/h2&gt;
+
+&lt;p&gt;When DigitalOcean launched Hacktoberfest in 2014, the formula was simple: open four pull requests, earn a t-shirt. That idea helped bring a whole generation of people into open source. 💜&lt;/p&gt;
+
+&lt;p&gt;But AI tools now make low-effort pull requests trivial to generate, and open-source maintainers have been paying the price. So this year, &lt;strong&gt;pull requests and merge requests no longer count toward Hacktoberfest rewards.&lt;/strong&gt; Instead, the focus is on learning and building together, and on open source as a philosophy of transparency and collective ownership, not a PR count.&lt;/p&gt;
+
+&lt;p&gt;You can read more about the thinking behind this change on the &lt;a href="https://hacktoberfest.com/mission/" rel="noopener noreferrer"&gt;Hacktoberfest Mission page&lt;/a&gt;.&lt;br&gt;
+
+&lt;/p&gt;
+&lt;/div&gt;
+
+
+
+
+
+&lt;h2&gt;
+  
+  
+  📒 Start your sticker book
+&lt;/h2&gt;
+
+&lt;p&gt;Everything you do this month, &lt;strong&gt;in person or online&lt;/strong&gt;, earns virtual stickers in your Hacktoberfest sticker book. Collect enough virtual stickers, and real ones show up in your mailbox:&lt;/p&gt;
+
+&lt;div class="table-wrapper-paragraph"&gt;&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Stickers collected&lt;/th&gt;
+&lt;th&gt;Reward&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;3&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;A physical Hacktoberfest sticker pack, mailed to you&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;10&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;A bonus holographic sticker added to your pack&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;17&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;You're a &lt;strong&gt;Hacktoberfest Completionist&lt;/strong&gt;, with an automatic raffle entry for a Hacktoberfest t-shirt or an &lt;strong&gt;Arduino Uno Q&lt;/strong&gt; board&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;&lt;/div&gt;
+
+&lt;p&gt;You can earn stickers by attending a Fest, checking into livestreams, joining Global Hack Week, submitting to DEV Challenges, joining the MLH Discord, taking the pre- and post-event surveys, and more. If you use an AI coding assistant, you can also earn one by installing and logging in to &lt;a href="https://devrelay.com/" rel="noopener noreferrer"&gt;DevRelay&lt;/a&gt;, a tool that connects DEV and MLH right inside your agent session. The full list is on the &lt;a href="https://hacktoberfest.com/activities/" rel="noopener noreferrer"&gt;Hacktoberfest Activities page&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href="https://hacktoberfest.com/my/" class="crayons-btn crayons-btn--primary" rel="noopener noreferrer"&gt;Start your sticker book&lt;/a&gt;
+&lt;/p&gt;
+
+&lt;p&gt;Once you sign in with a free MyMLH account to start your sticker book, &lt;strong&gt;connect your DEV account&lt;/strong&gt; to earn your first sticker!&lt;/p&gt;
+
+
+&lt;div class="crayons-card c-embed"&gt;
+
+  
+&lt;h2&gt;
+  
+  
+  🏙️ Join a Fest near you
+&lt;/h2&gt;
+
+&lt;p&gt;This year there are &lt;strong&gt;300+ community-hosted, one-day Fests&lt;/strong&gt; happening in 60+ countries around the world. We can't recommend going in person enough, especially if you're just getting started. There's nothing like learning alongside people who are figuring it out with you. Here's what you get when you show up:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;
+&lt;strong&gt;Hacktoberfest 2026 t-shirts, stickers, and swag&lt;/strong&gt;, available in person while supplies last.&lt;/li&gt;
+&lt;li&gt;
+&lt;strong&gt;An official participation certificate&lt;/strong&gt; and an "Attend a Fest" virtual sticker for your sticker book.&lt;/li&gt;
+&lt;li&gt;
+&lt;strong&gt;Your people.&lt;/strong&gt; Meet others in your community who are curious about open-source AI.&lt;/li&gt;
+&lt;li&gt;
+&lt;strong&gt;Hands-on building with real hardware.&lt;/strong&gt; Select Hack Days have &lt;strong&gt;Arduinos&lt;/strong&gt; on hand, so you can take an open-source AI project off the screen and into the physical world.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Fests come in two flavors:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;
+&lt;strong&gt;Meetups&lt;/strong&gt;: talks, workshops, panels, and time to connect with others. No project or team required, which makes them a great first step if you're new.&lt;/li&gt;
+&lt;li&gt;
+&lt;strong&gt;Hack Days&lt;/strong&gt;: mini-hackathons where you build with open-weight models or open-source AI tools, demo at the end of the day, and compete for prizes. Come solo or bring a team.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;a href="https://hacktoberfest.com/fests/" class="crayons-btn crayons-btn--primary" rel="noopener noreferrer"&gt;Find a Fest&lt;/a&gt;
+&lt;/p&gt;
+
+
+&lt;/div&gt;
+
+
+
+
+
+&lt;h2&gt;
+  
+  
+  🌐 Join online
+&lt;/h2&gt;
+
+&lt;h3&gt;
+  
+  
+  Global Hack Week: Hacktoberfest
+&lt;/h3&gt;
+
+&lt;p&gt;Can't make it to a Fest? &lt;strong&gt;&lt;a href="https://ghw.mlh.com/events/open-source" rel="noopener noreferrer"&gt;Global Hack Week: Hacktoberfest&lt;/a&gt;&lt;/strong&gt; brings the energy online from &lt;strong&gt;Friday, October 9 (12:00 PM EDT) through Thursday, October 15 (1:00 PM EDT).&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;It's a free, week-long virtual hacker festival, and a welcoming place to learn at your own pace:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;
+&lt;strong&gt;Daily livestreamed workshops&lt;/strong&gt;, with recordings on YouTube if you can't catch them live&lt;/li&gt;
+&lt;li&gt;
+&lt;strong&gt;Challenges of all kinds&lt;/strong&gt;, from social and design challenges to technical ones that earn you points&lt;/li&gt;
+&lt;li&gt;
+&lt;strong&gt;Mini-events and community hangouts&lt;/strong&gt; in the &lt;a href="https://discord.mlh.io" rel="noopener noreferrer"&gt;MLH Discord&lt;/a&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Global Hack Week counts toward your sticker book too: you can earn stickers for completing the registration challenges, checking into a livestream, and more.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href="https://ghw.mlh.com/events/open-source" class="crayons-btn crayons-btn--primary" rel="noopener noreferrer"&gt;Register for Global Hack Week: Hacktoberfest&lt;/a&gt;
+&lt;/p&gt;
+
+
+
+
+&lt;h3&gt;
+  
+  
+  DEV Challenges
+&lt;/h3&gt;
+
+&lt;p&gt;We're running &lt;strong&gt;five challenges&lt;/strong&gt; throughout Hacktoberfest, all with &lt;strong&gt;cash prizes&lt;/strong&gt;, and each submission earns you a virtual sticker. They're a great excuse to try something new and share what you learned along the way.&lt;/p&gt;
+
+&lt;h4&gt;
+  
+  
+  Hacktoberfest Weekend Challenge
+&lt;/h4&gt;
+
+&lt;p&gt;We're kicking things off with a short-form weekend challenge. The prompt drops in just a few hours, and you'll have the weekend to build and submit.&lt;/p&gt;
+
+&lt;div class="table-wrapper-paragraph"&gt;&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Timezone&lt;/th&gt;
+&lt;th&gt;Launch Time (Local)&lt;/th&gt;
+&lt;th&gt;Submissions Due (Local)&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;PDT&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;Thursday, Oct 1 at 7:00 PM&lt;/td&gt;
+&lt;td&gt;Sunday, Oct 4 at 11:59 PM&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;EDT&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;Thursday, Oct 1 at 10:00 PM&lt;/td&gt;
+&lt;td&gt;Monday, Oct 5 at 2:59 AM&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;GMT&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;Friday, Oct 2 at 2:00 AM&lt;/td&gt;
+&lt;td&gt;Monday, Oct 5 at 6:59 AM&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;CEST&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;Friday, Oct 2 at 4:00 AM&lt;/td&gt;
+&lt;td&gt;Monday, Oct 5 at 8:59 AM&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;IST&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;Friday, Oct 2 at 7:30 AM&lt;/td&gt;
+&lt;td&gt;Monday, Oct 5 at 12:29 PM&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;JST&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;Friday, Oct 2 at 11:00 AM&lt;/td&gt;
+&lt;td&gt;Monday, Oct 5 at 3:59 PM&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;AEST&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;Friday, Oct 2 at 12:00 PM&lt;/td&gt;
+&lt;td&gt;Monday, Oct 5 at 4:59 PM&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;&lt;/div&gt;
+
+&lt;p&gt;&lt;a href="https://dev.to/challenges/hacktoberfest-weekend-2026-10-01" class="crayons-btn crayons-btn--primary"&gt;Sign up for the Hacktoberfest Weekend Challenge&lt;/a&gt;
+&lt;/p&gt;
+
+
+
+
+&lt;h4&gt;
+  
+  
+  Open-Source AI Challenges: Weeks 1–4
+&lt;/h4&gt;
+
+&lt;p&gt;After the weekend, we're inviting you to explore and build with open-source AI every week. Each week has its own theme:&lt;/p&gt;
+
+&lt;div class="table-wrapper-paragraph"&gt;&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Round&lt;/th&gt;
+&lt;th&gt;Dates&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href="https://dev.to/challenges/hacktoberfest-week1-2026-10-05"&gt;Week 1&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;October 5–11&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href="https://dev.to/challenges/hacktoberfest-week2-2026-10-12"&gt;Week 2&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;October 12–18&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href="https://dev.to/challenges/hacktoberfest-week3-2026-10-19"&gt;Week 3&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;October 19–25&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href="https://dev.to/challenges/hacktoberfest-week4-2026-10-26"&gt;Week 4&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;October 26–31&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;&lt;/div&gt;
+
+&lt;p&gt;Pro tip: Week 1 wraps up right as Global Hack Week gets going, so the workshops you catch at GHW are perfect fuel for your Week 2 submission. 😉&lt;/p&gt;
+
+&lt;p&gt;Follow the &lt;a href="https://dev.to/t/hf26challenge"&gt;#hf26challenge&lt;/a&gt; tag to see what everyone's making, and &lt;a href="https://dev.to/challenges"&gt;register early&lt;/a&gt; for each challenge so you don't miss any announcements.&lt;/p&gt;
+
+
+
+
+&lt;h2&gt;
+  
+  
+  DevRelay
+&lt;/h2&gt;
+
+&lt;p&gt;We just launched something cool.&lt;/p&gt;
+
+&lt;p&gt;If you build with an AI coding agent, &lt;a href="https://devrelay.com/" rel="noopener noreferrer"&gt;DevRelay&lt;/a&gt; connects it to DEV and MLH. Your agent knows which challenge or hackathon you've entered, helps you build for it, and lets you submit without leaving your session.&lt;/p&gt;
+
+&lt;p&gt;It can also get you partner coupons from MLH while you build, and we're adding more partners over time, so you can often deploy for free. &lt;strong&gt;Install it and log in to earn a sticker for your sticker book.&lt;/strong&gt; 🎃&lt;/p&gt;
+
+&lt;p&gt;&lt;a href="https://devrelay.com/" class="crayons-btn crayons-btn--primary" rel="noopener noreferrer"&gt;Get DevRelay&lt;/a&gt;
+&lt;/p&gt;
+
+
+
+
+&lt;h2&gt;
+  
+  
+  💜 Thank you to our sponsors
+&lt;/h2&gt;
+
+&lt;p&gt;Hacktoberfest 2026 is presented by &lt;strong&gt;&lt;a href="https://www.digitalocean.com/?utm_source=dev.to&amp;amp;utm_medium=blog&amp;amp;utm_campaign=hacktoberfest-2026&amp;amp;utm_content=launch-post-partner-digitalocean"&gt;DigitalOcean&lt;/a&gt;&lt;/strong&gt; and made possible by our sponsors: &lt;a href="https://www.tigerdata.com/?utm_source=dev.to&amp;amp;utm_medium=blog&amp;amp;utm_campaign=hacktoberfest-2026&amp;amp;utm_content=launch-post-sponsor-tiger-data"&gt;Tiger Data&lt;/a&gt;, &lt;a href="https://www.snowflake.com/?utm_source=dev.to&amp;amp;utm_medium=blog&amp;amp;utm_campaign=hacktoberfest-2026&amp;amp;utm_content=launch-post-sponsor-snowflake"&gt;Snowflake&lt;/a&gt;, &lt;a href="https://www.mongodb.com/?utm_source=dev.to&amp;amp;utm_medium=blog&amp;amp;utm_campaign=hacktoberfest-2026&amp;amp;utm_content=launch-post-sponsor-mongodb"&gt;MongoDB&lt;/a&gt;, &lt;a href="https://www.withgauge.com/?utm_source=dev.to&amp;amp;utm_medium=blog&amp;amp;utm_campaign=hacktoberfest-2026&amp;amp;utm_content=launch-post-sponsor-gauge"&gt;Gauge&lt;/a&gt;, &lt;a href="https://solana.com/?utm_source=dev.to&amp;amp;utm_medium=blog&amp;amp;utm_campaign=hacktoberfest-2026&amp;amp;utm_content=launch-post-sponsor-solana"&gt;Solana&lt;/a&gt;, &lt;a href="https://render.com/?utm_source=dev.to&amp;amp;utm_medium=blog&amp;amp;utm_campaign=hacktoberfest-2026&amp;amp;utm_content=launch-post-sponsor-render"&gt;Render&lt;/a&gt;, &lt;a href="https://github.com/?utm_source=dev.to&amp;amp;utm_medium=blog&amp;amp;utm_campaign=hacktoberfest-2026&amp;amp;utm_content=launch-post-sponsor-github"&gt;GitHub&lt;/a&gt;, &lt;a href="https://sentry.io/?utm_source=dev.to&amp;amp;utm_medium=blog&amp;amp;utm_campaign=hacktoberfest-2026&amp;amp;utm_content=launch-post-sponsor-sentry"&gt;Sentry&lt;/a&gt;, &lt;a href="https://backboard.io/products/cli?utm_source=dev.to&amp;amp;utm_medium=blog&amp;amp;utm_campaign=hacktoberfest-2026&amp;amp;utm_content=launch-post-sponsor-backboard"&gt;Backboard.io&lt;/a&gt;, &lt;a href="https://www.ibm.com/?utm_source=dev.to&amp;amp;utm_medium=blog&amp;amp;utm_campaign=hacktoberfest-2026&amp;amp;utm_content=launch-post-sponsor-ibm"&gt;IBM&lt;/a&gt;, &lt;a href="https://elevenlabs.io/?utm_source=dev.to&amp;amp;utm_medium=blog&amp;amp;utm_campaign=hacktoberfest-2026&amp;amp;utm_content=launch-post-sponsor-elevenlabs"&gt;ElevenLabs&lt;/a&gt;, &lt;a href="https://papercompute.com/?utm_source=dev.to&amp;amp;utm_medium=blog&amp;amp;utm_campaign=hacktoberfest-2026&amp;amp;utm_content=launch-post-sponsor-paper-compute"&gt;Paper Compute&lt;/a&gt;, &lt;a href="https://entire.io/?utm_source=dev.to&amp;amp;utm_medium=blog&amp;amp;utm_campaign=hacktoberfest-2026&amp;amp;utm_content=launch-post-sponsor-entire"&gt;Entire&lt;/a&gt;, &lt;a href="https://priorlabs.ai/?utm_source=dev.to&amp;amp;utm_medium=blog&amp;amp;utm_campaign=hacktoberfest-2026&amp;amp;utm_content=launch-post-sponsor-prior-labs"&gt;Prior Labs&lt;/a&gt;, &lt;a href="https://cloud.google.com/?utm_source=dev.to&amp;amp;utm_medium=blog&amp;amp;utm_campaign=hacktoberfest-2026&amp;amp;utm_content=launch-post-sponsor-google-cloud"&gt;Google Cloud&lt;/a&gt;, &lt;a href="https://ai.google.dev/gemma?utm_source=dev.to&amp;amp;utm_medium=blog&amp;amp;utm_campaign=hacktoberfest-2026&amp;amp;utm_content=launch-post-sponsor-gemma"&gt;Gemma&lt;/a&gt;, &lt;a href="https://www.qualcomm.com/?utm_source=dev.to&amp;amp;utm_medium=blog&amp;amp;utm_campaign=hacktoberfest-2026&amp;amp;utm_content=launch-post-sponsor-qualcomm"&gt;Qualcomm&lt;/a&gt;, &lt;a href="https://www.arduino.cc/?utm_source=dev.to&amp;amp;utm_medium=blog&amp;amp;utm_campaign=hacktoberfest-2026&amp;amp;utm_content=launch-post-sponsor-arduino"&gt;Arduino&lt;/a&gt;, &lt;a href="https://mastra.ai/?utm_source=dev.to&amp;amp;utm_medium=blog&amp;amp;utm_campaign=hacktoberfest-2026&amp;amp;utm_content=launch-post-sponsor-mastra"&gt;Mastra&lt;/a&gt;, &lt;a href="https://temporal.io/?utm_source=dev.to&amp;amp;utm_medium=blog&amp;amp;utm_campaign=hacktoberfest-2026&amp;amp;utm_content=launch-post-sponsor-temporal"&gt;Temporal&lt;/a&gt;, &lt;a href="https://tldr.tech/?utm_source=dev.to&amp;amp;utm_medium=blog&amp;amp;utm_campaign=hacktoberfest-2026&amp;amp;utm_content=launch-post-sponsor-tldr"&gt;TLDR&lt;/a&gt;, and &lt;a href="https://thinkingmachines.ai/?utm_source=dev.to&amp;amp;utm_medium=blog&amp;amp;utm_campaign=hacktoberfest-2026&amp;amp;utm_content=launch-post-sponsor-thinking-machines"&gt;Thinking Machines&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h2&gt;
+  
+  
+  Questions?
+&lt;/h2&gt;
+
+&lt;p&gt;Check out the &lt;a href="https://hacktoberfest.com/questions/" rel="noopener noreferrer"&gt;Hacktoberfest FAQ&lt;/a&gt; or reach out to &lt;a href="mailto:hacktoberfest@mlh.io"&gt;hacktoberfest@mlh.io&lt;/a&gt;. For questions about a specific Fest, use the "Contact Host" button on its event page.&lt;/p&gt;
+
+&lt;p&gt;However you show up this month, whether you're curious, brand new, or a seasoned open-source contributor, we're so glad you're here. AI belongs to everyone. Let's explore it together. 🎃&lt;/p&gt;
+
+&lt;p&gt;Happy Hacktoberfest!&lt;/p&gt;
+
+</description>
+      <category>hacktoberfest</category>
+      <category>opensource</category>
+      <category>ai</category>
+      <category>devchallenge</category>
+    </item>
+    <item>
+      <title>Midnight Rescue: The Ultimate Raspberry Pi Hackathon Revival Guide 🚀</title>
+      <dc:creator>Major League Hacking</dc:creator>
+      <pubDate>Wed, 16 Sep 2026 02:40:42 +0000</pubDate>
+      <link>https://blog.mlh.com/midnight-rescue-the-ultimate-raspberry-pi-hackathon-revival-guide-24bf</link>
+      <guid>https://blog.mlh.com/midnight-rescue-the-ultimate-raspberry-pi-hackathon-revival-guide-24bf</guid>
+      <description>&lt;p&gt;Howdy Hackers!&lt;br&gt;
+I'm assuming you are here because your Raspberry Pi is acting up. Going to do a small intro here before jumping to the recipe for this cookbook but going to keep it short so you can get back to hacking :)&lt;/p&gt;
+
+&lt;p&gt;My name is Maria, I work for Major League Hacking, and we bring hardware to many of the events we support including Raspberry Pis! I get lots of questions asking about debugging, and our documentation has 3 different resources we point to for Raspberry Pis. We wanted to consolidate here, but as a full disclaimer, we used AI to help us with the merge. If you see something wonky, just comment so that I and others can see what is off. &lt;/p&gt;
+
+&lt;p&gt;Now to the meat and potatos you are here for. &lt;/p&gt;
+
+&lt;h1&gt;
+  
+  
+  Midnight Rescue: The Ultimate Raspberry Pi Hackathon Revival Guide 🚀
+&lt;/h1&gt;
+
+&lt;p&gt;Welcome, midnight builder! It’s late, your code is almost there, but your Raspberry Pi is throwing a full-blown tantrum. Don't panic! Hackathon hardware gets heavily used, and SD cards often carry ghost settings or corruption from previous events. You didn't break anything—this is just a right of passage.&lt;/p&gt;
+
+&lt;p&gt;We’ve provided a &lt;strong&gt;Troubleshooting Kit&lt;/strong&gt; in the Hardware Lab specifically to handle this exact moment. Grab your kit, take a breath, and let’s get your hardware back on track step by step! Please note that this kit must stay at the Hardware Lab table so that others can use it during the event as needed. Feel free to pull up a chair as you debug!&lt;/p&gt;
+
+&lt;h2&gt;
+  
+  
+  🧰 Meet Your Troubleshooting Toolkit
+&lt;/h2&gt;
+
+
+
+
+&lt;p&gt;Before diving in, make sure you’ve grabbed the Hardware Lab’s Troubleshooting Kit. Inside your toolkit, you’ll find:&lt;/p&gt;
+
+&lt;div class="table-wrapper-paragraph"&gt;&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Tool&lt;/th&gt;
+&lt;th&gt;What It Does&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;7-Inch Portable Screen &amp;amp; HDMI Cable&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;Gives you direct visual access to the Pi’s terminal—no network magic needed!&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;Mini Bluetooth/Wireless Keyboard&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;Allows you to type commands directly into the Pi setup screen.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;USB MicroSD Card Reader/Writer&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;Lets you plug SD cards into your laptop to wipe or re-flash them.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;Fresh Spare MicroSD Cards&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;Clean, blank slates ready for a brand-new OS installation.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;&lt;/div&gt;
+
+&lt;p&gt;We’ll use these tools in two main phases: &lt;strong&gt;Direct Hardware Diagnostics&lt;/strong&gt; (seeing what’s wrong) and &lt;strong&gt;SD Card Re-Flashing&lt;/strong&gt; (resetting to a squeaky-clean state).&lt;/p&gt;
+
+&lt;h2&gt;
+  
+  
+  Phase 1: Direct Visual Diagnostics (Using the Kit)
+&lt;/h2&gt;
+
+
+
+
+&lt;p&gt;Instead of guessing why you can’t SSH into your Pi, let's look directly at what it's doing on boot!&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;
+&lt;strong&gt;Plug in the HDMI Cable:&lt;/strong&gt; Connect the Micro-HDMI end to your Raspberry Pi 4 (use HDMI 0, the port closest to the USB-C power port) and the standard HDMI end to the 7-inch screen.&lt;/li&gt;
+&lt;li&gt;
+&lt;strong&gt;Power the Screen &amp;amp; Keyboard:&lt;/strong&gt; Turn on the 7-inch screen and plug in the mini keyboard's USB dongle into one of the Pi’s USB slots.&lt;/li&gt;
+&lt;li&gt;
+&lt;strong&gt;Power Up the Pi:&lt;/strong&gt; Plug in the USB-C power cord. Watch the screen!&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;&lt;strong&gt;What are you seeing on screen?&lt;/strong&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;
+&lt;strong&gt;Rainbow Screen / Red LED only:&lt;/strong&gt; The Pi can’t read the SD card at all. Move straight to &lt;strong&gt;Phase 2&lt;/strong&gt; below!&lt;/li&gt;
+&lt;li&gt;
+&lt;strong&gt;Kernel Panic / Endless Errors scrolling past:&lt;/strong&gt; The OS on the SD card is corrupted from a previous team. Head to &lt;strong&gt;Phase 2&lt;/strong&gt; to re-flash it!&lt;/li&gt;
+&lt;li&gt;
+&lt;strong&gt;Asks for Login:&lt;/strong&gt; The OS is alive! Try default credentials (pi / raspberry). If that fails, someone changed the password—time for a quick re-flash in &lt;strong&gt;Phase 2&lt;/strong&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2&gt;
+  
+  
+  Phase 2: Nuclear Option—Wiping &amp;amp; Re-Flashing the MicroSD Card
+&lt;/h2&gt;
+
+
+
+
+&lt;p&gt;If the SD card is corrupted or locked, re-flashing gives you a 100% clean OS in just a few minutes. Grab a spare MicroSD card from the kit or use your current one.&lt;/p&gt;
+
+&lt;h3&gt;
+  
+  
+  Step 1: Format &amp;amp; Wipe the Card
+&lt;/h3&gt;
+
+&lt;p&gt;Insert the MicroSD card into the USB Reader/Writer and plug it into your laptop.&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;
+&lt;strong&gt;Windows:&lt;/strong&gt; Download and open &lt;em&gt;SD Formatter&lt;/em&gt; or &lt;em&gt;Raspberry Pi Imager&lt;/em&gt;. Select your SD card drive, select &lt;strong&gt;Quick Format&lt;/strong&gt;, and click &lt;strong&gt;Format&lt;/strong&gt;.&lt;/li&gt;
+&lt;li&gt;
+&lt;strong&gt;Mac / Linux:&lt;/strong&gt; You can use &lt;em&gt;Raspberry Pi Imager&lt;/em&gt; or Disk Utility to format the card to FAT32.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3&gt;
+  
+  
+  Step 2: Flash the Operating System
+&lt;/h3&gt;
+
+&lt;p&gt;We recommend using &lt;strong&gt;Raspberry Pi Imager&lt;/strong&gt; (or &lt;em&gt;Win32 Disk Imager&lt;/em&gt; / &lt;em&gt;BalenaEtcher&lt;/em&gt;):&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Download the latest &lt;strong&gt;Raspbian / Raspberry Pi OS Lite&lt;/strong&gt; (or full desktop version) zip/img.&lt;/li&gt;
+&lt;li&gt;Open your imaging software and select the downloaded .img or .zip file.&lt;/li&gt;
+&lt;li&gt;Select your USB SD Card Reader as the target device.&lt;/li&gt;
+&lt;li&gt;Click &lt;strong&gt;Write / Flash&lt;/strong&gt;! (This takes about 5 to 10 minutes—great time to grab a snack!).&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;&lt;strong&gt;Important Note:&lt;/strong&gt; Windows might pop up messages after flashing saying "You need to format the disk in drive X: before you can use it." &lt;strong&gt;Ignore and close these pop-ups!&lt;/strong&gt; Windows just doesn't natively read Linux partitions.&lt;/p&gt;
+
+&lt;h3&gt;
+  
+  
+  Step 3: Enable Headless SSH Access
+&lt;/h3&gt;
+
+&lt;p&gt;Want to control your Pi from your laptop terminal without keeping the 7-inch screen attached forever?&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Keep the SD card plugged into your laptop. Open your file explorer.&lt;/li&gt;
+&lt;li&gt;Look for the drive partition named boot.&lt;/li&gt;
+&lt;li&gt;Inside the boot directory, create a brand-new empty file and name it simply ssh (make sure there is &lt;strong&gt;no file extension&lt;/strong&gt; like .txt or .docx!).
+# On Mac/Linux terminal, you can just run:
+touch /Volumes/boot/ssh&lt;/li&gt;
+&lt;li&gt;Eject the SD card safely and insert it into your Pi.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2&gt;
+  
+  
+  Phase 3: Connecting to Your Pi via Ethernet or SSH
+&lt;/h2&gt;
+
+
+
+
+&lt;p&gt;Now that your Pi has a fresh OS and SSH enabled, let’s get you connected!&lt;/p&gt;
+
+&lt;h3&gt;
+  
+  
+  Option A: Direct Screen &amp;amp; Mini Keyboard (Fastest!)
+&lt;/h3&gt;
+
+&lt;p&gt;Just leave the 7-inch screen and mini keyboard plugged into the Pi. Boot it up, log in with default credentials (username: pi, password: raspberry), and start coding!&lt;/p&gt;
+
+&lt;h3&gt;
+  
+  
+  Option B: Ethernet / Network SSH Connection
+&lt;/h3&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Connect an Ethernet cable from the Pi into your computer (use a USB Ethernet adapter if needed).&lt;/li&gt;
+&lt;li&gt;Power up the Pi. Give it about 60 seconds to complete its initial boot routines.&lt;/li&gt;
+&lt;li&gt;Open your laptop's terminal (or PuTTY on Windows) and run:
+ssh &lt;a href="mailto:pi@raspberrypi.local"&gt;pi@raspberrypi.local&lt;/a&gt;
+&lt;/li&gt;
+&lt;li&gt;When prompted, enter the default password: raspberry&lt;/li&gt;
+&lt;li&gt;Test your connection by running a quick ping test:
+ping -c 4 google.com&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2&gt;
+  
+  
+  🎉 You're Back in Business!
+&lt;/h2&gt;
+
+
+
+
+&lt;p&gt;If you see ping responses coming back, congratulations—you have successfully brought your Raspberry Pi back from the dead at 12:30 AM! You are now ready to build your awesome hackathon project.&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;Still stuck or getting unexpected error messages? Don't hesitate to flag down an MLH Coach! We are here to help you. Happy hacking!&lt;/em&gt;&lt;/p&gt;
+
+</description>
+      <category>raspberrypi</category>
+      <category>ai</category>
+      <category>debugging</category>
+      <category>beginners</category>
+    </item>
+  </channel>
+</rss>
