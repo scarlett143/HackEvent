@@ -83,8 +83,10 @@ def _verify(password_hash: str, password: str) -> bool:
 # --- rate limit ---
 
 
-def _login_keys(ip: str, email: str) -> list[str]:
-    return [f"rl:login:ip:{ip}", f"rl:login:email:{hash_token(email)}"]
+def _login_keys(email: str) -> list[str]:
+    # Per account only (owner decision 2026-11-15): a per-IP bucket would let 5 failures
+    # from anyone behind the college's shared NAT IP lock out the whole campus.
+    return [f"rl:login:email:{hash_token(email)}"]
 
 
 async def _consume_attempt(redis: Redis, keys: list[str]) -> None:
@@ -215,7 +217,7 @@ async def login(
 ) -> MeOut:  # role: public
     email = body.email.strip().lower()
     ip = request.client.host if request.client else "unknown"
-    keys = _login_keys(ip, email)
+    keys = _login_keys(email)
     await _consume_attempt(redis, keys)
 
     user = await db.scalar(select(User).where(User.email == email))

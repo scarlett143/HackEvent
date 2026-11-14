@@ -27,6 +27,7 @@ def _b64(s: str) -> str:
 
 JWT = f"{_b64('{"alg":"HS256"}')}.{_b64('{"sub":"fake-user"}')}.{_b64('fake-signature')}"
 GOOGLE_KEY = "AIza" + FAKE[:35]
+GEMINI_AQ_KEY = "AQ." + (FAKE * 2)[:50]
 ANTHROPIC_KEY = "sk-ant-api03-" + FAKE
 OPENAI_KEY = "sk-proj-" + FAKE
 GOOGLE_ACCESS = "ya29." + FAKE
@@ -72,6 +73,12 @@ CASES = [
         f"maps call with {GOOGLE_KEY} ok",
         GOOGLE_KEY,
         f"maps call with {REDACTED} ok",
+    ),
+    (
+        "gemini-aq-key",
+        f"gemini call with {GEMINI_AQ_KEY} ok",
+        GEMINI_AQ_KEY,
+        f"gemini call with {REDACTED} ok",
     ),
     ("anthropic-key", f"provider key {ANTHROPIC_KEY}.", ANTHROPIC_KEY, f"provider key {REDACTED}."),
     ("openai-key", f"provider key {OPENAI_KEY}", OPENAI_KEY, f"provider key {REDACTED}"),

@@ -111,7 +111,7 @@ Event object (synthetic example)
 ### A8. Rate limits
 | Scope | Limit |
 |---|---|
-| `/auth/login` | 5 / 15 min per IP + per email |
+| `/auth/login` | 5 / 15 min per account (email). No per-IP limit: campus users share one NAT IP (owner decision 2026-11-15) |
 | Writes | 60 / min per user |
 | `/channels/:id/test` | 5 / hour per user |
 | `/admin/sources/:id/run` | 10 / hour |
