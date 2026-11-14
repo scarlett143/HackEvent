@@ -45,6 +45,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from api.auth import SESSION_COOKIE, hash_password, hash_token
+from api.csrf import CSRF_COOKIE, CSRF_HEADER, csrf_for
 from common.config import get_settings
 
 DB_URL = os.environ.get("TEST_DATABASE_URL")
@@ -83,15 +84,21 @@ class Actor:
 
     @property
     def headers(self) -> dict[str, str]:
-        return {"Cookie": f"{SESSION_COOKIE}={self.token}"}
+        """Session cookie plus the session-bound CSRF double-submit pair (HE-015), so the
+        same headers work for reads and writes (same as test_auth.writes_as)."""
+        csrf = csrf_for(self.token)
+        return {
+            "Cookie": f"{SESSION_COOKIE}={self.token}; {CSRF_COOKIE}={csrf}",
+            CSRF_HEADER: csrf,
+        }
 
 
 Pair = tuple[Actor, Actor]
 
 
 def make_actor(email: str, role: str = "professor", password: str = GOOD_PASSWORD) -> Actor:
-    """Insert an active user plus a live session directly (no login, so no rate limit,
-    TOTP or CSRF in the way) and return it as an Actor."""
+    """Insert an active user plus a live session directly (no login, so no rate limit
+    or TOTP in the way) and return it as an Actor."""
     (uid,) = sql(
         "INSERT INTO users (email, name, role, password_hash)"
         " VALUES (:e, :n, CAST(:r AS user_role), :h) RETURNING id::text",

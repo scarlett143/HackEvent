@@ -30,6 +30,7 @@ PUBLIC = {
     ("GET", "/api/v1/health"),  # dependency status for monitors
     ("GET", "/api/v1/health/live"),  # Docker healthcheck
     ("POST", "/api/v1/auth/login"),  # obtains the session
+    ("GET", "/api/v1/auth/csrf"),  # CSRF token for pre-login writes (HE-015)
 }
 
 
