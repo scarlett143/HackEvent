@@ -6,6 +6,9 @@ Health: arq --check workers.settings.ScrapeWorker
 Each worker refreshes `<queue>:health-check` in Redis every HEALTH_CHECK_INTERVAL
 seconds; the key expires shortly after, so the API reads its presence as "worker alive".
 Real jobs are added by their own tickets (HE-021 onwards).
+
+worker-scrape has no DB credentials (Security doc §8), so this module must not import DB
+code at import time: scheduler jobs import workers.scheduler inside their wrappers.
 """
 
 import time
@@ -24,6 +27,7 @@ from common.queues import (
     SCHEDULER_QUEUE,
     SCRAPE_QUEUE,
 )
+from workers.scrape.job import MAX_TRIES, scrape_source
 
 HEALTH_CHECK_INTERVAL = 30
 
@@ -51,6 +55,18 @@ async def send_email(
     return await sender.send(to, render(template, **(context or {})))
 
 
+async def schedule_sources(ctx: dict[str, Any]) -> int:
+    from workers.scheduler import schedule_due
+
+    return await schedule_due(ctx)
+
+
+async def record_scrape(ctx: dict[str, Any], result: dict[str, Any]) -> str:
+    from workers import scheduler
+
+    return await scheduler.record_scrape(ctx, result)
+
+
 async def install_log_redaction(ctx: dict[str, Any]) -> None:
     """arq on_startup: its CLI runs dictConfig after importing this module."""
     configure_logging()
@@ -66,8 +82,9 @@ class ScrapeWorker:
     redis_settings = REDIS
     health_check_interval = HEALTH_CHECK_INTERVAL
     on_startup = install_log_redaction
-    functions: ClassVar[list[Any]] = [ping]
+    functions: ClassVar[list[Any]] = [ping, scrape_source]
     max_jobs = 2
+    max_tries = MAX_TRIES
 
 
 class LlmWorker:
@@ -92,4 +109,8 @@ class SchedulerWorker:
     redis_settings = REDIS
     health_check_interval = HEALTH_CHECK_INTERVAL
     on_startup = install_log_redaction
-    cron_jobs: ClassVar[list[CronJob]] = [cron(heartbeat, run_at_startup=True)]
+    functions: ClassVar[list[Any]] = [record_scrape]
+    cron_jobs: ClassVar[list[CronJob]] = [
+        cron(heartbeat, run_at_startup=True),
+        cron(schedule_sources),  # every minute (second=0)
+    ]
