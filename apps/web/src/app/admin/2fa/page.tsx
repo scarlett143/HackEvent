@@ -3,12 +3,18 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { api, safeNext } from "@/lib/api";
 
 // Admin routes answer 403 totp_enrolment_required / totp_required until this session
 // has passed a code (HE-014). This page walks the admin through whichever applies.
 type State = "loading" | "enrol" | "verify" | "done" | "forbidden";
 type Enrol = { secret: string; otpauth_uri: string };
+
+// The admin page that sent us here (?next=), to return to once verified. Read from
+// window.location in handlers rather than useSearchParams, so no Suspense boundary.
+function nextPath(): string {
+  return safeNext(new URLSearchParams(window.location.search).get("next"));
+}
 
 export default function TwoFactorPage() {
   const router = useRouter();
@@ -17,9 +23,13 @@ export default function TwoFactorPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const to = nextPath();
     api("/api/v1/admin/ping").then((r) => {
-      if (r.ok) return setState("done");
-      if (r.status === 401) return router.replace("/login?next=/admin/2fa");
+      if (r.ok) return to === "/" ? setState("done") : router.replace(to);
+      if (r.status === 401) {
+        const here = `/admin/2fa?next=${encodeURIComponent(to)}`;
+        return router.replace(`/login?next=${encodeURIComponent(here)}`);
+      }
       if (r.error.code === "totp_enrolment_required") return setState("enrol");
       if (r.error.code === "totp_required") return setState("verify");
       setState("forbidden");
@@ -37,7 +47,8 @@ export default function TwoFactorPage() {
     const code = String(new FormData(e.currentTarget).get("code") ?? "").trim();
     const path = state === "enrol" ? "/api/v1/auth/2fa/confirm" : "/api/v1/auth/2fa/verify";
     const r = await api(path, "POST", { code });
-    if (r.ok) return setState("done");
+    const to = nextPath();
+    if (r.ok) return to === "/" ? setState("done") : router.replace(to);
     setError(r.status === 429 ? "Too many attempts. Try again in 15 minutes." : "Code not valid.");
   }
 

@@ -58,3 +58,13 @@ export function safeNext(next: string | null): string {
 }
 
 export type Me = { id: string; email: string; name: string; role: string; timezone: string };
+
+/** Where a failed admin-API call should send the user (401 → sign in, missing TOTP →
+ *  /admin/2fa, both returning to `here`), or null to show the error in place. */
+export function adminRedirect(r: { status: number; error: ApiError }, here: string): string | null {
+  const next = `?next=${encodeURIComponent(here)}`;
+  if (r.status === 401) return `/login${next}`;
+  if (r.error.code === "totp_required" || r.error.code === "totp_enrolment_required")
+    return `/admin/2fa${next}`;
+  return null;
+}
