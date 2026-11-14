@@ -20,6 +20,7 @@ Design docs: [docs/](docs/README.md) — PRD, TRD, schema, API, security, AI gua
 | HE-006 | AES-256-GCM envelope encryption for secrets at rest (per-value data key wrapped by MASTER_KEY) | Done |
 | HE-007 | Log redaction filter (tokens, keys, cookies, DSN passwords) on API + worker logs | Done |
 | HE-011 | Password login (Argon2id), hashed sliding sessions, logout, /me, 5-per-15-min login rate limit | Done |
+| HE-013 | `require_role` dependency, row-ownership helper, deny-by-default route check, cross-user test template | Done |
 | HE-014 | Admin TOTP 2FA (RFC 6238, encrypted secret, replay + rate-limit protection); /admin blocked until verified | Done |
 | HE-015 | CSRF double-submit protection (session-bound token, Origin check) on every write | Done |
 | HE-016 | Audit log writer: 17 security actions, secrets dropped/redacted from metadata | Done |

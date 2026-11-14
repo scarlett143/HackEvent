@@ -33,6 +33,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.auth import Auth, _consume_attempt, _refund_attempt, current_auth
 from api.deps import get_db, get_redis
 from api.errors import ApiError
+from api.roles import require_role
 from common import crypto
 from common.config import get_settings
 from common.models import User, UserRole
@@ -146,10 +147,11 @@ async def check_code(db: AsyncSession, redis: Redis, user: User, code: str) -> N
 # --- dependencies ---
 
 
-async def admin_auth(auth: Annotated[Auth, Depends(current_auth)]) -> Auth:
-    # ponytail: local role check; replace with HE-013 `require_role("admin")`.
-    if auth.user.role != UserRole.admin:
-        raise ApiError(403, "forbidden", "You do not have access to this page.")
+async def admin_auth(
+    auth: Annotated[Auth, Depends(current_auth)],
+    _admin: Annotated[User, Depends(require_role(UserRole.admin))],
+) -> Auth:
+    """Admin role (HE-013 `require_role`); returns the Auth so the session is reachable."""
     return auth
 
 
