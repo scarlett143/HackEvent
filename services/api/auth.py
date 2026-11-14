@@ -171,6 +171,7 @@ router = APIRouter(prefix="/api/v1")
 class LoginIn(BaseModel):
     email: str = Field(min_length=3, max_length=320)
     password: str = Field(min_length=1, max_length=1024)
+    totp: str | None = Field(default=None, max_length=16)  # doc 06 A1: "+ TOTP for admin"
 
 
 class MeOut(BaseModel):
@@ -207,6 +208,13 @@ async def login(
         raise ApiError(401, "invalid_credentials", "Invalid email or password.")
 
     await _refund_attempt(redis, keys)
+    # Optional one-step admin 2FA; otherwise the session starts unverified (HE-014).
+    totp_verified_at = None
+    if body.totp is not None and user.totp_enabled_at is not None:
+        from api.totp import check_code  # local import: api.totp imports this module
+
+        await check_code(db, redis, user, body.totp.strip())
+        totp_verified_at = datetime.now(UTC)
     if _hasher.check_needs_rehash(stored):
         user.password_hash = hash_password(body.password)
     token = secrets.token_urlsafe(32)
@@ -217,6 +225,7 @@ async def login(
             expires_at=datetime.now(UTC) + SESSION_TTL,
             ip=ip,
             user_agent=request.headers.get("user-agent", "")[:512],
+            totp_verified_at=totp_verified_at,
         )
     )
     await db.commit()

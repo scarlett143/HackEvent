@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request, Response
 
-from api import auth, health
+from api import admin, auth, health, totp
 from api.csrf import CSRFMiddleware
 from api.errors import ApiError, handle_api_error
 from common.logging import configure_logging
@@ -12,6 +12,8 @@ app = FastAPI(title="HackEvents API", docs_url=None, redoc_url=None, lifespan=he
 app.add_exception_handler(ApiError, handle_api_error)
 app.add_middleware(CSRFMiddleware, session_cookie=auth.SESSION_COOKIE)
 app.include_router(auth.router)
+app.include_router(totp.router)
+app.include_router(admin.router)
 
 
 @app.get("/api/v1/health/live")
