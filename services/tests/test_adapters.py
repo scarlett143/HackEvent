@@ -3,6 +3,8 @@
 Fixture provenance (fetched 2026-11-14 with User-Agent HackEventsBot/0.1):
 - rss/mlh_blog.xml: https://news.mlh.io/feed (302 -> https://blog.mlh.com/feed); trimmed to
   3 items, dc:creator names replaced, items mentioning individual users dropped.
+- devpost/hackathons_open_upcoming_page3.json: verbatim response of
+  https://devpost.com/api/hackathons?status[]=upcoming&status[]=open&page=3 (9 items).
 """
 
 from datetime import UTC, datetime
@@ -11,6 +13,7 @@ from pathlib import Path
 import pytest
 
 from workers.scrape.adapters import ADAPTERS, EventCandidate, ParseError, UnknownAdapter, parse
+from workers.scrape.adapters.devpost import submission_period
 
 FIXTURES = Path(__file__).parent / "fixtures" / "adapters"
 
@@ -138,3 +141,82 @@ def test_rss_rejects_dtd_entities(body: bytes) -> None:
 def test_rss_malformed_is_parse_error(body: bytes) -> None:
     with pytest.raises(ParseError):
         parse("rss", body, "https://example.com/feed")
+
+
+# --- HE-024 Devpost ------------------------------------------------------------------------
+
+DEVPOST_URL = "https://devpost.com/api/hackathons?status[]=upcoming&status[]=open&page=3"
+
+
+def test_devpost_fixture() -> None:
+    out = parse("devpost", fixture("devpost/hackathons_open_upcoming_page3.json"), DEVPOST_URL)
+    assert len(out) == 9
+    by_title = {c.title: c for c in out}
+    assert len(by_title) == 9
+    for c in out:
+        assert_plain(c)
+        assert c.extractor == "devpost"
+        assert c.registration_deadline is None  # listing has no time/timezone: never guessed
+        assert c.registration_url and c.registration_url.startswith("https://")
+        assert c.event_start and c.event_end and c.event_start <= c.event_end
+    in_person = [c for c in out if c.mode == "offline"]
+    assert [(c.title, c.location) for c in in_person] == [
+        ("University Blockchain Conference Hackathon 2026", "University of Texas at Austin")
+    ]
+    assert sum(c.mode == "online" for c in out) == 8
+    ubc = in_person[0]
+    assert ubc.event_start == datetime(2026, 11, 13, tzinfo=UTC)  # "Nov 13 - 20, 2026"
+    assert ubc.event_end == datetime(2026, 11, 20, tzinfo=UTC)
+    assert ubc.eligibility == ["Invite only"]
+    assert ubc.prize == "$22,000"
+
+
+def test_devpost_dates_and_prizes() -> None:
+    out = parse("devpost", fixture("devpost/hackathons_open_upcoming_page3.json"), DEVPOST_URL)
+    first = out[0]
+    assert first.organiser == "SafeSpace"
+    assert first.registration_url == "https://safespace-hacks.devpost.com/"
+    assert first.prize == "$280"
+    # "Oct 17 - Nov 22, 2026" -> calendar dates at 00:00 UTC, time not stated.
+    assert first.event_start == datetime(2026, 10, 17, tzinfo=UTC)
+    assert first.event_end == datetime(2026, 11, 22, tzinfo=UTC)
+    assert first.timezone_stated is None
+    assert out[1].prize is None  # "$0"
+    # Cross-year range: "Jul 18, 2026 - Jan 14, 2027".
+    assert out[1].event_start == datetime(2026, 7, 18, tzinfo=UTC)
+    assert out[1].event_end == datetime(2027, 1, 14, tzinfo=UTC)
+
+
+@pytest.mark.parametrize(
+    ("text", "start", "end"),
+    [
+        ("Nov 11 - 30, 2026", (2026, 11, 11), (2026, 11, 30)),
+        ("Dec 20 - Jan 05, 2027", (2026, 12, 20), (2027, 1, 5)),
+        ("Nov 14, 2026", (2026, 11, 14), (2026, 11, 14)),
+        ("Feb 30 - Mar 02, 2027", None, None),
+        ("Soon", None, None),
+        ("", None, None),
+    ],
+)
+def test_devpost_submission_period(
+    text: str, start: tuple[int, int, int] | None, end: tuple[int, int, int] | None
+) -> None:
+    got = submission_period(text)
+    want = tuple(datetime(*d, tzinfo=UTC) if d else None for d in (start, end))
+    assert got == want
+
+
+@pytest.mark.parametrize("body", [b"", b"[]", b'{"hackathons": 3}', b"{bad json", b'{"x": []}'])
+def test_devpost_malformed_is_parse_error(body: bytes) -> None:
+    with pytest.raises(ParseError):
+        parse("devpost", body, DEVPOST_URL)
+
+
+def test_devpost_skips_bad_items() -> None:
+    body = (
+        b'{"hackathons": [null, {"title": "No org"}, {"title": "Ended", "organization_name": "O",'
+        b' "open_state": "ended"}, {"title": "<b>Ok</b>", "organization_name": "O",'
+        b' "url": "javascript:x", "submission_period_dates": "garbage"}]}'
+    )
+    [only] = parse("devpost", body, DEVPOST_URL)
+    assert only.title == "Ok" and only.registration_url is None and only.event_start is None

@@ -9,12 +9,14 @@ from collections.abc import Callable
 from pydantic import ValidationError
 
 from workers.scrape.adapters.base import EventCandidate, ParseError, UnknownAdapter
+from workers.scrape.adapters.devpost import parse_devpost
 from workers.scrape.adapters.rss import parse_rss
 
 Adapter = Callable[[bytes, str], list[EventCandidate]]
 
 ADAPTERS: dict[str, Adapter] = {
     "rss": parse_rss,
+    "devpost": parse_devpost,
 }
 
 
