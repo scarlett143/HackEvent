@@ -16,6 +16,7 @@ Conventions
 ### A1. Auth
 | Method | Path | Role | Purpose |
 |---|---|---|---|
+| GET | `/auth/csrf` | public | `{ "csrf_token" }` + `__Host-csrf` cookie; echo in `X-CSRF-Token` on every write (login included) |
 | POST | `/auth/login` | public | email + password (+ TOTP for admin) → session |
 | POST | `/auth/logout` | any | end session |
 | GET | `/auth/google/start` | public | OAuth sign-in |

@@ -9,7 +9,7 @@ HE-011 / doc 07 §4 / doc 06 A1, A2, A8:
   refunds its attempt, so in practice the limit counts failures (doc 07 "5 fails / 15 min").
 - Bad credentials always get the same 401; unknown emails still pay for one Argon2 verify.
 
-Tokens, cookies and passwords are never logged. CSRF (HE-015), roles (HE-013) and admin
+Tokens, cookies and passwords are never logged. CSRF (HE-015) lives in `api.csrf`; roles (HE-013) and admin
 TOTP (HE-014) build on `current_auth` / `current_user`.
 """
 
@@ -29,6 +29,7 @@ from redis.asyncio import Redis
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.csrf import CSRF_COOKIE, clear_csrf_cookie, new_csrf_token, set_csrf_cookie
 from api.deps import get_db, get_redis
 from api.errors import ApiError
 from common.models import Session, User, UserRole
@@ -220,6 +221,7 @@ async def login(
     )
     await db.commit()
     _set_session_cookie(response, token)
+    set_csrf_cookie(response, new_csrf_token(token, None), int(SESSION_TTL.total_seconds()))
     return _me(user)
 
 
@@ -232,6 +234,18 @@ async def logout(
     await db.execute(delete(Session).where(Session.id == auth.session.id))
     await db.commit()
     response.delete_cookie(SESSION_COOKIE, path="/", secure=True, httponly=True, samesite="lax")
+    clear_csrf_cookie(response)
+
+
+@router.get("/auth/csrf")
+def csrf_token(
+    response: Response,
+    session: Annotated[str | None, Cookie(alias=SESSION_COOKIE)] = None,
+    current: Annotated[str | None, Cookie(alias=CSRF_COOKIE)] = None,
+) -> dict[str, str]:  # role: public; (re)issues the token writes must echo in X-CSRF-Token
+    token = new_csrf_token(session, current)
+    set_csrf_cookie(response, token, int(SESSION_TTL.total_seconds()))
+    return {"csrf_token": token}
 
 
 @router.get("/me")

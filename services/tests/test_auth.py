@@ -32,6 +32,7 @@ from api.auth import (
     hash_password,
     hash_token,
 )
+from api.csrf import CSRF_COOKIE, CSRF_HEADER, csrf_for
 from api.errors import ApiError
 from api.main import app
 from common.config import get_settings
@@ -122,7 +123,13 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
 
 
 def login(c: TestClient, email: str, password: str = GOOD_PASSWORD) -> Any:
-    return c.post("/api/v1/auth/login", json={"email": email, "password": password})
+    """Like the web app: fetch a CSRF token (cookie + body), echo it in the header."""
+    csrf = c.get("/api/v1/auth/csrf").json()["csrf_token"]
+    return c.post(
+        "/api/v1/auth/login",
+        json={"email": email, "password": password},
+        headers={CSRF_HEADER: csrf},
+    )
 
 
 def token_of(c: TestClient, email: str) -> str:
@@ -137,6 +144,12 @@ def as_token(token: str) -> dict[str, str]:
     return {"Cookie": f"{SESSION_COOKIE}={token}"}
 
 
+def writes_as(token: str, csrf: str | None = None) -> dict[str, str]:
+    """Session cookie plus a double-submitted CSRF token (the session-bound one by default)."""
+    csrf = csrf_for(token) if csrf is None else csrf
+    return {"Cookie": f"{SESSION_COOKIE}={token}; {CSRF_COOKIE}={csrf}", CSRF_HEADER: csrf}
+
+
 @needs_stack
 def test_login_ok_sets_hardened_cookie_and_stores_only_hash(client: TestClient) -> None:
     uid = make_user("prof@example.com")
@@ -149,7 +162,9 @@ def test_login_ok_sets_hardened_cookie_and_stores_only_hash(client: TestClient) 
         "role": "professor",
         "timezone": "Asia/Kolkata",
     }
-    cookie = r.headers["set-cookie"].lower()
+    cookie = next(
+        c for c in r.headers.get_list("set-cookie") if c.startswith(SESSION_COOKIE)
+    ).lower()
     for flag in ("httponly", "secure", "samesite=lax", "path=/", f"max-age={14 * 86400}"):
         assert flag in cookie
     token = client.cookies[SESSION_COOKIE]
@@ -213,12 +228,12 @@ def test_successful_logins_do_not_consume_the_limit(client: TestClient) -> None:
 def test_logout_revokes_session(client: TestClient) -> None:
     make_user("prof@example.com")
     token = token_of(client, "prof@example.com")
-    r = client.post("/api/v1/auth/logout", headers=as_token(token))
+    r = client.post("/api/v1/auth/logout", headers=writes_as(token))
     assert r.status_code == 204
     assert "max-age=0" in r.headers["set-cookie"].lower()
     assert sql("SELECT count(*) FROM sessions") == [(0,)]
     assert client.get("/api/v1/me", headers=as_token(token)).status_code == 401
-    assert client.post("/api/v1/auth/logout", headers=as_token(token)).status_code == 401
+    assert client.post("/api/v1/auth/logout", headers=writes_as(token)).status_code == 401
 
 
 @needs_stack
@@ -272,7 +287,80 @@ def test_one_users_session_cannot_act_as_another(client: TestClient) -> None:
     assert client.get("/api/v1/me", headers=as_token(token_b)).json()["id"] == b
 
     # A logging out ends only A's session.
-    assert client.post("/api/v1/auth/logout", headers=as_token(token_a)).status_code == 204
+    assert client.post("/api/v1/auth/logout", headers=writes_as(token_a)).status_code == 204
     assert client.get("/api/v1/me", headers=as_token(token_a)).status_code == 401
     assert client.get("/api/v1/me", headers=as_token(token_b)).json()["id"] == b
     assert sql("SELECT user_id::text FROM sessions") == [(b,)]
+
+
+# --- CSRF (HE-015) against the real stack ---
+
+
+@needs_stack
+def test_login_without_csrf_token_is_rejected(client: TestClient) -> None:
+    make_user("prof@example.com")
+    r = client.post(
+        "/api/v1/auth/login", json={"email": "prof@example.com", "password": GOOD_PASSWORD}
+    )
+    assert r.status_code == 403
+    assert r.json()["error"]["code"] == "csrf_failed"
+    assert sql("SELECT count(*) FROM sessions") == [(0,)]
+
+
+@needs_stack
+def test_login_issues_session_bound_csrf_cookie_used_for_writes(client: TestClient) -> None:
+    make_user("prof@example.com")
+    pre = client.get("/api/v1/auth/csrf").json()["csrf_token"]
+    assert client.get("/api/v1/auth/csrf").json()["csrf_token"] == pre  # stable across tabs
+    r = login(client, "prof@example.com")
+    assert r.status_code == 200
+    csrf_cookie = next(
+        c for c in r.headers.get_list("set-cookie") if c.startswith(CSRF_COOKIE)
+    ).lower()
+    for flag in ("secure", "samesite=lax", "path=/"):
+        assert flag in csrf_cookie
+    assert "httponly" not in csrf_cookie  # the web app must be able to read it
+    session = client.cookies[SESSION_COOKIE]
+    csrf = client.cookies[CSRF_COOKIE]
+    assert csrf == csrf_for(session) != pre  # rotated on login, bound to the new session
+    assert client.get("/api/v1/auth/csrf").json()["csrf_token"] == csrf
+
+    assert client.post("/api/v1/auth/logout").status_code == 403  # cookie alone is not enough
+    r = client.post("/api/v1/auth/logout", headers={CSRF_HEADER: csrf})
+    assert r.status_code == 204
+    cleared = [c.lower() for c in r.headers.get_list("set-cookie")]
+    assert any(c.startswith(CSRF_COOKIE.lower()) and "max-age=0" in c for c in cleared)
+    assert CSRF_COOKIE not in client.cookies
+
+
+@needs_stack
+def test_write_with_unbound_or_mismatched_token_is_rejected(client: TestClient) -> None:
+    make_user("prof@example.com")
+    token = token_of(client, "prof@example.com")
+    # A well-formed double-submit pair not derived from this session (e.g. tossed in by a
+    # sibling origin, or another user's token) must not verify.
+    other = csrf_for("someone-elses-session")
+    for headers in (
+        writes_as(token, csrf=other),
+        {**writes_as(token), CSRF_HEADER: other},
+        {**writes_as(token), CSRF_HEADER: ""},
+        as_token(token),
+    ):
+        r = client.post("/api/v1/auth/logout", headers=headers)
+        assert r.status_code == 403
+        assert r.json()["error"]["code"] == "csrf_failed"
+    assert sql("SELECT count(*) FROM sessions") == [(1,)]
+
+
+@needs_stack
+def test_cross_origin_write_is_rejected_even_with_valid_token(client: TestClient) -> None:
+    make_user("prof@example.com")
+    token = token_of(client, "prof@example.com")
+    for origin in ("https://evil.example", "http://localhost", "null"):
+        r = client.post("/api/v1/auth/logout", headers={**writes_as(token), "Origin": origin})
+        assert r.status_code == 403
+        assert r.json()["error"]["code"] == "csrf_failed"
+    r = client.post(
+        "/api/v1/auth/logout", headers={**writes_as(token), "Origin": "https://localhost"}
+    )
+    assert r.status_code == 204

@@ -52,7 +52,7 @@ Enforcement
 - Sessions: random 32-byte token in `HttpOnly; Secure; SameSite=Lax` cookie, stored hashed, 14-day sliding expiry, revoked on logout / password change / deactivation.
 - Admin: **TOTP 2FA required**.
 - Login rate limit + lockout (5 fails / 15 min).
-- CSRF: double-submit token on all state-changing requests.
+- CSRF: double-submit token on all state-changing requests (incl. login), bound to the session; `Origin`, when sent, must be `https://APP_DOMAIN` (HE-015, `services/api/csrf.py`).
 
 ## 5. Secrets
 
