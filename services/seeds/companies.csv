@@ -1,0 +1,301 @@
+name,kind,region,tier,rank_source,website
+Amazon,company,global,1,Fortune Global 500 2026 #1,https://www.amazon.com
+Walmart,company,global,1,Fortune Global 500 2026 #2,https://corporate.walmart.com
+UnitedHealth Group,company,global,1,Fortune Global 500 2026 #4,https://www.unitedhealthgroup.com
+Saudi Aramco,company,global,1,Fortune Global 500 2026 #5,https://www.aramco.com
+Apple,company,global,1,Fortune Global 500 2026 #6,https://www.apple.com
+Alphabet,company,global,1,Fortune Global 500 2026 #8,https://abc.xyz
+Volkswagen,company,global,1,Fortune Global 500 2026 #13,https://www.volkswagen-group.com
+Toyota Motor,company,global,1,Fortune Global 500 2026 #14,https://global.toyota
+Microsoft,company,global,1,Fortune Global 500 2026 #18,https://www.microsoft.com
+JPMorgan Chase,company,global,1,Fortune Global 500 2026 #19,https://www.jpmorganchase.com
+Shell,company,global,1,Fortune Global 500 2026 #22,https://www.shell.com
+Hon Hai Precision Industry,company,global,1,Fortune Global 500 2026 #23,https://www.foxconn.com
+Samsung Electronics,company,global,1,Fortune Global 500 2026 #26,https://www.samsung.com
+Nvidia,company,global,1,Fortune Global 500 2026 #28,https://www.nvidia.com
+Meta Platforms,company,global,1,Fortune Global 500 2026 #30,https://about.meta.com
+BP,company,global,1,Fortune Global 500 2026 #33,https://www.bp.com
+Bank of America,company,global,1,Fortune Global 500 2026 #34,https://www.bankofamerica.com
+Ford Motor,company,global,1,Fortune Global 500 2026 #38,https://www.ford.com
+General Motors,company,global,1,Fortune Global 500 2026 #39,https://www.gm.com
+TotalEnergies,company,global,1,Fortune Global 500 2026 #40,https://totalenergies.com
+JD.com,company,global,1,Fortune Global 500 2026 #41,https://corporate.jd.com
+Stellantis,company,global,1,Fortune Global 500 2026 #43,https://www.stellantis.com
+Citigroup,company,global,1,Fortune Global 500 2026 #45,https://www.citigroup.com
+BMW Group,company,global,1,Fortune Global 500 2026 #50,https://www.bmwgroup.com
+Mercedes-Benz Group,company,global,2,Fortune Global 500 2026 #51,https://group.mercedes-benz.com
+Banco Santander,company,global,2,Fortune Global 500 2026 #54,https://www.santander.com
+Honda Motor,company,global,2,Fortune Global 500 2026 #55,https://global.honda
+Alibaba Group,company,global,2,Fortune Global 500 2026 #56,https://www.alibabagroup.com
+BNP Paribas,company,global,2,Fortune Global 500 2026 #58,https://group.bnpparibas
+Verizon Communications,company,global,2,Fortune Global 500 2026 #60,https://www.verizon.com
+HSBC Holdings,company,global,2,Fortune Global 500 2026 #62,https://www.hsbc.com
+Deutsche Telekom,company,global,2,Fortune Global 500 2026 #65,https://www.telekom.com
+Allianz,company,global,2,Fortune Global 500 2026 #67,https://www.allianz.com
+Hyundai Motor,company,global,2,Fortune Global 500 2026 #72,https://www.hyundai.com
+AT&T,company,global,2,Fortune Global 500 2026 #75,https://www.att.com
+Goldman Sachs Group,company,global,2,Fortune Global 500 2026 #77,https://www.goldmansachs.com
+Comcast,company,global,2,Fortune Global 500 2026 #79,https://corporate.comcast.com
+Wells Fargo,company,global,2,Fortune Global 500 2026 #80,https://www.wellsfargo.com
+Huawei Investment & Holding,company,global,2,Fortune Global 500 2026 #81,https://www.huawei.com
+Taiwan Semiconductor Manufacturing,company,global,2,Fortune Global 500 2026 #82,https://www.tsmc.com
+Morgan Stanley,company,global,2,Fortune Global 500 2026 #84,https://www.morganstanley.com
+Dell Technologies,company,global,2,Fortune Global 500 2026 #90,https://www.dell.com
+BYD,company,global,2,Fortune Global 500 2026 #91,https://www.byd.com
+Nestlé,company,global,2,Fortune Global 500 2026 #93,https://www.nestle.com
+Target,company,global,2,Fortune Global 500 2026 #96,https://corporate.target.com
+Tencent Holdings,company,global,2,Fortune Global 500 2026 #97,https://www.tencent.com
+Bosch Group,company,global,2,Fortune Global 500 2026 #102,https://www.bosch.com
+NTT,company,global,2,Fortune Global 500 2026 #114,https://group.ntt
+Tesla,company,global,2,Fortune Global 500 2026 #116,https://www.tesla.com
+Walt Disney,company,global,2,Fortune Global 500 2026 #117,https://thewaltdisneycompany.com
+Johnson & Johnson,company,global,2,Fortune Global 500 2026 #120,https://www.jnj.com
+PepsiCo,company,global,2,Fortune Global 500 2026 #121,https://www.pepsico.com
+DHL Group,company,global,2,Fortune Global 500 2026 #122,https://group.dhl.com
+Boeing,company,global,2,Fortune Global 500 2026 #128,https://www.boeing.com
+UPS,company,global,2,Fortune Global 500 2026 #133,https://about.ups.com
+RTX,company,global,2,Fortune Global 500 2026 #135,https://www.rtx.com
+FedEx,company,global,2,Fortune Global 500 2026 #137,https://www.fedex.com
+Sony,company,global,2,Fortune Global 500 2026 #141,https://www.sony.com
+Siemens,company,global,2,Fortune Global 500 2026 #143,https://www.siemens.com
+Lenovo Group,company,global,3,Fortune Global 500 2026 #153,https://www.lenovo.com
+Airbus,company,global,3,Fortune Global 500 2026 #155,https://www.airbus.com
+American Express,company,global,3,Fortune Global 500 2026 #165,https://www.americanexpress.com
+Kia,company,global,3,Fortune Global 500 2026 #166,https://www.kia.com
+Nissan Motor,company,global,3,Fortune Global 500 2026 #168,https://www.nissan-global.com
+UBS Group,company,global,3,Fortune Global 500 2026 #172,https://www.ubs.com
+Roche Group,company,global,3,Fortune Global 500 2026 #176,https://www.roche.com
+Lockheed Martin,company,global,3,Fortune Global 500 2026 #181,https://www.lockheedmartin.com
+Barclays,company,global,3,Fortune Global 500 2026 #186,https://home.barclays
+ING Group,company,global,3,Fortune Global 500 2026 #187,https://www.ing.com
+Deutsche Bank,company,global,3,Fortune Global 500 2026 #189,https://www.db.com
+BASF,company,global,3,Fortune Global 500 2026 #191,https://www.basf.com
+Hitachi,company,global,3,Fortune Global 500 2026 #197,https://www.hitachi.com
+Accenture,company,global,3,Fortune Global 500 2026 #204,https://www.accenture.com
+Capital One Financial,company,global,3,Fortune Global 500 2026 #206,https://www.capitalone.com
+SK Hynix,company,global,3,Fortune Global 500 2026 #210,https://www.skhynix.com
+Caterpillar,company,global,3,Fortune Global 500 2026 #216,https://www.caterpillar.com
+International Business Machines,company,global,3,Fortune Global 500 2026 #217,https://www.ibm.com
+Unilever,company,global,3,Fortune Global 500 2026 #222,https://www.unilever.com
+Renault,company,global,3,Fortune Global 500 2026 #223,https://www.renaultgroup.com
+Eli Lilly,company,global,3,Fortune Global 500 2026 #224,https://www.lilly.com
+MSD,company,global,3,Fortune Global 500 2026 #225,https://www.msd.com
+Broadcom,company,global,3,Fortune Global 500 2026 #230,https://www.broadcom.com
+Xiaomi,company,global,3,Fortune Global 500 2026 #232,https://www.mi.com
+LG Electronics,company,global,3,Fortune Global 500 2026 #238,https://www.lg.com
+Pfizer,company,global,3,Fortune Global 500 2026 #240,https://www.pfizer.com
+Petronas,company,global,3,Fortune Global 500 2026 #242,https://www.petronas.com
+AbbVie,company,global,3,Fortune Global 500 2026 #246,https://www.abbvie.com
+Contemporary Amperex Technology (CATL),company,global,3,Fortune Global 500 2026 #260,https://www.catl.com
+AstraZeneca,company,global,3,Fortune Global 500 2026 #262,https://www.astrazeneca.com
+Oracle,company,global,3,Fortune Global 500 2026 #265,https://www.oracle.com
+Novartis,company,global,3,Fortune Global 500 2026 #267,https://www.novartis.com
+Cisco Systems,company,global,3,Fortune Global 500 2026 #268,https://www.cisco.com
+Daimler Truck Holding,company,global,3,Fortune Global 500 2026 #274,https://www.daimlertruck.com
+HP,company,global,3,Fortune Global 500 2026 #276,https://www.hp.com
+Sanofi,company,global,3,Fortune Global 500 2026 #279,https://www.sanofi.com
+Maersk Group,company,global,3,Fortune Global 500 2026 #284,https://www.maersk.com
+Panasonic Holdings,company,global,3,Fortune Global 500 2026 #286,https://holdings.panasonic
+Intel,company,global,3,Fortune Global 500 2026 #289,https://www.intel.com
+General Dynamics,company,global,3,Fortune Global 500 2026 #294,https://www.gd.com
+Uber Technologies,company,global,3,Fortune Global 500 2026 #296,https://www.uber.com
+SoftBank Group,company,global,3,Fortune Global 500 2026 #300,https://group.softbank
+Bayer,company,global,3,Fortune Global 500 2026 #304,https://www.bayer.com
+Denso,company,global,3,Fortune Global 500 2026 #316,https://www.denso.com
+Volvo Group,company,global,3,Fortune Global 500 2026 #322,https://www.volvogroup.com
+Coca-Cola,company,global,3,Fortune Global 500 2026 #329,https://www.coca-colacompany.com
+Vodafone Group,company,global,3,Fortune Global 500 2026 #331,https://www.vodafone.com
+Novo Nordisk,company,global,3,Fortune Global 500 2026 #333,https://www.novonordisk.com
+Nike,company,global,3,Fortune Global 500 2026 #336,https://about.nike.com
+GE Aerospace,company,global,3,Fortune Global 500 2026 #341,https://www.geaerospace.com
+Deere,company,global,3,Fortune Global 500 2026 #342,https://www.deere.com
+Orange,company,global,3,Fortune Global 500 2026 #344,https://www.orange.com
+Schneider Electric,company,global,3,Fortune Global 500 2026 #348,https://www.se.com
+Netflix,company,global,3,Fortune Global 500 2026 #351,https://about.netflix.com
+Thermo Fisher Scientific,company,global,3,Fortune Global 500 2026 #356,https://www.thermofisher.com
+Abbott Laboratories,company,global,3,Fortune Global 500 2026 #358,https://www.abbott.com
+Qualcomm,company,global,3,Fortune Global 500 2026 #359,https://www.qualcomm.com
+ZF Friedrichshafen,company,global,3,Fortune Global 500 2026 #364,https://www.zf.com
+Siemens Energy,company,global,3,Fortune Global 500 2026 #368,https://www.siemens-energy.com
+GSK,company,global,3,Fortune Global 500 2026 #370,https://www.gsk.com
+Hyundai Mobis,company,global,3,Fortune Global 500 2026 #371,https://www.mobis.com
+Telefónica,company,global,3,Fortune Global 500 2026 #376,https://www.telefonica.com
+Magna International,company,global,3,Fortune Global 500 2026 #379,https://www.magna.com
+Northrop Grumman,company,global,3,Fortune Global 500 2026 #381,https://www.northropgrumman.com
+Suzuki Motor,company,global,3,Fortune Global 500 2026 #384,https://www.globalsuzuki.com
+Salesforce,company,global,3,Fortune Global 500 2026 #386,https://www.salesforce.com
+SAP,company,global,3,Fortune Global 500 2026 #387,https://www.sap.com
+Bank of New York (BNY),company,global,3,Fortune Global 500 2026 #394,https://www.bny.com
+Honeywell Technologies,company,global,3,Fortune Global 500 2026 #395,https://www.honeywell.com
+Standard Chartered,company,global,3,Fortune Global 500 2026 #397,https://www.sc.com
+KDDI,company,global,3,Fortune Global 500 2026 #401,https://www.kddi.com
+Visa,company,global,3,Fortune Global 500 2026 #403,https://corporate.visa.com
+Dow,company,global,3,Fortune Global 500 2026 #404,https://corporate.dow.com
+Mitsubishi Electric,company,global,3,Fortune Global 500 2026 #416,https://www.mitsubishielectric.com
+GE Vernova,company,global,3,Fortune Global 500 2026 #427,https://www.gevernova.com
+Micron Technology,company,global,3,Fortune Global 500 2026 #438,https://www.micron.com
+BAE Systems,company,global,3,Fortune Global 500 2026 #441,https://www.baesystems.com
+Mitsubishi Heavy Industries,company,global,3,Fortune Global 500 2026 #443,https://www.mhi.com
+ASML Holding,company,global,3,Fortune Global 500 2026 #453,https://www.asml.com
+Amgen,company,global,3,Fortune Global 500 2026 #454,https://www.amgen.com
+SLB,company,global,3,Fortune Global 500 2026 #460,https://www.slb.com
+Safran,company,global,3,Fortune Global 500 2026 #461,https://www.safran-group.com
+ABB,company,global,3,Fortune Global 500 2026 #466,https://global.abb
+Advanced Micro Devices,company,global,3,Fortune Global 500 2026 #478,https://www.amd.com
+Hewlett Packard Enterprise,company,global,3,Fortune Global 500 2026 #481,https://www.hpe.com
+Linde,company,global,3,Fortune Global 500 2026 #488,https://www.linde.com
+Cummins,company,global,3,Fortune Global 500 2026 #494,https://www.cummins.com
+Medtronic,company,global,3,Fortune Global 500 2026 #496,https://www.medtronic.com
+Daikin Industries,company,global,3,Fortune Global 500 2026 #498,https://www.daikin.com
+LG Chem,company,global,3,Fortune Global 500 2026 #499,https://www.lgchem.com
+PayPal Holdings,company,global,3,Fortune Global 500 2026 #500,https://www.paypal.com
+Reliance Industries,company,india,1,Fortune India 500 2025 #1,https://www.ril.com
+LIC,company,india,1,Fortune India 500 2025 #2,https://licindia.in
+Indian Oil Corporation,company,india,1,Fortune India 500 2025 #3,https://iocl.com
+State Bank of India,company,india,1,Fortune India 500 2025 #4,https://sbi.bank.in
+ONGC,company,india,1,Fortune India 500 2025 #5,https://ongcindia.com
+HDFC Bank,company,india,1,Fortune India 500 2025 #6,https://www.hdfc.bank.in
+Tata Motors,company,india,1,Fortune India 500 2025 #7,https://www.tatamotors.com
+Bharat Petroleum Corporation,company,india,1,Fortune India 500 2025 #8,https://www.bharatpetroleum.in
+ICICI Bank,company,india,1,Fortune India 500 2025 #9,https://www.icici.bank.in
+Larsen & Toubro,company,india,1,Fortune India 500 2025 #10,https://www.larsentoubro.com
+Tata Consultancy Services,company,india,1,Fortune India 500 2025 #11,https://www.tcs.com
+Hindalco Industries,company,india,1,Fortune India 500 2025 #12,https://www.hindalco.com
+Tata Steel,company,india,1,Fortune India 500 2025 #13,https://www.tatasteel.com
+NTPC,company,india,1,Fortune India 500 2025 #14,https://ntpc.co.in
+Bharti Airtel,company,india,1,Fortune India 500 2025 #15,https://www.airtel.in
+JSW Steel,company,india,1,Fortune India 500 2025 #16,https://www.jsw.in
+Infosys,company,india,1,Fortune India 500 2025 #17,https://www.infosys.com
+Mahindra & Mahindra,company,india,1,Fortune India 500 2025 #18,https://www.mahindra.com
+Vedanta,company,india,1,Fortune India 500 2025 #19,https://www.vedantalimited.com
+Maruti Suzuki India,company,india,1,Fortune India 500 2025 #20,https://www.marutisuzuki.com
+Axis Bank,company,india,1,Fortune India 500 2025 #21,https://www.axis.bank.in
+Coal India,company,india,1,Fortune India 500 2025 #22,https://www.coalindia.in
+Bank of Baroda,company,india,1,Fortune India 500 2025 #23,https://bankofbaroda.bank.in
+Canara Bank,company,india,1,Fortune India 500 2025 #24,https://www.canarabank.bank.in
+GAIL,company,india,1,Fortune India 500 2025 #26,https://gailonline.com
+Punjab National Bank,company,india,1,Fortune India 500 2025 #27,https://pnb.bank.in
+Bajaj Finserv,company,india,1,Fortune India 500 2025 #28,https://www.bajajfinserv.in
+Union Bank of India,company,india,1,Fortune India 500 2025 #30,https://www.unionbankofindia.bank.in
+HCL Technologies,company,india,1,Fortune India 500 2025 #31,https://www.hcltech.com
+Samvardhana Motherson Intl.,company,india,1,Fortune India 500 2025 #32,https://www.motherson.com
+Kotak Mahindra Bank,company,india,1,Fortune India 500 2025 #34,https://www.kotak.bank.in
+Steel Authority of India,company,india,1,Fortune India 500 2025 #35,https://www.sail.co.in
+ITC,company,india,1,Fortune India 500 2025 #36,https://www.itcportal.com
+Wipro,company,india,1,Fortune India 500 2025 #37,https://www.wipro.com
+Flipkart India,company,india,1,Fortune India 500 2025 #38,https://www.flipkart.com
+Interglobe Aviation,company,india,1,Fortune India 500 2025 #39,https://www.goindigo.in
+Tata Power Company,company,india,1,Fortune India 500 2025 #43,https://www.tatapower.com
+Titan Company,company,india,1,Fortune India 500 2025 #44,https://www.titancompany.in
+Hindustan Unilever,company,india,1,Fortune India 500 2025 #46,https://www.hul.co.in
+Adani Enterprises,company,india,1,Fortune India 500 2025 #47,https://www.adanienterprises.com
+Avenue Supermarts,company,india,1,Fortune India 500 2025 #49,https://www.dmartindia.com
+IndusInd Bank,company,india,2,Fortune India 500 2025 #52,https://www.indusind.bank.in
+Sun Pharmaceuticals Industries,company,india,2,Fortune India 500 2025 #53,https://sunpharma.com
+Tech Mahindra,company,india,2,Fortune India 500 2025 #54,https://www.techmahindra.com
+Bajaj Auto,company,india,2,Fortune India 500 2025 #55,https://www.bajajauto.com
+Ashok Leyland,company,india,2,Fortune India 500 2025 #58,https://www.ashokleyland.com
+Power Grid Corporation of India,company,india,2,Fortune India 500 2025 #60,https://www.powergrid.in
+Vodafone Idea,company,india,2,Fortune India 500 2025 #64,https://www.myvi.in
+TVS Motor Company,company,india,2,Fortune India 500 2025 #65,https://www.tvsmotor.com
+IDFC First Bank,company,india,2,Fortune India 500 2025 #69,https://www.idfcfirst.bank.in
+Hero MotoCorp,company,india,2,Fortune India 500 2025 #73,https://www.heromotocorp.com
+Hindustan Aeronautics,company,india,2,Fortune India 500 2025 #74,https://hal-india.co.in
+Dixon Technologies,company,india,2,Fortune India 500 2025 #78,https://www.dixoninfo.com
+Yes Bank,company,india,2,Fortune India 500 2025 #80,https://www.yes.bank.in
+Asian Paints,company,india,2,Fortune India 500 2025 #81,https://www.asianpaints.com
+Dr. Reddy's Laboratories,company,india,2,Fortune India 500 2025 #83,https://www.drreddys.com
+Adani Ports & SEZ,company,india,2,Fortune India 500 2025 #88,https://www.adaniports.com
+Indus Towers,company,india,2,Fortune India 500 2025 #92,https://www.industowers.com
+Bharat Heavy Electricals,company,india,2,Fortune India 500 2025 #95,https://www.bhel.com
+Cipla,company,india,2,Fortune India 500 2025 #100,https://www.cipla.com
+Tata Capital,company,india,2,Fortune India 500 2025 #102,https://www.tatacapital.com
+Apollo Tyres,company,india,2,Fortune India 500 2025 #106,https://www.apollotyres.com
+Bharat Electronics,company,india,2,Fortune India 500 2025 #111,https://bel-india.in
+Tata Communications,company,india,2,Fortune India 500 2025 #115,https://www.tatacommunications.com
+Zydus Lifesciences,company,india,2,Fortune India 500 2025 #117,https://www.zyduslife.com
+BSNL,company,india,2,Fortune India 500 2025 #118,https://www.bsnl.co.in
+Lupin,company,india,2,Fortune India 500 2025 #121,https://www.lupin.com
+Polycab India,company,india,2,Fortune India 500 2025 #122,https://polycab.com
+Havells India,company,india,2,Fortune India 500 2025 #124,https://www.havells.com
+Apollo Hospitals Enterprise,company,india,2,Fortune India 500 2025 #129,https://www.apollohospitals.com
+JioStar India,company,india,2,Fortune India 500 2025 #132,https://www.jiostar.com
+Eternal,company,india,2,Fortune India 500 2025 #133,https://www.eternal.com
+National Stock Exchange of India,company,india,2,Fortune India 500 2025 #135,https://www.nseindia.com
+Eicher Motors,company,india,2,Fortune India 500 2025 #136,https://www.eicher.in
+Tata Consumer Products,company,india,3,Fortune India 500 2025 #156,https://www.tataconsumer.com
+Tata Projects,company,india,3,Fortune India 500 2025 #162,https://www.tataprojects.com
+Exide Industries,company,india,3,Fortune India 500 2025 #163,https://www.exideindustries.com
+Uno Minda,company,india,3,Fortune India 500 2025 #168,https://www.unominda.com
+Biocon,company,india,3,Fortune India 500 2025 #172,https://www.biocon.com
+Godrej Consumer Products,company,india,3,Fortune India 500 2025 #173,https://www.godrejcp.com
+Voltas,company,india,3,Fortune India 500 2025 #178,https://www.voltas.com
+Swiggy,company,india,3,Fortune India 500 2025 #179,https://www.swiggy.com
+Tata Chemicals,company,india,3,Fortune India 500 2025 #181,https://www.tatachemicals.com
+Bharat Forge,company,india,3,Fortune India 500 2025 #185,https://www.bharatforge.com
+Mphasis,company,india,3,Fortune India 500 2025 #191,https://www.mphasis.com
+Waaree Energies,company,india,3,Fortune India 500 2025 #194,https://waaree.com
+Pidilite Industries,company,india,3,Fortune India 500 2025 #203,https://www.pidilite.com
+Amara Raja Batteries,company,india,3,Fortune India 500 2025 #206,https://www.amararaja.com
+Adani Green Energy,company,india,3,Fortune India 500 2025 #212,https://www.adanigreenenergy.com
+JSW Energy,company,india,3,Fortune India 500 2025 #215,https://www.jswenergy.in
+Mazagon Dock Shipbuilders,company,india,3,Fortune India 500 2025 #217,https://mazagondock.in
+Blue Star,company,india,3,Fortune India 500 2025 #219,https://www.bluestarindia.com
+Coforge,company,india,3,Fortune India 500 2025 #222,https://www.coforge.com
+NHPC,company,india,3,Fortune India 500 2025 #224,https://www.nhpcindia.com
+Persistent Systems,company,india,3,Fortune India 500 2025 #226,https://www.persistent.com
+Hexaware Technologies,company,india,3,Fortune India 500 2025 #228,https://hexaware.com
+GMR Airports,company,india,3,Fortune India 500 2025 #234,
+Serum Institute of India,company,india,3,Fortune India 500 2025 #237,https://www.seruminstitute.com
+Suzlon Energy,company,india,3,Fortune India 500 2025 #239,https://www.suzlon.com
+Escorts Kubota,company,india,3,Fortune India 500 2025 #248,https://www.escortskubota.com
+Thermax,company,india,3,Fortune India 500 2025 #251,https://www.thermaxglobal.com
+Sonata Software,company,india,3,Fortune India 500 2025 #262,https://www.sonata-software.com
+Amber Enterprises India,company,india,3,Fortune India 500 2025 #263,https://www.ambergroupindia.com
+Supermarket Grocery Supplies (Bigbasket),company,india,3,Fortune India 500 2025 #265,https://www.bigbasket.com
+TVS Supply Chain Solutions,company,india,3,Fortune India 500 2025 #266,https://www.tvsscs.com
+Go Digit General Insurance,company,india,3,Fortune India 500 2025 #274,https://www.godigit.com
+Delhivery,company,india,3,Fortune India 500 2025 #282,https://www.delhivery.com
+DLF,company,india,3,Fortune India 500 2025 #291,https://www.dlf.in
+One 97 Communications,company,india,3,Fortune India 500 2025 #292,https://paytm.com
+Tejas Networks,company,india,3,Fortune India 500 2025 #293,https://www.tejasnetworks.com
+Indian Hotels Co,company,india,3,Fortune India 500 2025 #294,https://www.ihcltata.com
+Brainbees Solutions,company,india,3,Fortune India 500 2025 #312,https://www.firstcry.com
+Jubilant Foodworks,company,india,3,Fortune India 500 2025 #314,https://www.jubilantfoodworks.com
+FSN E-Commerce Ventures,company,india,3,Fortune India 500 2025 #317,https://www.nykaa.com
+Crompton Greaves Consumer Electricals,company,india,3,Fortune India 500 2025 #322,https://www.crompton.co.in
+PhonePe,company,india,3,Fortune India 500 2025 #330,https://www.phonepe.com
+Solar Industries India,company,india,3,Fortune India 500 2025 #332,https://solargroup.com
+Cyient,company,india,3,Fortune India 500 2025 #336,https://www.cyient.com
+Max Healthcare Institute,company,india,3,Fortune India 500 2025 #345,https://www.maxhealthcare.in
+Oracle Fin. Services Software,company,india,3,Fortune India 500 2025 #348,https://www.oracle.com/in/financial-services/
+Lenskart Solutions,company,india,3,Fortune India 500 2025 #349,https://www.lenskart.com
+Premier Energies,company,india,3,Fortune India 500 2025 #366,https://premierenergies.com
+Oravel Stays,company,india,3,Fortune India 500 2025 #379,https://www.oyorooms.com
+Myntra Designs,company,india,3,Fortune India 500 2025 #387,https://www.myntra.com
+Redington,company,india,3,Fortune India 500 2025 #390,https://redingtongroup.com
+KPIT Technologies,company,india,3,Fortune India 500 2025 #393,https://www.kpit.com
+API Holdings,company,india,3,Fortune India 500 2025 #394,https://pharmeasy.in
+Black Box,company,india,3,Fortune India 500 2025 #399,https://www.blackbox.com
+Astral,company,india,3,Fortune India 500 2025 #403,https://www.astralltd.com
+Finolex Cables,company,india,3,Fortune India 500 2025 #404,https://finolex.com
+Blue Dart Express,company,india,3,Fortune India 500 2025 #409,https://www.bluedart.com
+V-Guard Industries,company,india,3,Fortune India 500 2025 #413,https://www.vguard.in
+Laurus Labs,company,india,3,Fortune India 500 2025 #418,https://www.lauruslabs.com
+Sagility,company,india,3,Fortune India 500 2025 #422,https://sagility.com
+Narayana Hrudayalaya,company,india,3,Fortune India 500 2025 #423,https://www.narayanahealth.org
+Tata Advanced Systems,company,india,3,Fortune India 500 2025 #426,https://www.tataadvancedsystems.com
+Birlasoft,company,india,3,Fortune India 500 2025 #430,https://www.birlasoft.com
+Garden Reach Shipbuilders & Engineers,company,india,3,Fortune India 500 2025 #433,https://grse.in
+PB Fintech,company,india,3,Fortune India 500 2025 #436,https://www.pbfintech.in
+Zensar Technologies,company,india,3,Fortune India 500 2025 #437,https://www.zensar.com
+Brahmos Aerospace,company,india,3,Fortune India 500 2025 #446,https://www.brahmos.com
+Angel One,company,india,3,Fortune India 500 2025 #447,https://www.angelone.in
+Cochin Shipyard,company,india,3,Fortune India 500 2025 #449,https://cochinshipyard.in
+Hinduja Global Solutions,company,india,3,Fortune India 500 2025 #454,https://hgs.com
+PG Electroplast,company,india,3,Fortune India 500 2025 #459,https://www.pgel.in
+Zee Entertainment Enterprises,company,india,3,Fortune India 500 2025 #462,https://www.zee.com
+IRCTC,company,india,3,Fortune India 500 2025 #474,https://www.irctc.co.in
+Ola Electric Mobility,company,india,3,Fortune India 500 2025 #477,https://www.olaelectric.com
+Bajaj Electricals,company,india,3,Fortune India 500 2025 #479,https://www.bajajelectricals.com
+Route Mobile,company,india,3,Fortune India 500 2025 #496,https://www.routemobile.com

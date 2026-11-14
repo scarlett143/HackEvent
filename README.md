@@ -25,6 +25,7 @@ Design docs: [docs/](docs/README.md) — PRD, TRD, schema, API, security, AI gua
 | HE-014 | Admin TOTP 2FA (RFC 6238, encrypted secret, replay + rate-limit protection); /admin blocked until verified | Done |
 | HE-015 | CSRF double-submit protection (session-bound token, Origin check) on every write | Done |
 | HE-016 | Audit log writer: 17 security actions, secrets dropped/redacted from metadata | Done |
+| HE-020 | Seed data: 300 companies (Fortune Global 500 2026, Fortune India 500 2025) + 300 institutions (NIRF 2025 Engineering), tiers, idempotent loader | Done |
 | HE-030 | Gmail API email sender (refresh-token OAuth, retries, revoked-token alert) + autoescaped invite/test templates | Done |
 
 Full ticket list: [docs/09-Feature-Ticket-List.md](docs/09-Feature-Ticket-List.md).

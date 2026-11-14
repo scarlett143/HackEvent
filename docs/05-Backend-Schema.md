@@ -275,4 +275,4 @@ Append-only: app DB role has INSERT + SELECT only.
 
 ## 4. Seed data
 
-`seeds/companies.csv`, `seeds/institutions.csv`, `seeds/sources.csv` with columns `name, kind, region, tier, rank_source, website`. Seed script is idempotent (upsert by `(lower(name), kind)`).
+`seeds/companies.csv`, `seeds/institutions.csv`, `seeds/sources.csv` with columns `name, kind, region, tier, rank_source, website`. Seed script is idempotent (upsert by `(lower(name), kind)`). The files live in `services/seeds/` because the image copies only `services/`. See `services/seeds/README.md` for the source lists and the tier rule.
