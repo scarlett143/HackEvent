@@ -37,12 +37,14 @@ export function useShell(): Shell {
   return s;
 }
 
-const NAV = [
-  { href: "/", label: "Feed" },
-  { href: "/calendar", label: "Calendar" },
-  { href: "/notifications", label: "Notifications" },
-  { href: "/settings", label: "Settings" },
-] as const;
+// `soon` items have no page yet: shown as labels, not links (no dead links, no 404 prefetch).
+// ponytail: flip `soon` off as Calendar (HE-061), Notifications (HE-076) and Settings land.
+const NAV: { href: string; label: string; soon: boolean }[] = [
+  { href: "/", label: "Feed", soon: false },
+  { href: "/calendar", label: "Calendar", soon: true },
+  { href: "/notifications", label: "Notifications", soon: true },
+  { href: "/settings", label: "Settings", soon: true },
+];
 
 const TOAST_MS = 10_000;
 
@@ -96,10 +98,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             HackEvents
           </Link>
           <div className="flex items-center gap-2">
-            <Link
-              href="/notifications"
-              className="focus-ring relative inline-flex size-11 items-center justify-center rounded-xl hover:bg-surface"
-              aria-label={badge ? `Notifications, ${badge} unread` : "Notifications"}
+            {/* ponytail: becomes a link to /notifications once that page exists (HE-076). */}
+            <span
+              role="img"
+              className="relative inline-flex size-11 items-center justify-center rounded-xl"
+              aria-label={badge ? `${badge} unread` : "No unread items"}
             >
               <span aria-hidden>🔔</span>
               {badge > 0 && (
@@ -110,7 +113,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   {badge > 99 ? "99+" : badge}
                 </span>
               )}
-            </Link>
+            </span>
             <details className="relative">
               <summary
                 className="focus-ring flex size-11 cursor-pointer list-none items-center justify-center rounded-full bg-primary text-sm font-semibold text-white"
@@ -140,6 +143,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             className="flex gap-1 overflow-x-auto border-b border-line px-2 md:w-52 md:shrink-0 md:flex-col md:border-r md:border-b-0 md:p-3"
           >
             {NAV.map((n) => {
+              if (n.soon)
+                return (
+                  <span
+                    key={n.href}
+                    aria-disabled="true"
+                    className="text-muted inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl px-3 text-sm"
+                  >
+                    {n.label}
+                    <span className="rounded-full border border-line px-1.5 text-xs">Soon</span>
+                  </span>
+                );
               const current = n.href === "/" ? pathname === "/" : pathname.startsWith(n.href);
               return (
                 <Link

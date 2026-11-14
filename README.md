@@ -44,6 +44,7 @@ Design docs: [docs/](docs/README.md) — PRD, TRD, schema, API, security, AI gua
 | HE-050 | Events API: filters, keyset cursor, p95 < 300 ms on 5k events | Done |
 | HE-051 | Feed UI: sections, cards, countdown, chips (design brief) | Done |
 | HE-053 | Feed filters with URL state (reload keeps filters) | Done |
+| HE-054 | Event detail: two dated countdowns, needs-review banner, source block with plain-text snippet | Done |
 | HE-090 | Admin users + invites UI (login, 2FA, invite, accept, role/deactivate) | Done |
 | HE-091 | Admin orgs + sources UI: SSRF-checked URLs, CSV import, Run now | Done |
 | HE-092 | Source health dashboard (red/amber/green with reason) | Done |
