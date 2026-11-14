@@ -1,0 +1,11 @@
+A HackEvents source turned red and may have stopped finding events.
+
+Source: {{ source_name }}
+Reason: {{ reason }}
+
+Review it: {{ app_url('/admin/sources') }}
+
+You get this once; it re-arms when the source is healthy again.
+
+--
+HackEvents · {{ app_url('/') }}

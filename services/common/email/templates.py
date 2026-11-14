@@ -17,6 +17,7 @@ from common.config import get_settings
 SUBJECTS = {
     "invite": "Your HackEvents invite",
     "test": "HackEvents test email",
+    "source_health_red": "HackEvents: a source needs attention",
 }
 # Invite links expire after 72 h (Security doc §4).
 DEFAULTS: dict[str, dict[str, Any]] = {"invite": {"expires_hours": 72}}

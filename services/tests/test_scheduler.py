@@ -5,6 +5,7 @@ Unit tests run everywhere; the Postgres + Redis ones need the throwaway stack (t
 
 import asyncio
 import hashlib
+import logging
 import subprocess
 import sys
 from collections.abc import AsyncIterator, Iterator
@@ -18,11 +19,12 @@ from arq import Retry
 from arq.connections import ArqRedis, RedisSettings, create_pool
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import create_async_engine
-from tests.stack import DB_URL, REDIS_URL, needs_stack, sql
+from tests.stack import DB_URL, REDIS_URL, make_actor, needs_stack, sql
 
 from common.fetch import FetchError, FetchResult, RetryLater, RobotsDisallowed
 from common.fetch.ssrf import BlockedURL
-from common.queues import LLM_QUEUE, SCHEDULER_QUEUE, SCRAPE_QUEUE
+from common.queues import LLM_QUEUE, NOTIFY_QUEUE, SCHEDULER_QUEUE, SCRAPE_QUEUE
+from common.source_health import HealthStatus, source_health
 from workers import scheduler
 from workers.scrape import job
 
@@ -73,7 +75,9 @@ def test_enqueued_job_names_are_registered_on_the_right_worker() -> None:
         return set(w.functions)
 
     assert "scrape_source" in names(settings.ScrapeWorker)
-    assert {"record_scrape", "cron:schedule_sources"} <= names(settings.SchedulerWorker)
+    assert {"record_scrape", "record_candidates", "cron:schedule_sources"} <= names(
+        settings.SchedulerWorker
+    )
 
 
 # --- scrape job (mocked fetch, fake redis)---------------------------------------------
@@ -343,3 +347,134 @@ async def test_errors_feed_source_health(
     assert await q("SELECT 1 FROM raw_documents") == []
     await _scrape_and_record(monkeypatch, arq_redis, sid, _ok())
     assert await q("SELECT error_streak, last_error FROM sources") == [(0, None)]
+
+
+# --- HE-031 source health --------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("errors", "empties", "status"),
+    [
+        (0, 0, HealthStatus.GREEN),
+        (1, 0, HealthStatus.AMBER),
+        (2, 0, HealthStatus.AMBER),
+        (0, 4, HealthStatus.AMBER),
+        (2, 4, HealthStatus.AMBER),
+        (3, 0, HealthStatus.RED),
+        (0, 5, HealthStatus.RED),
+        (1, 7, HealthStatus.RED),
+    ],
+)
+def test_health_thresholds(errors: int, empties: int, status: HealthStatus) -> None:
+    assert source_health(errors, empties, None).status == status
+
+
+def test_health_reason_is_human_readable() -> None:
+    assert source_health(0, 0, None) == (HealthStatus.GREEN, "OK")
+    red = source_health(3, 2, "HTTP 404")
+    assert red.reason == (
+        "3 failed run(s) in a row (red at 3); last error: HTTP 404;"
+        " 2 run(s) in a row with no events (red at 5)"
+    )
+
+
+def _result(sid: str, outcome: str) -> dict[str, Any]:
+    return {
+        "source_id": sid,
+        "outcome": outcome,
+        "error": "HTTP 503" if outcome == "error" else None,
+        "etag": None,
+        "last_modified": None,
+        "content_hash": None,
+        "final_url": "https://example.com/events",
+        "body": None,
+    }
+
+
+async def _alerts(redis: ArqRedis) -> list[Any]:
+    jobs = await redis.queued_jobs(queue_name=NOTIFY_QUEUE)
+    return [j for j in jobs if j.function == "send_email"]
+
+
+@pytest.fixture
+async def admin(arq_redis: ArqRedis) -> str:
+    await asyncio.to_thread(make_actor, "admin@example.com", "admin")
+    return "admin@example.com"
+
+
+@needs_stack
+async def test_three_errors_alert_once_and_success_rearms(
+    arq_redis: ArqRedis, admin: str, caplog: pytest.LogCaptureFixture
+) -> None:
+    caplog.set_level(logging.WARNING)
+    sid = await _source()
+    ctx = await _ctx(arq_redis)
+    for _ in range(2):
+        await scheduler.record_scrape(ctx, _result(sid, "error"))
+    assert await _alerts(arq_redis) == []  # amber: no alert yet
+    await scheduler.record_scrape(ctx, _result(sid, "error"))
+    (alert,) = await _alerts(arq_redis)
+    to, template, context = alert.args
+    assert (to, template) == (admin, "source_health_red")
+    assert context["source_name"] == "https://example.com/events"  # no organisation
+    assert context["reason"].startswith("3 failed run(s)") and "HTTP 503" in context["reason"]
+    assert "source.health_red" in caplog.text
+
+    await scheduler.record_scrape(ctx, _result(sid, "error"))  # 4th error: still red
+    assert len(await _alerts(arq_redis)) == 1
+
+    await scheduler.record_scrape(ctx, _result(sid, "unchanged"))  # success → green
+    assert await q("SELECT error_streak, health_alerted_at FROM sources") == [(0, None)]
+    for _ in range(3):  # red again after re-arming → a new alert
+        await scheduler.record_scrape(ctx, _result(sid, "error"))
+    assert len(await _alerts(arq_redis)) == 2
+    await ctx["db"].dispose()
+
+
+@needs_stack
+async def test_five_empty_runs_alert_and_unchanged_is_not_empty(
+    arq_redis: ArqRedis, admin: str
+) -> None:
+    ((org,),) = await q(
+        "INSERT INTO organisations (name, kind, region, tier, rank_source, website, is_active)"
+        " VALUES (:n, 'company', 'india', 1, 'test', 'https://acme.test', true) RETURNING id",
+        n="<b>Acme</b>",
+    )
+    sid = await _source()
+    await q("UPDATE sources SET organisation_id = :o", o=org)
+    ctx = await _ctx(arq_redis)
+    for _ in range(4):
+        assert await scheduler.record_candidates(ctx, sid, 0) == HealthStatus.AMBER
+    for _ in range(10):  # unchanged content neither counts as empty nor resets the streak
+        await scheduler.record_scrape(ctx, _result(sid, "unchanged"))
+    assert await q("SELECT empty_streak FROM sources") == [(4,)]
+    assert await _alerts(arq_redis) == []
+
+    assert await scheduler.record_candidates(ctx, sid, 0) == HealthStatus.RED
+    assert await scheduler.record_candidates(ctx, sid, 0) == HealthStatus.RED
+    (alert,) = await _alerts(arq_redis)
+    assert alert.args[2]["source_name"] == "<b>Acme</b>"  # the HTML template escapes it
+    assert "5 run(s) in a row with no events" in alert.args[2]["reason"]
+
+    assert await scheduler.record_candidates(ctx, sid, 3) == HealthStatus.GREEN
+    assert await q("SELECT empty_streak, health_alerted_at FROM sources") == [(0, None)]
+    gone = await scheduler.record_candidates(ctx, "00000000-0000-0000-0000-000000000000", 0)
+    assert gone == "gone"
+    await ctx["db"].dispose()
+
+
+@needs_stack
+async def test_alert_goes_only_to_active_admins(arq_redis: ArqRedis, admin: str) -> None:
+    for email, role in (
+        ("off@example.com", "admin"),
+        ("prof@example.com", "professor"),
+        ("second@example.com", "admin"),
+    ):
+        await asyncio.to_thread(make_actor, email, role)
+    await q("UPDATE users SET is_active = false WHERE email = 'off@example.com'")
+    sid = await _source()
+    ctx = await _ctx(arq_redis)
+    for _ in range(3):
+        await scheduler.record_scrape(ctx, _result(sid, "error"))
+    assert sorted(j.args[0] for j in await _alerts(arq_redis)) == [admin, "second@example.com"]
+    await ctx["db"].dispose()

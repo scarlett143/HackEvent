@@ -67,6 +67,12 @@ async def record_scrape(ctx: dict[str, Any], result: dict[str, Any]) -> str:
     return await scheduler.record_scrape(ctx, result)
 
 
+async def record_candidates(ctx: dict[str, Any], source_id: str, count: int) -> str:
+    from workers import scheduler
+
+    return await scheduler.record_candidates(ctx, source_id, count)
+
+
 async def install_log_redaction(ctx: dict[str, Any]) -> None:
     """arq on_startup: its CLI runs dictConfig after importing this module."""
     configure_logging()
@@ -109,7 +115,7 @@ class SchedulerWorker:
     redis_settings = REDIS
     health_check_interval = HEALTH_CHECK_INTERVAL
     on_startup = install_log_redaction
-    functions: ClassVar[list[Any]] = [record_scrape]
+    functions: ClassVar[list[Any]] = [record_scrape, record_candidates]
     cron_jobs: ClassVar[list[CronJob]] = [
         cron(heartbeat, run_at_startup=True),
         cron(schedule_sources),  # every minute (second=0)

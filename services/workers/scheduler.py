@@ -6,13 +6,17 @@ queue; this module is the only writer of `sources` change-detection fields and
 `raw_documents`. Imported lazily by workers.settings so ScrapeWorker never loads it.
 """
 
+import logging
 from typing import Any
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, create_async_engine
 
 from common.config import get_settings
-from common.queues import LLM_QUEUE, SCRAPE_QUEUE
+from common.queues import LLM_QUEUE, NOTIFY_QUEUE, SCRAPE_QUEUE
+from common.source_health import HealthStatus, source_health
+
+log = logging.getLogger(__name__)
 
 TIER_CADENCE_HOURS = {1: 24, 2: 72, 3: 168}  # PRD: daily / every 3 days / weekly
 AGGREGATOR_CADENCE_HOURS = 4  # PRD: "aggregators every few hours"
@@ -91,7 +95,7 @@ async def schedule_due(ctx: dict[str, Any]) -> int:
 async def record_scrape(ctx: dict[str, Any], result: dict[str, Any]) -> str:
     """Persist one `scrape_source` result (see workers.scrape.job for the keys).
 
-    error → error_streak + 1 and last_error (HE-031 health). Otherwise refresh the
+    error → error_streak + 1 and last_error; success resets them (HE-031 health). Otherwise refresh the
     conditional-GET validators; if the hash differs from the stored one, store a
     raw_documents row and, for adapter=llm, enqueue `extract(raw_document_id)`.
     """
@@ -116,6 +120,7 @@ async def record_scrape(ctx: dict[str, Any], result: dict[str, Any]) -> str:
                 ),
                 {"id": result["source_id"], "e": result["error"][:LAST_ERROR_MAX]},
             )
+            await _update_health(conn, ctx["redis"], result["source_id"])
             return "error"
         changed = result["outcome"] == "changed" and result["content_hash"] != source.content_hash
         await conn.execute(
@@ -133,6 +138,7 @@ async def record_scrape(ctx: dict[str, Any], result: dict[str, Any]) -> str:
                 "h": result["content_hash"],
             },
         )
+        await _update_health(conn, ctx["redis"], result["source_id"])
         if not changed:
             return "unchanged"  # TRD §4.1 step 3: same content as last run, stop
         raw_id = (
@@ -157,3 +163,83 @@ async def record_scrape(ctx: dict[str, Any], result: dict[str, Any]) -> str:
         )
     # HE-023/024 adapters hook in here: rss | api | selector parse the stored document.
     return "changed"
+
+
+async def record_candidates(ctx: dict[str, Any], source_id: str, count: int) -> str:
+    """Report how many event candidates one run of `source_id` produced (HE-031).
+
+    Called by the adapter (HE-023/024) and extraction (HE-044) paths once per changed
+    document: 0 → empty_streak + 1, otherwise reset. Returns the new health status.
+    """
+    async with _engine(ctx).begin() as conn:
+        found = (
+            await conn.execute(
+                text(
+                    "UPDATE sources SET empty_streak ="
+                    " CASE WHEN :n = 0 THEN empty_streak + 1 ELSE 0 END"
+                    " WHERE id = CAST(:id AS uuid) RETURNING id"
+                ),
+                {"id": source_id, "n": count},
+            )
+        ).first()
+        if found is None:
+            return "gone"
+        return await _update_health(conn, ctx["redis"], source_id)
+
+
+async def _update_health(conn: AsyncConnection, redis: Any, source_id: str) -> HealthStatus:
+    """Alert all active Admins once when a source turns red; re-arm when it is green.
+
+    `health_alerted_at` is the alerted state: set on the transition into red, cleared only
+    on green, so a source that stays red (or dips to amber) is not re-alerted. Enqueued
+    inside the caller's transaction: a failed enqueue rolls back and the next run retries
+    (at-least-once; the job id makes a retried enqueue of the same alert a no-op).
+    """
+    row = (
+        await conn.execute(
+            text(
+                "SELECT s.error_streak, s.empty_streak, s.last_error, s.health_alerted_at,"
+                " COALESCE(o.name, s.url) AS name FROM sources s"
+                " LEFT JOIN organisations o ON o.id = s.organisation_id"
+                " WHERE s.id = CAST(:id AS uuid)"
+            ),
+            {"id": source_id},
+        )
+    ).one()
+    health = source_health(row.error_streak, row.empty_streak, row.last_error)
+    if health.status == HealthStatus.GREEN and row.health_alerted_at is not None:
+        await conn.execute(
+            text("UPDATE sources SET health_alerted_at = NULL WHERE id = CAST(:id AS uuid)"),
+            {"id": source_id},
+        )
+    elif health.status == HealthStatus.RED and row.health_alerted_at is None:
+        alerted_at = (
+            await conn.execute(
+                text(
+                    "UPDATE sources SET health_alerted_at = now()"
+                    " WHERE id = CAST(:id AS uuid) RETURNING health_alerted_at"
+                ),
+                {"id": source_id},
+            )
+        ).scalar_one()
+        admins = (
+            await conn.execute(
+                text("SELECT email FROM users WHERE role = 'admin' AND is_active ORDER BY email")
+            )
+        ).scalars()
+        log.warning(
+            "source.health_red source_id=%s reason=%s",
+            source_id,
+            health.reason,
+            extra={"event": "source.health_red", "source_id": source_id},
+        )
+        for email in admins:
+            await redis.enqueue_job(
+                "send_email",
+                email,
+                "source_health_red",
+                {"source_name": row.name, "reason": health.reason},
+                _job_id=f"health_red:{source_id}:{alerted_at.isoformat()}:{email}",
+                _queue_name=NOTIFY_QUEUE,
+            )
+    return health.status

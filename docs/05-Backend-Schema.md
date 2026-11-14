@@ -86,6 +86,7 @@ Unique `(lower(name), kind)`.
 | last_success_at, last_event_at | timestamptz null | |
 | error_streak, empty_streak | int default 0 | health |
 | last_error | text null | |
+| health_alerted_at | timestamptz null | set when health turns red and Admins were alerted; cleared on green (HE-031) |
 | etag, last_modified, content_hash | text null | change detection |
 | is_enabled | bool | |
 
