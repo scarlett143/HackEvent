@@ -1,11 +1,7 @@
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 
-<<<<<<< HEAD
-from api import admin, admin_sources, auth, health, invites, totp
-=======
-from api import admin, auth, events, health, invites, totp
->>>>>>> fbc5b8b (wip(HE-050): events API, registration/track, unread-count, tests)
+from api import admin, admin_sources, auth, events, health, invites, totp
 from api.csrf import CSRFMiddleware
 from api.errors import ApiError, handle_api_error, handle_validation_error
 from common.logging import configure_logging
