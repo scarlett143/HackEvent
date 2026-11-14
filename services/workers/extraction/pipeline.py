@@ -3,7 +3,8 @@
 Goes through `common.llm.call_llm` only, so the cost-cap check can't be bypassed
 (AGENTS.md). Raises `NoProviderAvailable` when every provider is over cap / failing; the
 caller marks the document for retry (doc 08 A7). Cache + keyword pre-filter: HE-046.
-Haiku verification of low-confidence records: HE-045.
+Records with confidence < 0.7 go to the verify provider first (A5/A6, HE-045); the
+patched record is then post-validated like any other.
 """
 
 from datetime import UTC, datetime
@@ -14,9 +15,10 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from common.llm import call_llm
 from common.models import LlmProviderRole
-from workers.extraction.postvalidate import postvalidate
+from workers.extraction.postvalidate import LOW_CONFIDENCE, postvalidate
 from workers.extraction.prompt import build_prompt, page_text
-from workers.extraction.schema import SCHEMA, ExtractionResult
+from workers.extraction.schema import EVENTS_MAX, SCHEMA, ExtractionResult
+from workers.extraction.verify import verify_event
 
 MAX_OUTPUT_TOKENS = 4_000  # 10 events x ~13 capped fields fits well inside this
 
@@ -51,11 +53,27 @@ async def extract(
         client=client,
         master_key=master_key,
     )
+    data = result.data  # schema-checked by parse_output: events is a list of dicts
+    events = list(data["events"][:EVENTS_MAX]) if data["is_hackathon"] is True else []
+    extra: dict[int, list[str]] = {}
+    for i, raw in enumerate(events):
+        if raw["confidence"] < LOW_CONFIDENCE:
+            events[i], extra[i] = await verify_event(
+                engine,
+                redis,
+                raw,
+                page=page,
+                source_url=source_url,
+                job_id=job_id,
+                client=client,
+                master_key=master_key,
+            )
     return postvalidate(
-        result.data,
+        {**data, "events": events},
         page=page,
         source_url=source_url,
         now=now or datetime.now(UTC),
         extractor=f"{result.provider}:{result.model}",
         default_tz=default_tz,
+        extra_reasons=extra,
     )
