@@ -38,6 +38,25 @@ def cadence_hours_for(kind: str, org_tier: int | None, tier_override: int | None
     return TIER_CADENCE_HOURS[tier if tier is not None else 3]
 
 
+def scrape_payload(
+    source_id: str,
+    url: str,
+    etag: str | None,
+    last_modified: str | None,
+    content_hash: str | None,
+    kind: str,
+) -> dict[str, Any]:
+    """The `scrape_source` argument; the scheduler and Admin "Run now" (HE-091) share it."""
+    return {
+        "id": source_id,
+        "url": url,
+        "etag": etag,
+        "last_modified": last_modified,
+        "content_hash": content_hash,
+        "respect_robots": kind != "social",  # TRD §4.1: robots for non-social
+    }
+
+
 def _engine(ctx: dict[str, Any]) -> AsyncEngine:
     if "db" not in ctx:
         ctx["db"] = create_async_engine(get_settings().database_url, pool_size=2)
@@ -75,17 +94,9 @@ async def schedule_due(ctx: dict[str, Any]) -> int:
             {"ids": [r.id for r in rows]},
         )
         for r in rows:
-            payload = {
-                "id": r.id,
-                "url": r.url,
-                "etag": r.etag,
-                "last_modified": r.last_modified,
-                "content_hash": r.content_hash,
-                "respect_robots": r.kind != "social",  # TRD §4.1: robots for non-social
-            }
             await redis.enqueue_job(
                 "scrape_source",
-                payload,
+                scrape_payload(r.id, r.url, r.etag, r.last_modified, r.content_hash, r.kind),
                 _job_id=f"scrape:{r.id}:{r.next_run_at.isoformat()}",
                 _queue_name=SCRAPE_QUEUE,
             )
