@@ -1,7 +1,8 @@
 """Role checks and row ownership (HE-013, Security doc §3).
 
 - `require_role(*roles)`: route dependency; a signed-in user outside `roles` gets 403.
-  Use `current_user` for "any signed-in user". Every /api route needs one of these (or a
+  Use `current_user` for "any signed-in user". Admin routes use `api.totp.require_admin_2fa`
+  (admin role via this dependency, plus a TOTP-verified session, doc 07 §4). Every /api route needs one of these (or a
   place on the public allow-list in tests/test_access.py), enforced by that test.
 - `owned(stmt, model, user)`: scopes a select to `model.user_id == user.id`. Pass
   `bypass=` only where doc 07 §3 lets a role see other users' rows (e.g. Management and

@@ -98,7 +98,7 @@ Pair = tuple[Actor, Actor]
 
 def make_actor(email: str, role: str = "professor", password: str = GOOD_PASSWORD) -> Actor:
     """Insert an active user plus a live session directly (no login, so no rate limit
-    or TOTP in the way) and return it as an Actor."""
+    or TOTP in the way; admins come TOTP-enrolled and verified) and return it as an Actor."""
     (uid,) = sql(
         "INSERT INTO users (email, name, role, password_hash)"
         " VALUES (:e, :n, CAST(:r AS user_role), :h) RETURNING id::text",
@@ -116,6 +116,9 @@ def make_actor(email: str, role: str = "professor", password: str = GOOD_PASSWOR
         u=uid,
         h=hash_token(token),
     )
+    if role == "admin":  # doc 07 §4: admins are TOTP-enrolled and the session verified
+        sql("UPDATE users SET totp_enabled_at = now() WHERE id = CAST(:u AS uuid)", u=uid)
+        sql("UPDATE sessions SET totp_verified_at = now() WHERE user_id = CAST(:u AS uuid)", u=uid)
     return Actor(id=uid, email=email, role=role, token=token)
 
 
