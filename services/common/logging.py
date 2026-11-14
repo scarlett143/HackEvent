@@ -57,6 +57,7 @@ _PLAIN_KV = re.compile(
 _INVITE_PATH = re.compile(r"(?P<pre>/invites?/)" + _NOT_REDACTED + r"[A-Za-z0-9_-]{20,}")
 _SHAPES = re.compile(
     r"AIza[0-9A-Za-z_-]{35}"  # Google API key
+    r"|\bAQ\.[0-9A-Za-z_-]{30,}"  # Gemini API key, newer "AQ." format
     r"|\bsk-[A-Za-z0-9_-]{16,}"  # Anthropic sk-ant-..., OpenAI-style sk-...
     r"|\beyJ[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]*"  # JWT
     r"|\bya29\.[0-9A-Za-z_-]+"  # Google OAuth access token

@@ -211,10 +211,14 @@ def test_sixth_attempt_per_email_is_rate_limited_even_with_right_password(
 
 
 @needs_stack
-def test_sixth_attempt_per_ip_is_rate_limited_across_emails(client: TestClient) -> None:
-    for i in range(5):
+def test_failures_on_other_accounts_from_same_ip_do_not_lock_anyone_else(
+    client: TestClient,
+) -> None:
+    # Owner decision: limit per account only — campus users share one NAT IP.
+    make_user("prof@example.com")
+    for i in range(8):  # all from the TestClient's single IP
         assert login(client, f"u{i}@example.com", "wrong password here").status_code == 401
-    assert login(client, "u9@example.com", "wrong password here").status_code == 429
+    assert login(client, "prof@example.com").status_code == 200
 
 
 @needs_stack
