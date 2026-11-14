@@ -31,8 +31,8 @@ export default function Home() {
             {me.name} <span className="text-muted">· {me.role}</span>
           </span>
           {me.role === "admin" && (
-            <Link className="link" href="/admin/2fa">
-              Admin
+            <Link className="link inline-flex min-h-11 items-center" href="/admin/users">
+              Users
             </Link>
           )}
           <button className="btn-secondary" onClick={logout}>
