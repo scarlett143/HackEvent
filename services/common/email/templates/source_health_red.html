@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block body %}
+<p>A HackEvents source turned red and may have stopped finding events.</p>
+<p><strong>Source:</strong> {{ source_name }}<br><strong>Reason:</strong> {{ reason }}</p>
+<p><a href="{{ app_url('/admin/sources') }}" style="color:#2563EB">Review sources</a></p>
+<p style="color:#475569;font-size:13px">You get this once; it re-arms when the source is healthy again.</p>
+{% endblock %}

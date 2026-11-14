@@ -196,6 +196,16 @@ def test_invite_html_is_autoescaped() -> None:
     assert xss in mail.text  # plain text part is not HTML: shown verbatim, not escaped
 
 
+def test_source_health_alert_is_autoescaped_and_links_to_admin_sources() -> None:
+    xss = '<img src=x onerror="alert(1)">'
+    mail = render("source_health_red", app_domain="he.example.test", source_name=xss, reason=xss)
+    assert "<img" not in mail.html
+    assert "&lt;img src=x onerror=&#34;alert(1)&#34;&gt;" in mail.html
+    assert "https://he.example.test/admin/sources" in mail.html
+    assert "https://he.example.test/admin/sources" in mail.text
+    assert xss in mail.text
+
+
 def test_invite_links_use_app_domain() -> None:
     mail = invite(token="tok123", inviter="Asha", app_domain="he.example.test")
     link = "https://he.example.test/invite/tok123"

@@ -240,6 +240,7 @@ class Source(IdMixin, TimestampMixin, Base):
     error_streak: Mapped[int] = mapped_column(Integer, server_default=text("0"))
     empty_streak: Mapped[int] = mapped_column(Integer, server_default=text("0"))
     last_error: Mapped[str | None] = mapped_column(Text)
+    health_alerted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     etag: Mapped[str | None] = mapped_column(Text)
     last_modified: Mapped[str | None] = mapped_column(Text)
     content_hash: Mapped[str | None] = mapped_column(Text)
