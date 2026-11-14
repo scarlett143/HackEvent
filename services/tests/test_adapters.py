@@ -5,6 +5,9 @@ Fixture provenance (fetched 2026-11-14 with User-Agent HackEventsBot/0.1):
   3 items, dc:creator names replaced, items mentioning individual users dropped.
 - devpost/hackathons_open_upcoming_page3.json: verbatim response of
   https://devpost.com/api/hackathons?status[]=upcoming&status[]=open&page=3 (9 items).
+- unstop/hackathons_open_page1.json: response of https://unstop.com/api/public/opportunity/
+  search-result?opportunity=hackathons&page=1&per_page=10&oppstatus=open (10 items); only
+  change: each `details` HTML string cut to its first 1500 characters to keep the file small.
 """
 
 from datetime import UTC, datetime
@@ -35,14 +38,14 @@ def test_candidate_strips_html_caps_and_drops_bad_urls() -> None:
         title="<b>Hack</b> &amp; <script>alert(1)</script>Build" + "x" * 300,
         organiser="Org",
         registration_url="javascript:alert(1)",
-        description="<p>one</p><p>two&nbsp;<a href='x'>link</a></p>",
+        description="<p>one</p><p>two&nbsp;<a href='x'>link</a></p> 1 < 2 <a href='trunc",
         eligibility=["<i>Students</i>", "Students", "y" * 80],
         confidence=1,
         extractor="test",
     )
     assert c.title.startswith("Hack & Buildxxx") and len(c.title) == 200
     assert c.registration_url is None
-    assert c.description == "one\ntwo link"
+    assert c.description == "one\ntwo link\n1 < 2"  # plain-text "<" kept; cut-off tag dropped
     assert c.eligibility == ["Students", "y" * 40]
 
 
@@ -220,3 +223,63 @@ def test_devpost_skips_bad_items() -> None:
     )
     [only] = parse("devpost", body, DEVPOST_URL)
     assert only.title == "Ok" and only.registration_url is None and only.event_start is None
+
+
+# --- HE-025 Unstop -------------------------------------------------------------------------
+
+UNSTOP_URL = (
+    "https://unstop.com/api/public/opportunity/search-result"
+    "?opportunity=hackathons&page=1&per_page=10&oppstatus=open"
+)
+
+
+def test_unstop_fixture() -> None:
+    out = parse("unstop", fixture("unstop/hackathons_open_page1.json"), UNSTOP_URL)
+    assert len(out) == 10
+    for c in out:
+        assert_plain(c)
+        assert c.extractor == "unstop"
+        assert c.registration_deadline is not None and c.registration_deadline.tzinfo is UTC
+        assert c.event_start is None  # listing has no start date; never copied from deadline
+    assert [c.mode for c in out].count("offline") == 4
+    assert [c.mode for c in out].count("online") == 6
+
+    first = out[0]
+    assert first.title == "Mantrastra"
+    assert first.organiser == "Madan Mohan Malaviya University of Technology"
+    assert first.registration_url == (
+        "https://unstop.com/hackathons/"
+        "mantrastra-techsrijan-27-madan-mohan-malaviya-university-of-technology-1810554"
+    )
+    # end_regn_dt "2026-12-20T00:00:00+05:30" (IST midnight) -> previous day 18:30 UTC.
+    assert first.registration_deadline == datetime(2026, 12, 19, 18, 30, tzinfo=UTC)
+    assert first.event_end == datetime(2026, 12, 26, 14, 0, tzinfo=UTC)
+    assert first.timezone_stated == "UTC+05:30"
+    assert first.location == "Gorakhpur, Uttar Pradesh, India"
+    assert first.eligibility[:2] == ["Engineering Students", "Postgraduate"]
+    assert first.prize == "INR 12,000 total"
+    assert first.description and first.description.startswith("About the Competition\nMANTRASTRA")
+
+    seed = out[2]
+    assert seed.mode == "online" and seed.location is None
+    assert seed.registration_deadline == datetime(2026, 11, 22, 18, 29, 40, tzinfo=UTC)
+
+
+def test_unstop_ambiguous_deadline_is_none() -> None:
+    body = (
+        b'{"data": {"data": [{"title": "T", "organisation": {"name": "O"}, "region": "x",'
+        b' "regnRequirements": {"end_regn_dt": "2026-12-20 00:00:00"},'
+        b' "public_url": "hackathons/t-1", "details": "<script>x()</script><b>Hi</b>"},'
+        b' {"title": "", "organisation": {"name": "O"}}, 7]}}'
+    )
+    [only] = parse("unstop", body, UNSTOP_URL)
+    assert only.registration_deadline is None and only.timezone_stated is None
+    assert only.registration_url == "https://unstop.com/hackathons/t-1"
+    assert only.mode == "unknown"
+    assert only.description == "Hi"
+
+
+@pytest.mark.parametrize("body", [b"", b"[]", b'{"data": {"data": {}}}', b"{nope", b'{"data": 1}'])
+def test_unstop_malformed_is_parse_error(body: bytes) -> None:
+    with pytest.raises(ParseError):
+        parse("unstop", body, UNSTOP_URL)

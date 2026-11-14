@@ -54,7 +54,8 @@ class _TextOnly(HTMLParser):
 def to_text(value: str) -> str:
     """HTML (or plain text) -> plain text: tags dropped, entities decoded, whitespace tidy."""
     parser = _TextOnly()
-    parser.feed(value)
+    # A tag cut off mid-way (truncated source) would otherwise be flushed out as text.
+    parser.feed(re.sub(r"<[/!?a-zA-Z][^>]*\Z", "", value))
     parser.close()
     lines = (re.sub(r"[^\S\n]+", " ", line).strip() for line in "".join(parser.parts).split("\n"))
     return "\n".join(line for line in lines if line)
