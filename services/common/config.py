@@ -24,6 +24,12 @@ class Settings(BaseSettings):
     google_client_id: str = ""
     google_client_secret: SecretStr = SecretStr("")
 
+    @field_validator("master_key", mode="before")
+    @classmethod
+    def _empty_master_key_is_unset(cls, v: object) -> object:
+        # Compose passes `MASTER_KEY: ${MASTER_KEY:-}`, i.e. "" when not configured.
+        return None if v == "" else v
+
     @field_validator("master_key")
     @classmethod
     def _master_key_is_32_bytes(cls, v: SecretStr | None) -> SecretStr | None:
