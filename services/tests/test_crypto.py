@@ -88,10 +88,21 @@ def _b64(raw: bytes) -> str:
     return base64.b64encode(raw).decode()
 
 
-@pytest.mark.parametrize("value", [_b64(os.urandom(16)), _b64(os.urandom(33)), "not base64!", ""])
+@pytest.mark.parametrize("value", [_b64(os.urandom(16)), _b64(os.urandom(33)), "not base64!"])
 def test_settings_rejects_bad_master_key(value: str) -> None:
     with pytest.raises(ValidationError):
         Settings.model_validate({"master_key": value})
+
+
+def test_empty_master_key_is_unset_and_crypto_fails_closed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("MASTER_KEY", "")  # what Compose passes when .env leaves it blank
+    settings = Settings()
+    assert settings.master_key is None
+    monkeypatch.setattr(crypto, "get_settings", lambda: settings)
+    with pytest.raises(CryptoError):
+        encrypt(SECRET, AAD)
 
 
 def test_settings_master_key_used_by_default(monkeypatch: pytest.MonkeyPatch) -> None:

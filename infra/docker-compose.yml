@@ -85,6 +85,9 @@ services:
       # Only Caddy can reach api (no published port); trust its X-Forwarded-For so the
       # per-IP login rate limit sees the real client, not Caddy.
       FORWARDED_ALLOW_IPS: "*"
+      # Envelope key for secrets at rest (HE-006); admin TOTP needs it (HE-014).
+      # Empty = crypto features answer 503 instead of storing anything in clear.
+      MASTER_KEY: ${MASTER_KEY:-}
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
