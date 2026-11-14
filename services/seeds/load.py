@@ -12,8 +12,10 @@ See README.md here for sources and the tier rule.
 import asyncio
 import csv
 import sys
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Any
 from urllib.parse import urlsplit
 
 from sqlalchemy import func, select
@@ -30,7 +32,11 @@ FILES = {"companies.csv": OrgKind.company, "institutions.csv": OrgKind.instituti
 
 
 class SeedError(ValueError):
-    """One or more CSV rows are invalid; the message lists every problem."""
+    """One or more CSV rows are invalid; `errors` (and the message) list every problem."""
+
+    def __init__(self, errors: list[str]) -> None:
+        super().__init__("\n".join(errors))
+        self.errors = errors
 
 
 @dataclass(frozen=True)
@@ -43,11 +49,14 @@ class Row:
     website: str  # "" when no verified official site
 
 
-def _row_errors(rec: dict[str, str], kind: OrgKind) -> list[str]:
+def _row_errors(rec: dict[str, str], kind: OrgKind | None) -> list[str]:
     errors = []
     if not rec["name"] or rec["name"] != rec["name"].strip():
         errors.append("name empty or has surrounding whitespace")
-    if rec["kind"] != kind.value:
+    if kind is None:
+        if rec["kind"] not in {k.value for k in OrgKind}:
+            errors.append(f"kind {rec['kind']!r} not one of {[k.value for k in OrgKind]}")
+    elif rec["kind"] != kind.value:
         errors.append(f"kind {rec['kind']!r} must be {kind.value!r} in this file")
     if rec["region"] not in {r.value for r in OrgRegion}:
         errors.append(f"region {rec['region']!r} not one of {[r.value for r in OrgRegion]}")
@@ -66,21 +75,32 @@ def _row_errors(rec: dict[str, str], kind: OrgKind) -> list[str]:
 def read_csv(path: Path, kind: OrgKind) -> list[Row]:
     """Parse and validate one seed file; raise SeedError listing every bad row."""
     with path.open(newline="", encoding="utf-8") as f:
-        reader = csv.DictReader(f, strict=True)
-        if reader.fieldnames != HEADER:
-            raise SeedError(f"{path.name}: header {reader.fieldnames} must be {HEADER}")
-        rows: list[Row] = []
-        errors: list[str] = []
-        seen: dict[str, str] = {}  # lower(name) -> where first seen
+        return parse_csv(f, path.name, kind)
+
+
+def parse_csv(lines: Iterable[str], label: str, kind: OrgKind | None = None) -> list[Row]:
+    """Validate CSV text (same columns as the seed files); raise SeedError listing every
+    bad row. `kind=None` accepts either kind per row (Admin CSV import, HE-091)."""
+    reader = csv.DictReader(lines, strict=True)
+    try:
+        fieldnames = reader.fieldnames
+    except csv.Error as e:
+        raise SeedError([f"{label}: {e}"]) from None
+    if fieldnames != HEADER:
+        raise SeedError([f"{label}: header {fieldnames} must be {HEADER}"])
+    rows: list[Row] = []
+    errors: list[str] = []
+    seen: dict[tuple[str, str], str] = {}  # (lower(name), kind) -> where first seen
+    try:
         for rec in reader:
-            where = f"{path.name}:{reader.line_num}"
+            where = f"{label}:{reader.line_num}"
             if None in rec or None in rec.values():
                 errors.append(f"{where}: expected {len(HEADER)} columns")
                 continue
             if problems := _row_errors(rec, kind):
                 errors += [f"{where}: {p}" for p in problems]
                 continue
-            key = rec["name"].lower()
+            key = (rec["name"].lower(), rec["kind"])
             if key in seen:
                 errors.append(f"{where}: duplicate name {rec['name']!r} (first at {seen[key]})")
                 continue
@@ -88,15 +108,17 @@ def read_csv(path: Path, kind: OrgKind) -> list[Row]:
             rows.append(
                 Row(
                     rec["name"],
-                    kind,
+                    OrgKind(rec["kind"]),
                     OrgRegion(rec["region"]),
                     int(rec["tier"]),
                     rec["rank_source"],
                     rec["website"],
                 )
             )
+    except csv.Error as e:  # e.g. an unterminated quote; strict=True raises
+        errors.append(f"{label}:{reader.line_num}: {e}")
     if errors:
-        raise SeedError("\n".join(errors))
+        raise SeedError(errors)
     return rows
 
 
@@ -105,12 +127,12 @@ def read_all(seed_dir: Path = SEED_DIR) -> list[Row]:
     with (seed_dir / "sources.csv").open(newline="", encoding="utf-8") as f:
         lines = [line for line in csv.reader(f) if line]
     if lines[:1] != [HEADER] or len(lines) > 1:
-        raise SeedError("sources.csv: must contain only the header (sources come with HE-024+)")
+        raise SeedError(["sources.csv: must contain only the header (sources come with HE-024+)"])
     return [row for name, kind in FILES.items() for row in read_csv(seed_dir / name, kind)]
 
 
-async def load(database_url: str, rows: list[Row]) -> dict[str, int]:
-    """Upsert `rows`; return organisation counts per kind afterwards."""
+def upsert(rows: list[Row]) -> Any:
+    """INSERT .. ON CONFLICT (lower(name), kind) DO UPDATE for `rows` (needs >= 1 row)."""
     stmt = insert(Organisation).values([asdict(r) | {"is_active": True} for r in rows])
     stmt = stmt.on_conflict_do_update(
         index_elements=[func.lower(Organisation.name), Organisation.kind],
@@ -123,6 +145,12 @@ async def load(database_url: str, rows: list[Row]) -> dict[str, int]:
             "updated_at": func.now(),
         },
     )
+    return stmt
+
+
+async def load(database_url: str, rows: list[Row]) -> dict[str, int]:
+    """Upsert `rows`; return organisation counts per kind afterwards."""
+    stmt = upsert(rows)
     engine = create_async_engine(database_url, poolclass=NullPool)
     try:
         async with engine.begin() as conn:
