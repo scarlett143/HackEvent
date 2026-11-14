@@ -25,11 +25,13 @@ Rules (doc 08 A5 unless marked *stricter*):
   smuggle a link), else dropped.
 - *stricter*: instruction-like text quoted in evidence/free-text fields (an echo of a
   prompt-injection attempt) -> dates and URL dropped + needs_review.
-Confidence < 0.7 / missing deadline -> Haiku verification is HE-045 (reads `confidence`).
+- confidence < 0.7 -> needs_review (`low_confidence`). The pipeline first sends such
+  records to the verify provider (HE-045) and re-validates the corrected record here.
 """
 
 import math
 import re
+from collections.abc import Mapping
 from datetime import UTC, date, datetime, time, timedelta, timezone, tzinfo
 from typing import Any, cast
 from urllib.parse import urlsplit
@@ -52,6 +54,7 @@ from workers.extraction.schema import (
 from workers.scrape.adapters.base import Mode
 
 MAX_DEADLINE_AHEAD = timedelta(days=548)  # 18 months
+LOW_CONFIDENCE = 0.7  # A5: below this -> verify (HE-045); still below after -> needs_review
 START_BEFORE_DEADLINE_SLACK = timedelta(days=1)
 URL_MAX = 2_000
 
@@ -202,11 +205,12 @@ def _event(
     now: datetime,
     default_tz: str | None,
     extractor: str,
+    extra_reasons: list[str],
 ) -> ExtractedCandidate | None:
     title, organiser = _str(raw.get("title"), TITLE_MAX), _str(raw.get("organiser"), ORGANISER_MAX)
     if not title or not organiser:
         return None
-    reasons: list[str] = []
+    reasons: list[str] = list(extra_reasons)
     evidence = _str(raw.get("evidence"), EVIDENCE_MAX) or ""
     if not evidence or _norm_ws(evidence) not in page_norm:
         reasons.append("evidence_not_in_page")
@@ -217,6 +221,8 @@ def _event(
         conf, reasons = 0.0, [*reasons, "confidence_invalid"]
     elif not 0 <= conf <= 1:
         conf, reasons = min(max(float(conf), 0.0), 1.0), [*reasons, "confidence_out_of_range"]
+    if conf < LOW_CONFIDENCE:
+        reasons.append("low_confidence")
 
     mode = cast(Mode, raw["mode"] if raw.get("mode") in MODES else "unknown")
     elig_raw = raw.get("eligibility")
@@ -312,9 +318,11 @@ def postvalidate(
     now: datetime,
     extractor: str,
     default_tz: str | None = None,
+    extra_reasons: Mapping[int, list[str]] | None = None,
 ) -> ExtractionResult:
     """Apply doc 08 A5 to one model output. `now` is the extraction time (UTC);
-    `extractor` is `<provider>:<model>`."""
+    `extractor` is `<provider>:<model>`; `extra_reasons` maps an index in `events` to review
+    reasons found earlier (HE-045 verification)."""
     is_hackathon = data.get("is_hackathon") is True
     raw_events = data.get("events")
     if not is_hackathon or not isinstance(raw_events, list):
@@ -333,8 +341,9 @@ def postvalidate(
                 now=now,
                 default_tz=default_tz,
                 extractor=extractor,
+                extra_reasons=(extra_reasons or {}).get(i, []),
             )
-            for r in raw_events[:EVENTS_MAX]
+            for i, r in enumerate(raw_events[:EVENTS_MAX])
             if isinstance(r, dict)
         )
         if e is not None
