@@ -1,8 +1,13 @@
 from fastapi import FastAPI, Request, Response
+from fastapi.exceptions import RequestValidationError
 
+<<<<<<< HEAD
 from api import admin, admin_sources, auth, health, invites, totp
+=======
+from api import admin, auth, events, health, invites, totp
+>>>>>>> fbc5b8b (wip(HE-050): events API, registration/track, unread-count, tests)
 from api.csrf import CSRFMiddleware
-from api.errors import ApiError, handle_api_error
+from api.errors import ApiError, handle_api_error, handle_validation_error
 from common.logging import configure_logging
 
 # uvicorn runs its dictConfig before importing this module, so its handlers exist now.
@@ -10,12 +15,14 @@ configure_logging()
 
 app = FastAPI(title="HackEvents API", docs_url=None, redoc_url=None, lifespan=health.lifespan)
 app.add_exception_handler(ApiError, handle_api_error)
+app.add_exception_handler(RequestValidationError, handle_validation_error)
 app.add_middleware(CSRFMiddleware, session_cookie=auth.SESSION_COOKIE)
 app.include_router(auth.router)
 app.include_router(totp.router)
 app.include_router(admin.router)
 app.include_router(admin_sources.router)
 app.include_router(invites.router)
+app.include_router(events.router)
 
 
 @app.get("/api/v1/health/live")

@@ -3,6 +3,8 @@
 from typing import Any
 
 from fastapi import Request
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 
@@ -34,3 +36,12 @@ def error_response(exc: ApiError) -> JSONResponse:
 async def handle_api_error(request: Request, exc: Exception) -> JSONResponse:
     assert isinstance(exc, ApiError)
     return error_response(exc)
+
+
+async def handle_validation_error(request: Request, exc: Exception) -> JSONResponse:
+    """FastAPI's 422 in the doc 06 shape; `details.errors` lists field + reason only."""
+    assert isinstance(exc, RequestValidationError)
+    errors = [{"loc": list(e["loc"]), "msg": e["msg"]} for e in exc.errors()]
+    return error_response(
+        ApiError(422, "invalid_request", "Invalid request.", {"errors": jsonable_encoder(errors)})
+    )
