@@ -28,6 +28,9 @@ Design docs: [docs/](docs/README.md) — PRD, TRD, schema, API, security, AI gua
 | HE-020 | Seed data: 300 companies (Fortune Global 500 2026, Fortune India 500 2025) + 300 institutions (NIRF 2025 Engineering), tiers, idempotent loader | Done |
 | HE-021 | Source scheduler: tier cadence (1 d / 3 d / 7 d), SKIP LOCKED + job-id dedupe, DB-free scrape worker hand-off | Done |
 | HE-022 | Guarded fetcher: SSRF guard (re-checked per redirect, IP pinning), 5 MB / 20 s caps, robots.txt, ETag, per-host rate limit | Done |
+| HE-023 | RSS/Atom adapter (XXE-safe, plain text) | Done |
+| HE-024 | Devpost adapter (public listing JSON, fixture-tested) | Done |
+| HE-025 | Unstop adapter (fixture-tested) | Done |
 | HE-030 | Gmail API email sender (refresh-token OAuth, retries, revoked-token alert) + autoescaped invite/test templates | Done |
 | HE-040 | LLM adapter (JSON-only, no tools, single call_llm choke point) + Gemini provider, contract-tested | Done |
 | HE-041 | Anthropic Haiku provider (structured outputs, effort low), same contract suite | Done |
