@@ -12,6 +12,10 @@
   --color-warning: #d97706;
   --color-ok: #16a34a;
   --color-new: #7c3aed;
+  /* Text-safe status inks: the brief's warning/ok hues are 3.2:1 / 3.3:1 on white (fine for
+     borders/icons at 3:1, too light for text). amber-700 / green-700 are 5.0:1 on white, 4.8:1 on surface. */
+  --color-warning-ink: #b45309;
+  --color-ok-ink: #15803d;
   --radius-xl: 12px;
 }
 
@@ -33,7 +37,8 @@ body {
   .field:focus-visible,
   .btn-primary:focus-visible,
   .btn-secondary:focus-visible,
-  .link:focus-visible {
+  .link:focus-visible,
+  .focus-ring:focus-visible {
     @apply outline-2 outline-offset-2 outline-primary;
   }
   .btn-primary {
@@ -44,6 +49,20 @@ body {
   }
   .link {
     @apply text-primary underline underline-offset-2;
+  }
+  .chip {
+    @apply inline-flex items-center rounded-full border border-line bg-bg px-2.5 py-0.5 text-xs font-medium;
+  }
+  /* Skeletons appear only when loading takes > 200 ms (brief §5). */
+  .skeleton {
+    @apply rounded-xl bg-line;
+    animation: he-appear 0s linear 200ms both;
+  }
+}
+
+@keyframes he-appear {
+  from {
+    visibility: hidden;
   }
 }
 
