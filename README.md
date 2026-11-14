@@ -42,6 +42,9 @@ Design docs: [docs/](docs/README.md) — PRD, TRD, schema, API, security, AI gua
 | HE-046 | Keyword pre-filter (no keyword → 0 LLM calls) + `llm_cache` by page-text hash + schema version; repeat page = 0 LLM calls | Done |
 | HE-047 | Dedupe: exact key (normalised title + organiser + UTC start day) + pg_trgm fuzzy pass (≥ 0.9 merge, 0.8–0.9 → needs_review); gap-filling merge, race-safe upsert | Done |
 | HE-050 | Events API: filters, keyset cursor, p95 < 300 ms on 5k events | Done |
+| HE-051 | Feed UI: sections, cards, countdown, chips (design brief) | Done |
+| HE-053 | Feed filters with URL state (reload keeps filters) | Done |
+| HE-054 | Event detail: two dated countdowns, needs-review banner, source block with plain-text snippet | Done |
 | HE-090 | Admin users + invites UI (login, 2FA, invite, accept, role/deactivate) | Done |
 | HE-091 | Admin orgs + sources UI: SSRF-checked URLs, CSV import, Run now | Done |
 | HE-092 | Source health dashboard (red/amber/green with reason) | Done |
