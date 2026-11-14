@@ -35,6 +35,7 @@ Design docs: [docs/](docs/README.md) — PRD, TRD, schema, API, security, AI gua
 | HE-031 | Source health: green/amber/red with reason; one admin alert on 3 errors / 5 empty runs | Done |
 | HE-040 | LLM adapter (JSON-only, no tools, single call_llm choke point) + Gemini provider, contract-tested | Done |
 | HE-041 | Anthropic Haiku provider (structured outputs, effort low), same contract suite | Done |
+| HE-042 | OpenAI-compatible provider (Chat Completions, json_schema response format, refusal/truncation → invalid output), same contract suite | Done |
 | HE-043 | LLM cost caps (fail-closed, atomic reservation), role/priority routing, fallback, usage ledger | Done |
 | HE-044 | Extraction: untrusted-delimited prompt (hidden text stripped), doc 08 A3 schema v1, A5 post-validation in code, A10 injection tests | Done |
 | HE-045 | Verify step: confidence < 0.7 → verify provider (Haiku), corrections re-validated against the page, unsupported deadline → needs_review | Done |

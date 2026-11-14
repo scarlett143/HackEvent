@@ -11,6 +11,7 @@ from common import crypto
 from common.llm.anthropic import AnthropicProvider
 from common.llm.base import LLMProvider, ProviderError
 from common.llm.gemini import GeminiProvider
+from common.llm.openai_compat import OpenAICompatProvider
 from common.models import LlmProvider, LlmProviderType
 
 
@@ -32,4 +33,8 @@ def build_provider(
         return GeminiProvider(api_key=key, model=row.model, base_url=row.base_url, client=client)
     if row.type == LlmProviderType.anthropic:
         return AnthropicProvider(api_key=key, model=row.model, base_url=row.base_url, client=client)
+    if row.type == LlmProviderType.openai_compatible:
+        return OpenAICompatProvider(
+            api_key=key, model=row.model, base_url=row.base_url, client=client
+        )
     raise ProviderError(f"provider type {row.type} is not implemented")

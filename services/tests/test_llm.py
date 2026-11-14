@@ -1,4 +1,4 @@
-"""HE-040/041: LLM adapter contract tests. MockTransport only: no network, synthetic keys.
+"""HE-040/041/042: LLM adapter contract tests. MockTransport only: no network, synthetic keys.
 
 The same contract runs for every provider (guardrails A8: providers are independent).
 """
@@ -20,6 +20,7 @@ from common.llm import InvalidOutput, ProviderError, RateLimited, build_provider
 from common.llm.anthropic import API_VERSION, AnthropicProvider, api_schema
 from common.llm.base import LLMProvider, validate
 from common.llm.gemini import GeminiProvider
+from common.llm.openai_compat import OpenAICompatProvider
 from common.models import LlmProvider, LlmProviderType
 
 KEY = "AIza" + "FAKEfake0123456789FAKEfake012345678"  # synthetic, AIza shape for the redactor
@@ -75,6 +76,7 @@ class Case:
     make: Callable[[httpx2.AsyncClient], LLMProvider]
     ok: Callable[[str, int, int], dict[str, Any]]  # (model text, in tokens, out tokens) -> body
     sent_schema: Callable[[dict[str, Any]], Any]
+    key_prefix: str = ""  # header value = key_prefix + key
 
 
 def _gemini_ok(text: str, tin: int, tout: int) -> dict[str, Any]:
@@ -103,6 +105,24 @@ def _anthropic_ok(text: str, tin: int, tout: int, stop: str = "end_turn") -> dic
     }
 
 
+def _openai_ok(
+    text: str | None, tin: int, tout: int, finish: str = "stop", refusal: str | None = None
+) -> dict[str, Any]:
+    return {
+        "id": "chatcmpl-1",
+        "object": "chat.completion",
+        "model": "gpt-compat-mini",
+        "choices": [
+            {
+                "index": 0,
+                "message": {"role": "assistant", "content": text, "refusal": refusal},
+                "finish_reason": finish,
+            }
+        ],
+        "usage": {"prompt_tokens": tin, "completion_tokens": tout, "total_tokens": tin + tout},
+    }
+
+
 CASES = [
     Case(
         name="gemini",
@@ -127,6 +147,19 @@ CASES = [
         ),
         ok=_anthropic_ok,
         sent_schema=lambda b: b["output_config"]["format"]["schema"],
+    ),
+    Case(
+        name="openai_compatible",
+        type=LlmProviderType.openai_compatible,
+        model="gpt-compat-mini",
+        url="https://api.openai.com/v1/chat/completions",
+        key_header="authorization",
+        key_prefix="Bearer ",
+        make=lambda c: OpenAICompatProvider(
+            api_key=SecretStr(KEY), model="gpt-compat-mini", client=c, retry_delay=0
+        ),
+        ok=_openai_ok,
+        sent_schema=lambda b: b["response_format"]["json_schema"]["schema"],
     ),
 ]
 
@@ -176,7 +209,7 @@ async def test_request_shape(case: Case) -> None:
     assert req.method == "POST"
     assert str(req.url) == case.url
     assert KEY not in str(req.url)  # key never in the URL, so never in access logs
-    assert req.headers[case.key_header] == KEY
+    assert req.headers[case.key_header] == case.key_prefix + KEY
     body = json.loads(req.content)
     assert case.sent_schema(body)["type"] == "object"
     assert not (_keys(body) & FORBIDDEN_KEYS), "extraction LLM must never get tools"
@@ -278,7 +311,7 @@ async def test_factory_decrypts_with_row_aad(case: Case) -> None:
     assert p.provider == case.name
     assert KEY not in repr(p)
     await _call(p)
-    assert fake.requests[0].headers[case.key_header] == KEY
+    assert fake.requests[0].headers[case.key_header] == case.key_prefix + KEY
 
     # ciphertext copied from another row does not decrypt
     row.id = uuid.uuid4()
@@ -348,3 +381,39 @@ async def test_gemini_non_stop_finish_is_invalid_output() -> None:
     body["candidates"][0]["finishReason"] = "MAX_TOKENS"
     with pytest.raises(InvalidOutput, match="MAX_TOKENS"):
         await _call(_provider(CASES[0], Fake((200, body, {}))))
+
+
+async def test_openai_compat_request_details() -> None:
+    fake = Fake((200, _openai_ok(json.dumps(GOOD), 1, 1), {}))
+    c = httpx2.AsyncClient(transport=httpx2.MockTransport(fake))
+    p = OpenAICompatProvider(
+        api_key=SecretStr(KEY), model="m", base_url="https://llm.example/v1/", client=c
+    )
+    await _call(p)
+    req = fake.requests[0]
+    assert str(req.url) == "https://llm.example/v1/chat/completions"
+    body = json.loads(req.content)
+    assert body["messages"] == [
+        {"role": "system", "content": "sys prompt"},
+        {"role": "user", "content": "page text"},
+    ]
+    assert body["max_tokens"] == 512
+    assert body["response_format"]["type"] == "json_schema"
+    assert body["response_format"]["json_schema"]["schema"] == SCHEMA
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        _openai_ok(json.dumps(GOOD), 1, 1, finish="length"),
+        _openai_ok(json.dumps(GOOD), 1, 1, finish="content_filter"),
+        _openai_ok(None, 1, 1, refusal="I can't help with that."),
+        {"choices": []},
+    ],
+    ids=["length", "content-filter", "refusal", "no-choices"],
+)
+async def test_openai_compat_incomplete_is_invalid_output(body: dict[str, Any]) -> None:
+    c = httpx2.AsyncClient(transport=httpx2.MockTransport(Fake((200, body, {}))))
+    p = OpenAICompatProvider(api_key=SecretStr(KEY), model="m", client=c, retry_delay=0)
+    with pytest.raises(InvalidOutput):
+        await _call(p)
