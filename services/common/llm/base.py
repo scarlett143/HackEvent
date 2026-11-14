@@ -16,6 +16,7 @@ import email.utils
 import json
 import logging
 import time
+import uuid
 from dataclasses import dataclass
 from typing import Any, Protocol
 
@@ -51,6 +52,7 @@ class LLMResult:
     model: str
     provider: str
     latency_ms: int
+    provider_id: uuid.UUID | None = None  # llm_providers.id, set by call_llm
 
 
 class LLMProvider(Protocol):

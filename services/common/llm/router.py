@@ -29,7 +29,7 @@ import logging
 import math
 import time
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from decimal import ROUND_CEILING, Decimal
 from typing import Any
@@ -251,7 +251,7 @@ async def call_llm(
                 model=result.model,
                 latency_ms=result.latency_ms,
             )
-            return result
+            return replace(result, provider_id=row.id)
     log.error(
         "llm.no_provider_available role=%s purpose=%s candidates=%d", role, purpose, len(rows)
     )

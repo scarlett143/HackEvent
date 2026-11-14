@@ -223,6 +223,10 @@ def test_a10_reveal_instructions_echo_is_flagged() -> None:
 # --- extract(): one call_llm, page only in the user message ------------------------------
 
 
+async def no_cache(engine: Any, key: str) -> None:
+    return None  # DB-free: the llm_cache path is tested against a real stack in test_llm_cache.py
+
+
 async def test_extract_goes_through_call_llm(monkeypatch: pytest.MonkeyPatch) -> None:
     seen: dict[str, Any] = {}
 
@@ -231,6 +235,7 @@ async def test_extract_goes_through_call_llm(monkeypatch: pytest.MonkeyPatch) ->
         return LLMResult({"is_hackathon": True, "events": [event()]}, 10, 10, "gm", "gemini", 5)
 
     monkeypatch.setattr(pipeline, "call_llm", fake_call_llm)
+    monkeypatch.setattr(pipeline, "cache_get", no_cache)
     res = await extract(
         None,  # type: ignore[arg-type]
         None,  # type: ignore[arg-type]
@@ -244,3 +249,15 @@ async def test_extract_goes_through_call_llm(monkeypatch: pytest.MonkeyPatch) ->
     assert seen["purpose"] == "extract"
     assert "CodeSprint" in seen["user"] and "CodeSprint" not in seen["system"]
     assert res.events[0].extractor == "gemini:gm" and not res.events[0].needs_review
+
+
+async def test_prefilter_skips_llm_without_keywords(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def boom(*a: Any, **kw: Any) -> None:
+        raise AssertionError("no LLM call or cache lookup expected")
+
+    monkeypatch.setattr(pipeline, "call_llm", boom)
+    monkeypatch.setattr(pipeline, "cache_get", boom)
+    html = "<p>Annual sports day on 6 February 2027. Webinar on cloud careers.</p>"
+    res = await extract(None, None, html=html, source_url=SRC, fetched_at=NOW)  # type: ignore[arg-type]
+    assert res.is_hackathon is False and res.events == []
+    assert pipeline.has_keyword("Join the BUILDATHON") and not pipeline.has_keyword("webinar")
