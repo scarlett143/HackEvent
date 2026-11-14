@@ -81,6 +81,7 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm build
+      - run: pnpm test
 
   audit:
     name: Dependency audit (pnpm, pip-audit)
