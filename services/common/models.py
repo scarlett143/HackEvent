@@ -446,6 +446,11 @@ class LlmUsage(IdMixin, TimestampMixin, Base):
     cache_hit: Mapped[bool] = mapped_column(Boolean)
     ok: Mapped[bool] = mapped_column(Boolean)
     at: Mapped[datetime] = utc_now_column()
+    # HE-043 (migration 0004): one row per attempt; see common.llm.router.
+    purpose: Mapped[str | None] = mapped_column(Text)
+    model: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str | None] = mapped_column(Text)
+    latency_ms: Mapped[int | None] = mapped_column(Integer)
 
 
 class LlmCache(TimestampMixin, Base):

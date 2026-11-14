@@ -6,9 +6,9 @@ One call shape for every provider: system + user text in, a JSON object matching
 enforced in our code (`validate`) whatever the provider claims, so prompts never rely
 on one provider's feature (A8).
 
-`call_llm()` is the single choke point every caller must use. HE-043 wraps it with
-the per-provider daily/monthly cost-cap check and `llm_usage` recording; nothing may
-call `LLMProvider.complete_json` directly.
+`common.llm.router.call_llm()` (HE-043) is the single choke point every caller must use:
+it routes by role/priority, enforces the per-provider daily/monthly cost caps, falls back
+and records `llm_usage`. Nothing else may call `LLMProvider.complete_json`.
 """
 
 import asyncio
@@ -62,20 +62,6 @@ class LLMProvider(Protocol):
     ) -> LLMResult: ...
 
 
-async def call_llm(
-    provider: LLMProvider,
-    *,
-    system: str,
-    user: str,
-    schema: dict[str, Any],
-    max_output_tokens: int,
-) -> LLMResult:
-    """The one place an LLM call happens. HE-043: cost-cap check goes here, before the call."""
-    return await provider.complete_json(
-        system=system, user=user, schema=schema, max_output_tokens=max_output_tokens
-    )
-
-
 # --- shared HTTP + parsing helpers -------------------------------------------------------
 
 
@@ -89,7 +75,7 @@ async def post_json(
     retry_delay: float,
 ) -> tuple[dict[str, Any], int]:
     """POST; retry network errors and 5xx with backoff; 429 raises RateLimited at once
-    so the router (HE-043) can move to the next provider instead of sleeping here.
+    so the router can move to the next provider instead of sleeping here.
     Returns (json body, latency ms of the successful attempt)."""
     for attempt in range(ATTEMPTS):
         last = attempt == ATTEMPTS - 1
