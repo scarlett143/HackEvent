@@ -36,6 +36,7 @@ Design docs: [docs/](docs/README.md) — PRD, TRD, schema, API, security, AI gua
 | HE-040 | LLM adapter (JSON-only, no tools, single call_llm choke point) + Gemini provider, contract-tested | Done |
 | HE-041 | Anthropic Haiku provider (structured outputs, effort low), same contract suite | Done |
 | HE-043 | LLM cost caps (fail-closed, atomic reservation), role/priority routing, fallback, usage ledger | Done |
+| HE-044 | Extraction: untrusted-delimited prompt (hidden text stripped), doc 08 A3 schema v1, A5 post-validation in code, A10 injection tests | Done |
 | HE-090 | Admin users + invites UI (login, 2FA, invite, accept, role/deactivate) | Done |
 
 Full ticket list: [docs/09-Feature-Ticket-List.md](docs/09-Feature-Ticket-List.md).
