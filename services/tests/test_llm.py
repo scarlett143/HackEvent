@@ -17,6 +17,7 @@ from pydantic import SecretStr
 
 from common import crypto
 from common.llm import InvalidOutput, ProviderError, RateLimited, build_provider, call_llm
+from common.llm.anthropic import API_VERSION, AnthropicProvider, api_schema
 from common.llm.base import LLMProvider, validate
 from common.llm.gemini import GeminiProvider
 from common.models import LlmProvider, LlmProviderType
@@ -90,6 +91,18 @@ def _gemini_ok(text: str, tin: int, tout: int) -> dict[str, Any]:
     }
 
 
+def _anthropic_ok(text: str, tin: int, tout: int, stop: str = "end_turn") -> dict[str, Any]:
+    return {
+        "id": "msg_1",
+        "type": "message",
+        "role": "assistant",
+        "model": "claude-haiku-5-5",
+        "content": [{"type": "thinking", "thinking": ""}, {"type": "text", "text": text}],
+        "stop_reason": stop,
+        "usage": {"input_tokens": tin, "output_tokens": tout},
+    }
+
+
 CASES = [
     Case(
         name="gemini",
@@ -102,6 +115,18 @@ CASES = [
         ),
         ok=_gemini_ok,
         sent_schema=lambda b: b["generationConfig"]["responseJsonSchema"],
+    ),
+    Case(
+        name="anthropic",
+        type=LlmProviderType.anthropic,
+        model="claude-haiku-5-5",
+        url="https://api.anthropic.com/v1/messages",
+        key_header="x-api-key",
+        make=lambda c: AnthropicProvider(
+            api_key=SecretStr(KEY), model="claude-haiku-5-5", client=c, retry_delay=0
+        ),
+        ok=_anthropic_ok,
+        sent_schema=lambda b: b["output_config"]["format"]["schema"],
     ),
 ]
 
@@ -283,3 +308,43 @@ def test_validator() -> None:
     assert validate({"is_hackathon": 1, "events": []}, SCHEMA)  # bool is not int and vice versa
     with pytest.raises(ValueError, match="unsupported schema keyword"):
         validate({}, {"type": "object", "patternProperties": {}})
+
+
+async def test_anthropic_request_details() -> None:
+    fake = Fake((200, _anthropic_ok(json.dumps(GOOD), 1, 1), {}))
+    await _call(_provider(CASES[1], fake))
+    req = fake.requests[0]
+    assert req.headers["anthropic-version"] == API_VERSION
+    body = json.loads(req.content)
+    assert body["model"] == "claude-haiku-5-5"
+    assert body["max_tokens"] == 512
+    assert body["output_config"]["format"]["type"] == "json_schema"
+    assert not {"temperature", "top_p", "top_k"} & set(body)  # removed in 2026-10-21
+
+
+def test_anthropic_schema_drops_unsupported_constraints() -> None:
+    sent = api_schema(SCHEMA)
+    assert sent["additionalProperties"] is False
+    event = sent["properties"]["events"]["items"]
+    assert event["additionalProperties"] is False
+    assert "maxItems" not in sent["properties"]["events"]
+    assert "maxLength" not in event["properties"]["title"]
+    assert "minimum" not in event["properties"]["confidence"]
+    assert event["required"] == SCHEMA["properties"]["events"]["items"]["required"]
+    # a property *named* like a keyword survives
+    assert "maximum" in api_schema({"type": "object", "properties": {"maximum": {}}})["properties"]
+    assert SCHEMA["properties"]["events"]["maxItems"] == 10  # input not mutated
+
+
+@pytest.mark.parametrize("stop", ["max_tokens", "refusal"])
+async def test_anthropic_incomplete_stop_is_invalid_output(stop: str) -> None:
+    fake = Fake((200, _anthropic_ok(json.dumps(GOOD), 1, 1, stop), {}))
+    with pytest.raises(InvalidOutput, match=stop):
+        await _call(_provider(CASES[1], fake))
+
+
+async def test_gemini_non_stop_finish_is_invalid_output() -> None:
+    body = _gemini_ok(json.dumps(GOOD), 1, 1)
+    body["candidates"][0]["finishReason"] = "MAX_TOKENS"
+    with pytest.raises(InvalidOutput, match="MAX_TOKENS"):
+        await _call(_provider(CASES[0], Fake((200, body, {}))))
