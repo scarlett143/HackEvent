@@ -19,6 +19,34 @@ jobs:
     name: Python (ruff, mypy, pytest)
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Throwaway Postgres/Redis so the DB/Redis integration tests run instead of skipping.
+    # The password is a dummy for an ephemeral container; not a secret.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: hackevents
+          POSTGRES_PASSWORD: ci-test
+          POSTGRES_DB: hackevents
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U hackevents -d hackevents"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql+asyncpg://hackevents:ci-test@localhost:5432/hackevents
+      TEST_REDIS_URL: redis://localhost:6379/0
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
