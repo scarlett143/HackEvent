@@ -29,6 +29,8 @@ Design docs: [docs/](docs/README.md) — PRD, TRD, schema, API, security, AI gua
 | HE-021 | Source scheduler: tier cadence (1 d / 3 d / 7 d), SKIP LOCKED + job-id dedupe, DB-free scrape worker hand-off | Done |
 | HE-022 | Guarded fetcher: SSRF guard (re-checked per redirect, IP pinning), 5 MB / 20 s caps, robots.txt, ETag, per-host rate limit | Done |
 | HE-030 | Gmail API email sender (refresh-token OAuth, retries, revoked-token alert) + autoescaped invite/test templates | Done |
+| HE-040 | LLM adapter (JSON-only, no tools, single call_llm choke point) + Gemini provider, contract-tested | Done |
+| HE-041 | Anthropic Haiku provider (structured outputs, effort low), same contract suite | Done |
 | HE-090 | Admin users + invites UI (login, 2FA, invite, accept, role/deactivate) | Done |
 
 Full ticket list: [docs/09-Feature-Ticket-List.md](docs/09-Feature-Ticket-List.md).
