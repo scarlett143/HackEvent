@@ -125,6 +125,23 @@ def _set_session_cookie(response: Response, token: str) -> None:
     )
 
 
+def start_session(db: AsyncSession, request: Request, response: Response, user: User) -> None:
+    """Add a new session for `user` to `db` (the caller commits); set its session and CSRF
+    cookies, as login does."""
+    token = secrets.token_urlsafe(32)
+    db.add(
+        Session(
+            user_id=user.id,
+            token_hash=hash_token(token),
+            expires_at=datetime.now(UTC) + SESSION_TTL,
+            ip=request.client.host if request.client else "unknown",
+            user_agent=request.headers.get("user-agent", "")[:512],
+        )
+    )
+    _set_session_cookie(response, token)
+    set_csrf_cookie(response, new_csrf_token(token, None), int(SESSION_TTL.total_seconds()))
+
+
 @dataclass
 class Auth:
     user: User
