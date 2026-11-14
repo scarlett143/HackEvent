@@ -53,6 +53,8 @@ _PLAIN_KV = re.compile(
     rf"(?:(?P<vq>[\"'])(?!\[REDACTED\](?P=vq))[^\"']*(?P=vq)|{_NOT_REDACTED}[^\s&,;)\]}}\"']+)",
     re.IGNORECASE,
 )
+# Invite links carry the bearer token in the path: /invite/<t> (web), /api/v1/invites/<t>.
+_INVITE_PATH = re.compile(r"(?P<pre>/invites?/)" + _NOT_REDACTED + r"[A-Za-z0-9_-]{20,}")
 _SHAPES = re.compile(
     r"AIza[0-9A-Za-z_-]{35}"  # Google API key
     r"|\bsk-[A-Za-z0-9_-]{16,}"  # Anthropic sk-ant-..., OpenAI-style sk-...
@@ -78,6 +80,7 @@ _RULES: tuple[tuple[re.Pattern[str], Callable[[re.Match[str]], str]], ...] = (
     (_AUTH_SCHEME, lambda m: m.group("pre") + REDACTED),
     (_QUOTED_KV, _keep_prefix),
     (_PLAIN_KV, _keep_prefix),
+    (_INVITE_PATH, lambda m: m.group("pre") + REDACTED),
     (_SHAPES, lambda m: REDACTED),
 )
 

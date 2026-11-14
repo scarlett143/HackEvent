@@ -37,6 +37,18 @@ FCM = "fakeDeviceId0123:APA91b" + FAKE * 3
 # (id, input text, secret that must disappear, exact expected output)
 CASES = [
     (
+        "invite-api-path",
+        f'"POST /api/v1/invites/{FAKE}/accept HTTP/1.1" 200',
+        FAKE,
+        f'"POST /api/v1/invites/{REDACTED}/accept HTTP/1.1" 200',
+    ),
+    (
+        "invite-web-link",
+        f"open https://example.org/invite/{FAKE}",
+        FAKE,
+        f"open https://example.org/invite/{REDACTED}",
+    ),
+    (
         "authorization-header",
         f"headers Authorization: Bearer {FAKE}",
         FAKE,
