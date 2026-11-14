@@ -38,6 +38,7 @@ Design docs: [docs/](docs/README.md) — PRD, TRD, schema, API, security, AI gua
 | HE-043 | LLM cost caps (fail-closed, atomic reservation), role/priority routing, fallback, usage ledger | Done |
 | HE-044 | Extraction: untrusted-delimited prompt (hidden text stripped), doc 08 A3 schema v1, A5 post-validation in code, A10 injection tests | Done |
 | HE-045 | Verify step: confidence < 0.7 → verify provider (Haiku), corrections re-validated against the page, unsupported deadline → needs_review | Done |
+| HE-046 | Keyword pre-filter (no keyword → 0 LLM calls) + `llm_cache` by page-text hash + schema version; repeat page = 0 LLM calls | Done |
 | HE-090 | Admin users + invites UI (login, 2FA, invite, accept, role/deactivate) | Done |
 
 Full ticket list: [docs/09-Feature-Ticket-List.md](docs/09-Feature-Ticket-List.md).

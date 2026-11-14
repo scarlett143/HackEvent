@@ -8,7 +8,7 @@ from collections.abc import Callable
 from typing import Any
 
 import pytest
-from tests.test_extraction import EVIDENCE, NOW, PAGE, SRC, event
+from tests.test_extraction import EVIDENCE, NOW, PAGE, SRC, event, no_cache
 
 from common.llm import LLMResult, NoProviderAvailable
 from common.llm.base import validate
@@ -51,6 +51,7 @@ def run(monkeypatch: pytest.MonkeyPatch) -> Run:
     async def go(fake: FakeLLM, html: str = PAGE) -> ExtractionResult:
         monkeypatch.setattr(pipeline, "call_llm", fake)
         monkeypatch.setattr(verify_mod, "call_llm", fake)
+        monkeypatch.setattr(pipeline, "cache_get", no_cache)
         return await extract(
             None,  # type: ignore[arg-type]
             None,  # type: ignore[arg-type]
