@@ -33,10 +33,14 @@ from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy import (
     ColumnElement,
+    String,
     and_,
+    case,
+    cast,
     delete,
     exists,
     func,
+    literal,
     or_,
     select,
     true,
@@ -165,6 +169,26 @@ def _now() -> datetime:
 
 def _visible() -> ColumnElement[bool]:
     return Event.review_status != ReviewStatus.rejected
+
+
+def _region_expr() -> Any:
+    """Event region for the India/Global filter.
+
+    The matched organisation's region wins (doc 06). Most scraped events have no matched
+    organisation, so fall back to the event itself: a location naming India, or a source on
+    Unstop (an India-only platform), means "india"; anything else is "global" (= outside India).
+    ponytail: heuristic; replace with an extracted event-level region if one is added (doc 08).
+    """
+    from_unstop = exists().where(
+        EventSource.event_id == Event.id,
+        EventSource.source_url.op("~*")(r"^https?://([a-z0-9-]+\.)*unstop\.com(/|$)"),
+    )
+    return case(
+        (Organisation.region.is_not(None), cast(Organisation.region, String)),
+        (Event.location.ilike("%india%"), literal("india")),
+        (from_unstop, literal("india")),
+        else_=literal("global"),
+    )
 
 
 def _status_clause(status: FeedStatus, now: datetime) -> ColumnElement[bool]:
@@ -368,7 +392,7 @@ async def list_events(  # role: any (doc 07 §3)
         stmt = stmt.where(Organisation.tier.in_(tiers))
     regions: list[OrgRegion] | None = _csv(region, OrgRegion, "region")
     if regions:
-        stmt = stmt.where(Organisation.region.in_(regions))
+        stmt = stmt.where(_region_expr().in_([r.value for r in regions]))
     modes: list[EventMode] | None = _csv(mode, EventMode, "mode")
     if modes:
         stmt = stmt.where(Event.mode.in_(modes))
