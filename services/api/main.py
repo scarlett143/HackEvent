@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 
-from api import admin, admin_sources, auth, events, health, invites, totp
+from api import admin, admin_sources, auth, events, health, invites, me, totp
 from api.csrf import CSRFMiddleware
 from api.errors import ApiError, handle_api_error, handle_validation_error
 from common.logging import configure_logging
@@ -19,6 +19,7 @@ app.include_router(admin.router)
 app.include_router(admin_sources.router)
 app.include_router(invites.router)
 app.include_router(events.router)
+app.include_router(me.router)
 
 
 @app.get("/api/v1/health/live")

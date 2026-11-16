@@ -17,7 +17,7 @@ import hashlib
 import secrets
 import uuid
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, time, timedelta
 from pathlib import Path
 from typing import Annotated
 
@@ -199,11 +199,23 @@ class MeOut(BaseModel):
     name: str
     role: UserRole
     timezone: str
+    quiet_start: str | None = None  # "HH:MM" in `timezone`; null = quiet hours off
+    quiet_end: str | None = None
+
+
+def _hhmm(t: time | None) -> str | None:
+    return None if t is None else t.strftime("%H:%M")
 
 
 def _me(user: User) -> MeOut:
     return MeOut(
-        id=user.id, email=user.email, name=user.name, role=user.role, timezone=user.timezone
+        id=user.id,
+        email=user.email,
+        name=user.name,
+        role=user.role,
+        timezone=user.timezone,
+        quiet_start=_hhmm(user.quiet_start),
+        quiet_end=_hhmm(user.quiet_end),
     )
 
 

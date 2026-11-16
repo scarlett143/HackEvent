@@ -25,6 +25,7 @@ import {
 type Toast = { message: string; undo?: () => void };
 type Shell = {
   me: Me;
+  setMe: (me: Me) => void;
   tz: string;
   refreshUnread: () => void;
   toast: (t: Toast) => void;
@@ -38,12 +39,12 @@ export function useShell(): Shell {
 }
 
 // `soon` items have no page yet: shown as labels, not links (no dead links, no 404 prefetch).
-// ponytail: flip `soon` off as Calendar (HE-061), Notifications (HE-076) and Settings land.
+// ponytail: flip `soon` off as Calendar (HE-061) and Notifications (HE-076) land.
 const NAV: { href: string; label: string; soon: boolean }[] = [
   { href: "/", label: "Feed", soon: false },
   { href: "/calendar", label: "Calendar", soon: true },
   { href: "/notifications", label: "Notifications", soon: true },
-  { href: "/settings", label: "Settings", soon: true },
+  { href: "/settings", label: "Settings", soon: false },
 ];
 
 const TOAST_MS = 10_000;
@@ -91,7 +92,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     .toUpperCase();
 
   return (
-    <ShellContext.Provider value={{ me, tz, refreshUnread, toast: showToast }}>
+    <ShellContext.Provider value={{ me, setMe, tz, refreshUnread, toast: showToast }}>
       <div className="flex min-h-full flex-1 flex-col">
         <header className="flex items-center justify-between gap-4 border-b border-line px-4 py-2 md:px-6">
           <Link href="/" className="focus-ring rounded text-xl font-semibold">

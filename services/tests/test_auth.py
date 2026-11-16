@@ -161,6 +161,8 @@ def test_login_ok_sets_hardened_cookie_and_stores_only_hash(client: TestClient) 
         "name": "prof",
         "role": "professor",
         "timezone": "Asia/Kolkata",
+        "quiet_start": None,
+        "quiet_end": None,
     }
     cookie = next(
         c for c in r.headers.get_list("set-cookie") if c.startswith(SESSION_COOKIE)

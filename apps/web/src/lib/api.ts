@@ -57,7 +57,15 @@ export function safeNext(next: string | null): string {
     : "/";
 }
 
-export type Me = { id: string; email: string; name: string; role: string; timezone: string };
+export type Me = {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  timezone: string;
+  quiet_start?: string | null; // "HH:MM" in `timezone`; null = off
+  quiet_end?: string | null;
+};
 
 /** Where a failed admin-API call should send the user (401 → sign in, missing TOTP →
  *  /admin/2fa, both returning to `here`), or null to show the error in place. */
