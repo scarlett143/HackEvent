@@ -132,7 +132,9 @@ def test_each_filter(clean: TestClient, two_users: Pair) -> None:
     assert ids(clean, a, kind="company") == [e_co]
     assert ids(clean, a, kind="institution,company") == [e_co, e_inst]
     assert ids(clean, a, tier="2") == [e_inst]
-    assert ids(clean, a, region="global") == [e_inst]
+    # e_none has no organisation, no location, no Unstop source → "global" (outside India)
+    assert ids(clean, a, region="global") == [e_inst, e_none]
+    assert ids(clean, a, region="india") == [e_co]
     assert ids(clean, a, mode="hybrid") == [e_none]
     assert ids(clean, a, mode="online,offline") == [e_co, e_inst]
     assert ids(clean, a, deadline_before=(NOW + timedelta(days=5)).isoformat()) == [e_co]
@@ -159,6 +161,32 @@ def test_each_filter(clean: TestClient, two_users: Pair) -> None:
         "tier": None,
         "region": None,
     }
+
+
+@needs_stack
+def test_region_falls_back_to_location_and_unstop_source(
+    clean: TestClient, two_users: Pair
+) -> None:
+    # Scraped events usually match no seeded organisation; India/Global must still work.
+    a, _ = two_users
+    glob = org("Global Corp", "company", 1, "global")
+    by_location = event("Kolkata Hack", NOW + timedelta(days=2))
+    sql(
+        "UPDATE events SET location = 'Kolkata, West Bengal, India' WHERE id = CAST(:e AS uuid)",
+        e=by_location,
+    )
+    by_unstop = event("Unstop Hack", NOW + timedelta(days=3))
+    sql(
+        "INSERT INTO event_sources (event_id, source_url, snippet, extracted, extractor)"
+        " VALUES (CAST(:e AS uuid), 'https://unstop.com/hackathons/x-123', 's', '{}', 'unstop')",
+        e=by_unstop,
+    )
+    devpost_online = event("Devpost Online Hack", NOW + timedelta(days=4), snippet="s")
+    org_wins = event("Global Org In India", NOW + timedelta(days=5), org_id=glob)
+    sql("UPDATE events SET location = 'Pune, India' WHERE id = CAST(:e AS uuid)", e=org_wins)
+    assert ids(clean, a, region="india") == [by_location, by_unstop]
+    assert ids(clean, a, region="global") == [devpost_online, org_wins]
+    assert len(ids(clean, a, region="india,global")) == 4
 
 
 @needs_stack
