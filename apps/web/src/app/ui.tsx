@@ -238,6 +238,26 @@ export function Countdown({ deadline, now, tz }: { deadline: string | null; now:
 
 // ── Event pieces ─────────────────────────────────────────────────────────────
 
+/** Organiser initials tile (Stitch event cards): "Example Corp" -> "EC". Decorative; the name is always next to it. */
+export function OrgAvatar({ name }: { name: string }) {
+  const text =
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase() || "?";
+  return (
+    <span
+      aria-hidden
+      className="font-display flex size-12 shrink-0 items-center justify-center rounded-full bg-surface text-lg font-bold"
+    >
+      {text}
+    </span>
+  );
+}
+
 const MODE: Record<string, string> = { online: "Online", offline: "In person", hybrid: "Hybrid" };
 
 /** "Example Corp · Company · Tier 1 · Online". */
@@ -272,18 +292,10 @@ export function Chips({ ev }: { ev: EventItem }) {
 
 type Flag = "is_registered" | "is_tracked";
 
-/** Register ↗ / I registered / ☆ with optimistic update + 10 s undo (brief §5, App Flow F4/F5). */
-export function EventActions({
-  ev,
-  onPatch,
-}: {
-  ev: EventItem;
-  onPatch: (id: string, patch: Partial<EventItem>) => void;
-}) {
+/** Optimistic track/register toggles with a 10 s undo toast (brief §5, App Flow F4/F5). */
+export function useEventFlags(ev: EventItem, onPatch: (id: string, patch: Partial<EventItem>) => void) {
   const { toast } = useShell();
-  const url = safeHttpUrl(ev.registration_url);
-
-  async function flip(flag: Flag) {
+  return async function flip(flag: Flag) {
     const path = `/api/v1/events/${encodeURIComponent(ev.id)}/${flag === "is_registered" ? "registration" : "track"}`;
     const set = (on: boolean) => onPatch(ev.id, { [flag]: on });
     const save = async (on: boolean) => {
@@ -306,7 +318,42 @@ export function EventActions({
           ? `Reminders on: ${ev.title}`
           : `Reminders off: ${ev.title}`;
     toast({ message, undo: () => void save(!on) });
-  }
+  };
+}
+
+/** Star toggle on its own (compact rows). */
+export function TrackStar({
+  ev,
+  onPatch,
+}: {
+  ev: EventItem;
+  onPatch: (id: string, patch: Partial<EventItem>) => void;
+}) {
+  const flip = useEventFlags(ev, onPatch);
+  return (
+    <button
+      className="btn-secondary min-w-11 px-3"
+      aria-pressed={ev.is_tracked}
+      aria-label={ev.is_tracked ? `Reminders on for ${ev.title} (turn off)` : `Remind me about ${ev.title}`}
+      onClick={() => flip("is_tracked")}
+    >
+      <span aria-hidden className={ev.is_tracked ? "text-warning-ink" : ""}>
+        {ev.is_tracked ? "★" : "☆"}
+      </span>
+    </button>
+  );
+}
+
+/** Register ↗ / I registered / ☆. */
+export function EventActions({
+  ev,
+  onPatch,
+}: {
+  ev: EventItem;
+  onPatch: (id: string, patch: Partial<EventItem>) => void;
+}) {
+  const flip = useEventFlags(ev, onPatch);
+  const url = safeHttpUrl(ev.registration_url);
 
   return (
     <div className="flex flex-wrap items-center gap-2">
