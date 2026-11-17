@@ -267,7 +267,7 @@ function OffsetPicker({
             aria-pressed={days.includes(d)}
             onClick={() => onChange(toggleOffset(days, d))}
             className={`focus-ring min-h-11 rounded-full border px-4 text-sm font-medium ${
-              days.includes(d) ? "border-primary bg-primary text-white" : "border-line"
+              days.includes(d) ? "border-primary bg-primary text-on-primary" : "border-line"
             }`}
           >
             {days.includes(d) && <span aria-hidden>✓ </span>}

@@ -1,57 +1,84 @@
 @import "tailwindcss";
 
-/* Tokens from the UI/UX design brief §3. Light mode is the default; dark mode later (HE-122). */
+/* Onyx HackEvents tokens (Stitch DESIGN.md, "Functional Precision"). Light mode only; dark mode later (HE-122).
+   Contrast notes: lime #95c400 is a FILL colour (with --color-on-primary ink, ~9:1). As text/outline on
+   light surfaces use --color-link (#4d6700, ~6:1). Warning/ok fills are too light for text: use the -ink hues. */
 @theme {
-  --color-bg: #ffffff;
-  --color-surface: #f8fafc;
-  --color-line: #e2e8f0;
-  --color-ink: #0f172a;
-  --color-muted: #475569;
-  --color-primary: #2563eb;
+  --font-sans: var(--font-geist), system-ui, sans-serif;
+  --font-display: var(--font-archivo), "Arial Narrow", sans-serif;
+
+  --color-bg: #f7f9f6;
+  --color-card: #ffffff;
+  --color-surface: #eff1ed;
+  --color-line: #dbded8;
+  --color-ink: #141711;
+  --color-muted: #585b54;
+  --color-primary: #95c400;
+  --color-on-primary: #121b01;
+  --color-primary-soft: #e6f4d0;
+  --color-link: #4d6700;
+  --color-teal: #00c997;
+  --color-tertiary: #8f66b9;
   --color-urgent: #dc2626;
   --color-warning: #d97706;
-  --color-ok: #16a34a;
+  --color-ok: #217b44;
   --color-new: #7c3aed;
-  /* Text-safe status inks: the brief's warning/ok hues are 3.2:1 / 3.3:1 on white (fine for
-     borders/icons at 3:1, too light for text). amber-700 / green-700 are 5.0:1 on white, 4.8:1 on surface. */
-  --color-warning-ink: #b45309;
-  --color-ok-ink: #15803d;
+  --color-warning-ink: #ab6c00;
+  --color-ok-ink: #217b44;
   --radius-xl: 12px;
 }
 
 body {
   background: var(--color-bg);
   color: var(--color-ink);
+  font-feature-settings: "tnum";
 }
 
 @layer components {
   .text-muted {
     color: var(--color-muted);
   }
+  /* Inset well (inputs, nested rows) — Surface 2. */
   .surface {
     background: var(--color-surface);
   }
+  /* Card: white, 12px radius, 1px hairline, no shadow (DESIGN.md Elevation). */
+  .card {
+    @apply rounded-xl border border-line bg-card;
+  }
+  .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.005em;
+  }
   .field {
-    @apply min-h-11 rounded-xl border border-line px-3 text-base font-normal;
+    @apply min-h-11 rounded-lg border border-transparent bg-surface px-3 text-base font-normal;
+  }
+  .field:focus {
+    @apply border-ink bg-card;
   }
   .field:focus-visible,
   .btn-primary:focus-visible,
   .btn-secondary:focus-visible,
   .link:focus-visible,
   .focus-ring:focus-visible {
-    @apply outline-2 outline-offset-2 outline-primary;
+    @apply outline-2 outline-offset-2 outline-ink;
   }
   .btn-primary {
-    @apply min-h-11 rounded-xl bg-primary px-4 font-medium text-white disabled:opacity-60;
+    @apply min-h-12 rounded-lg bg-primary px-4 font-semibold text-on-primary active:scale-[0.98] active:opacity-90 disabled:opacity-60;
   }
   .btn-secondary {
-    @apply min-h-11 rounded-xl border border-line px-4 font-medium;
+    @apply min-h-12 rounded-lg border border-line bg-surface px-4 font-semibold text-ink active:scale-[0.98] active:opacity-90;
   }
   .link {
-    @apply text-primary underline underline-offset-2;
+    @apply text-link underline underline-offset-2;
   }
   .chip {
-    @apply inline-flex items-center rounded-full border border-line bg-bg px-2.5 py-0.5 text-xs font-medium;
+    @apply inline-flex items-center rounded-lg border border-line bg-card px-2.5 py-0.5 text-xs font-medium text-muted;
+  }
+  /* Selected filter / active track chip. */
+  .chip[aria-pressed="true"],
+  .chip-active {
+    @apply border-primary bg-primary-soft text-on-primary;
   }
   /* Skeletons appear only when loading takes > 200 ms (brief §5). */
   .skeleton {
