@@ -39,11 +39,10 @@ export function useShell(): Shell {
 }
 
 // `soon` items have no page yet: shown as labels, not links (no dead links, no 404 prefetch).
-// ponytail: flip `soon` off as Calendar (HE-061) and Notifications (HE-076) land.
 const NAV: { href: string; label: string; soon: boolean }[] = [
   { href: "/", label: "Feed", soon: false },
   { href: "/calendar", label: "Calendar", soon: false },
-  { href: "/notifications", label: "Notifications", soon: true },
+  { href: "/notifications", label: "Alerts", soon: false },
   { href: "/settings", label: "Settings", soon: false },
 ];
 
@@ -101,11 +100,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             HackEvents
           </Link>
           <div className="flex items-center gap-2">
-            {/* ponytail: becomes a link to /notifications once that page exists (HE-076). */}
-            <span
-              role="img"
-              className="relative inline-flex size-11 items-center justify-center rounded-xl"
-              aria-label={badge ? `${badge} unread` : "No unread items"}
+            <Link
+              href="/notifications"
+              className="focus-ring relative inline-flex size-11 items-center justify-center rounded-xl"
+              aria-label={badge ? `Notifications, ${badge} unread` : "Notifications"}
             >
               <span aria-hidden>🔔</span>
               {badge > 0 && (
@@ -116,7 +114,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   {badge > 99 ? "99+" : badge}
                 </span>
               )}
-            </span>
+            </Link>
             <details className="relative">
               <summary
                 className="focus-ring flex size-11 cursor-pointer list-none items-center justify-center rounded-full bg-primary text-sm font-semibold text-on-primary"
@@ -168,6 +166,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   }`}
                 >
                   {n.label}
+                  {n.href === "/notifications" && badge > 0 && (
+                    <span
+                      aria-label={`${badge} unread`}
+                      className="ml-2 min-w-5 rounded-full bg-urgent px-1 text-center text-xs font-semibold text-white tabular-nums"
+                    >
+                      {badge > 99 ? "99+" : badge}
+                    </span>
+                  )}
                 </Link>
               );
             })}

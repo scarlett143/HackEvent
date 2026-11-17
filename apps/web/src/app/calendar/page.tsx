@@ -2,12 +2,10 @@
 
 // Calendar (Stitch calendar / week / day / agenda): the events you track or have registered for,
 // as deadlines and event runs. Built client-side from GET /events; no calendar API needed.
-// ponytail: loads at most 5 pages (250 events); add a server-side tracked filter past that.
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
-import { api } from "@/lib/api";
 import {
   addDays,
   agenda,
@@ -24,11 +22,11 @@ import {
   VIEWS,
   weekDays,
 } from "@/lib/calendar-view";
-import { type EventItem, eventsQuery, formatDeadline, type Page, urgency } from "@/lib/events";
+import { type EventItem, formatDeadline, urgency } from "@/lib/events";
+import { loadEvents } from "@/lib/load-events";
 import { downloadIcs } from "../calendar-menu";
 import { AppShell, useNow, useShell } from "../ui";
 
-const MAX_PAGES = 5;
 const VIEW_LABEL: Record<View, string> = { month: "Month", week: "Week", day: "Day", agenda: "Agenda" };
 const DOW = ["S", "M", "T", "W", "T", "F", "S"];
 
@@ -40,21 +38,6 @@ export default function CalendarPage() {
       </AppShell>
     </Suspense>
   );
-}
-
-async function loadEvents(): Promise<EventItem[] | null> {
-  const out: EventItem[] = [];
-  let cursor: string | null = null;
-  for (let i = 0; i < MAX_PAGES; i++) {
-    const r: Awaited<ReturnType<typeof api<Page<EventItem>>>> = await api<Page<EventItem>>(
-      `/api/v1/events?${eventsQuery({}, new Date(), cursor)}`,
-    );
-    if (!r.ok) return null;
-    out.push(...r.data.items);
-    if (!r.data.next_cursor) break;
-    cursor = r.data.next_cursor;
-  }
-  return out;
 }
 
 function Calendar() {
