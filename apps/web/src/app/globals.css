@@ -28,6 +28,25 @@
   --radius-xl: 12px;
 }
 
+/* Dark theme: same token names, so every utility follows. <html data-theme> is set before paint
+   (lib/theme.ts). Lime stays the fill colour; text-safe inks are lightened for dark surfaces. */
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --color-bg: #0f110d;
+  --color-card: #181b14;
+  --color-surface: #22251d;
+  --color-line: #3a3e33;
+  --color-ink: #f0f2e7;
+  --color-muted: #a9ae9c;
+  --color-primary-soft: #2c3d05;
+  --color-link: #a6d723;
+  --color-urgent: #ef4444;
+  --color-warning: #f59e0b;
+  --color-ok: #4ade80;
+  --color-warning-ink: #fbbf24;
+  --color-ok-ink: #4ade80;
+}
+
 body {
   background: var(--color-bg);
   color: var(--color-ink);
