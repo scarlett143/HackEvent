@@ -316,6 +316,204 @@ export default function SourcesPage() {
         scrapers={health ? { healthy: count("green"), degraded: count("amber"), error: count("red") } : null}
       />
 
+      <section aria-labelledby="health-heading" className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 id="health-heading" className="text-lg font-semibold">
+            Source health
+          </h2>
+          <button className="btn-secondary" onClick={() => loadHealth()}>
+            Refresh
+          </button>
+        </div>
+        <p className="text-muted text-sm">
+          Red after 3 failed runs or 5 runs with no events in a row. Admins get an email when a
+          source turns red.
+        </p>
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filter by status">
+          {(
+            [
+              ["all", `All sources (${health?.length ?? 0})`],
+              ["green", `Healthy (${count("green")})`],
+              ["amber", `Degraded (${count("amber")})`],
+              ["red", `Errors only (${count("red")})`],
+            ] as const
+          ).map(([k, label]) => (
+            <button
+              key={k}
+              type="button"
+              className="chip focus-ring min-h-11 px-3 text-sm"
+              aria-pressed={hFilter === k}
+              onClick={() => setHFilter(k)}
+            >
+              {label}
+            </button>
+          ))}
+          <input
+            type="search"
+            aria-label="Search sources"
+            placeholder="Search sources"
+            value={hQuery}
+            onChange={(e) => setHQuery(e.target.value)}
+            className="field ml-auto w-full sm:w-64"
+          />
+        </div>
+        {!health ? (
+          <p className="text-muted">Loading…</p>
+        ) : health.length === 0 ? (
+          <p className="text-muted">No sources yet.</p>
+        ) : shownHealth.length === 0 ? (
+          <p className="text-muted">No sources match.</p>
+        ) : (
+          <ul className="grid gap-3 lg:grid-cols-2">
+            {shownHealth.map((h) => {
+              const src = sources?.find((x) => x.id === h.id);
+              return (
+                <li key={h.id} className={`card flex flex-col gap-3 border-l-4 p-4 ${STATUS[h.status].edge}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="font-display text-lg font-semibold break-all">{h.url}</h3>
+                      <p className="text-muted text-sm">
+                        {h.organisation_name ?? "Aggregator"} · {h.kind} / {h.adapter}
+                        {h.is_enabled ? "" : " · disabled"}
+                      </p>
+                    </div>
+                    <span className={`chip shrink-0 gap-2 ${STATUS[h.status].pill}`}>
+                      <span aria-hidden="true" className={`size-2 rounded-full ${STATUS[h.status].dot}`} />
+                      {STATUS[h.status].label}
+                    </span>
+                  </div>
+                  <dl className="surface grid grid-cols-3 gap-2 rounded-lg p-3 text-center text-sm">
+                    <div>
+                      <dt className="text-muted text-xs">Last success</dt>
+                      <dd className="font-medium">{when(h.last_success_at)}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-muted text-xs">Failed runs</dt>
+                      <dd className="font-medium tabular-nums">{h.error_streak}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-muted text-xs">Empty runs</dt>
+                      <dd className="font-medium tabular-nums">{h.empty_streak}</dd>
+                    </div>
+                  </dl>
+                  <p className="text-sm break-words">
+                    <span className="font-medium">{h.reason}</span>
+                    {h.last_error && <span className="text-urgent block">{h.last_error}</span>}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-3">
+                    {src && (
+                      <button className="btn-secondary" onClick={() => runNow(src)}>
+                        {h.status === "red" ? "Retry source" : "Run scraper"}
+                      </button>
+                    )}
+                    {runs[h.id] && (
+                      <span role="status" className="text-muted text-sm">
+                        {runs[h.id]}
+                      </span>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      <section aria-labelledby="sources-heading" className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 id="sources-heading" className="text-lg font-semibold">
+            Sources
+          </h2>
+          {editing === null && (
+            <button className="btn-primary" onClick={() => setEditing("new")}>
+              Add source
+            </button>
+          )}
+        </div>
+
+        {editing !== null && (
+          <SourceForm
+            key={editing === "new" ? "new" : editing.id}
+            source={editing === "new" ? null : editing}
+            orgs={allOrgs}
+            busy={busy}
+            onSubmit={saveSource}
+            onCancel={() => setEditing(null)}
+          />
+        )}
+
+        {!sources ? (
+          <p className="text-muted">Loading…</p>
+        ) : sources.length === 0 ? (
+          <p className="text-muted">No sources yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[48rem] text-left text-sm">
+              <thead className="surface">
+                <tr>
+                  <th scope="col" className="p-2">URL</th>
+                  <th scope="col" className="p-2">Organisation</th>
+                  <th scope="col" className="p-2">Kind / adapter</th>
+                  <th scope="col" className="p-2">Every</th>
+                  <th scope="col" className="p-2">Enabled</th>
+                  <th scope="col" className="p-2">Last success</th>
+                  <th scope="col" className="p-2">Failed runs</th>
+                  <th scope="col" className="p-2">Last error</th>
+                  <th scope="col" className="p-2">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sources.map((s) => (
+                  <tr key={s.id} className="border-t border-line align-top">
+                    <th scope="row" className="max-w-64 p-2 font-medium break-all">
+                      {s.url}
+                    </th>
+                    <td className="p-2">{s.organisation_name ?? "None (aggregator)"}</td>
+                    <td className="p-2">
+                      {s.kind}
+                      {s.network ? ` (${s.network})` : ""} / {s.adapter}
+                    </td>
+                    <td className="p-2">{s.cadence_hours} h</td>
+                    <td className="p-2">{s.is_enabled ? "Yes" : "No"}</td>
+                    <td className="p-2">{when(s.last_success_at)}</td>
+                    <td className="p-2">{s.error_streak}</td>
+                    <td className="max-w-64 p-2 break-words">{s.last_error ?? "None"}</td>
+                    <td className="p-2">
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          className="btn-secondary"
+                          aria-label={`Run ${s.url} now`}
+                          onClick={() => runNow(s)}
+                        >
+                          Run now
+                        </button>
+                        <button
+                          className="btn-secondary"
+                          aria-label={`Edit ${s.url}`}
+                          onClick={() => setEditing(s)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="btn-secondary"
+                          aria-label={`Delete ${s.url}`}
+                          onClick={() => deleteSource(s)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                      <p aria-live="polite" className="mt-1 max-w-64 break-words">
+                        {runs[s.id]}
+                      </p>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
       <section aria-labelledby="orgs-heading" className="flex flex-col gap-4">
         <h2 id="orgs-heading" className="text-lg font-semibold">
           Organisations
@@ -464,204 +662,6 @@ export default function SourcesPage() {
               </tbody>
             </table>
           </div>
-        )}
-      </section>
-
-      <section aria-labelledby="sources-heading" className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 id="sources-heading" className="text-lg font-semibold">
-            Sources
-          </h2>
-          {editing === null && (
-            <button className="btn-primary" onClick={() => setEditing("new")}>
-              Add source
-            </button>
-          )}
-        </div>
-
-        {editing !== null && (
-          <SourceForm
-            key={editing === "new" ? "new" : editing.id}
-            source={editing === "new" ? null : editing}
-            orgs={allOrgs}
-            busy={busy}
-            onSubmit={saveSource}
-            onCancel={() => setEditing(null)}
-          />
-        )}
-
-        {!sources ? (
-          <p className="text-muted">Loading…</p>
-        ) : sources.length === 0 ? (
-          <p className="text-muted">No sources yet.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[48rem] text-left text-sm">
-              <thead className="surface">
-                <tr>
-                  <th scope="col" className="p-2">URL</th>
-                  <th scope="col" className="p-2">Organisation</th>
-                  <th scope="col" className="p-2">Kind / adapter</th>
-                  <th scope="col" className="p-2">Every</th>
-                  <th scope="col" className="p-2">Enabled</th>
-                  <th scope="col" className="p-2">Last success</th>
-                  <th scope="col" className="p-2">Failed runs</th>
-                  <th scope="col" className="p-2">Last error</th>
-                  <th scope="col" className="p-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sources.map((s) => (
-                  <tr key={s.id} className="border-t border-line align-top">
-                    <th scope="row" className="max-w-64 p-2 font-medium break-all">
-                      {s.url}
-                    </th>
-                    <td className="p-2">{s.organisation_name ?? "None (aggregator)"}</td>
-                    <td className="p-2">
-                      {s.kind}
-                      {s.network ? ` (${s.network})` : ""} / {s.adapter}
-                    </td>
-                    <td className="p-2">{s.cadence_hours} h</td>
-                    <td className="p-2">{s.is_enabled ? "Yes" : "No"}</td>
-                    <td className="p-2">{when(s.last_success_at)}</td>
-                    <td className="p-2">{s.error_streak}</td>
-                    <td className="max-w-64 p-2 break-words">{s.last_error ?? "None"}</td>
-                    <td className="p-2">
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          className="btn-secondary"
-                          aria-label={`Run ${s.url} now`}
-                          onClick={() => runNow(s)}
-                        >
-                          Run now
-                        </button>
-                        <button
-                          className="btn-secondary"
-                          aria-label={`Edit ${s.url}`}
-                          onClick={() => setEditing(s)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className="btn-secondary"
-                          aria-label={`Delete ${s.url}`}
-                          onClick={() => deleteSource(s)}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                      <p aria-live="polite" className="mt-1 max-w-64 break-words">
-                        {runs[s.id]}
-                      </p>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
-      <section aria-labelledby="health-heading" className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 id="health-heading" className="text-lg font-semibold">
-            Source health
-          </h2>
-          <button className="btn-secondary" onClick={() => loadHealth()}>
-            Refresh
-          </button>
-        </div>
-        <p className="text-muted text-sm">
-          Red after 3 failed runs or 5 runs with no events in a row. Admins get an email when a
-          source turns red.
-        </p>
-        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filter by status">
-          {(
-            [
-              ["all", `All sources (${health?.length ?? 0})`],
-              ["green", `Healthy (${count("green")})`],
-              ["amber", `Degraded (${count("amber")})`],
-              ["red", `Errors only (${count("red")})`],
-            ] as const
-          ).map(([k, label]) => (
-            <button
-              key={k}
-              type="button"
-              className="chip focus-ring min-h-11 px-3 text-sm"
-              aria-pressed={hFilter === k}
-              onClick={() => setHFilter(k)}
-            >
-              {label}
-            </button>
-          ))}
-          <input
-            type="search"
-            aria-label="Search sources"
-            placeholder="Search sources"
-            value={hQuery}
-            onChange={(e) => setHQuery(e.target.value)}
-            className="field ml-auto w-full sm:w-64"
-          />
-        </div>
-        {!health ? (
-          <p className="text-muted">Loading…</p>
-        ) : health.length === 0 ? (
-          <p className="text-muted">No sources yet.</p>
-        ) : shownHealth.length === 0 ? (
-          <p className="text-muted">No sources match.</p>
-        ) : (
-          <ul className="grid gap-3 lg:grid-cols-2">
-            {shownHealth.map((h) => {
-              const src = sources?.find((x) => x.id === h.id);
-              return (
-                <li key={h.id} className={`card flex flex-col gap-3 border-l-4 p-4 ${STATUS[h.status].edge}`}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h3 className="font-display text-lg font-semibold break-all">{h.url}</h3>
-                      <p className="text-muted text-sm">
-                        {h.organisation_name ?? "Aggregator"} · {h.kind} / {h.adapter}
-                        {h.is_enabled ? "" : " · disabled"}
-                      </p>
-                    </div>
-                    <span className={`chip shrink-0 gap-2 ${STATUS[h.status].pill}`}>
-                      <span aria-hidden="true" className={`size-2 rounded-full ${STATUS[h.status].dot}`} />
-                      {STATUS[h.status].label}
-                    </span>
-                  </div>
-                  <dl className="surface grid grid-cols-3 gap-2 rounded-lg p-3 text-center text-sm">
-                    <div>
-                      <dt className="text-muted text-xs">Last success</dt>
-                      <dd className="font-medium">{when(h.last_success_at)}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-muted text-xs">Failed runs</dt>
-                      <dd className="font-medium tabular-nums">{h.error_streak}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-muted text-xs">Empty runs</dt>
-                      <dd className="font-medium tabular-nums">{h.empty_streak}</dd>
-                    </div>
-                  </dl>
-                  <p className="text-sm break-words">
-                    <span className="font-medium">{h.reason}</span>
-                    {h.last_error && <span className="text-urgent block">{h.last_error}</span>}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-3">
-                    {src && (
-                      <button className="btn-secondary" onClick={() => runNow(src)}>
-                        {h.status === "red" ? "Retry source" : "Run scraper"}
-                      </button>
-                    )}
-                    {runs[h.id] && (
-                      <span role="status" className="text-muted text-sm">
-                        {runs[h.id]}
-                      </span>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
         )}
       </section>
     </main>

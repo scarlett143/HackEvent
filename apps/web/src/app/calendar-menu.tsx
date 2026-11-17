@@ -2,6 +2,7 @@
 
 import { buildIcs, googleCalendarUrl } from "@/lib/calendar";
 import type { EventItem } from "@/lib/events";
+import { Icon } from "./symbol";
 
 /** Browser download of an .ics file. Revoked right after the click. */
 export function downloadIcs(filename: string, events: EventItem[]) {
@@ -20,7 +21,7 @@ export function AddToCalendar({ ev }: { ev: EventItem }) {
   return (
     <details className="relative">
       <summary className="btn-secondary focus-ring inline-flex cursor-pointer list-none items-center gap-2">
-        Add to calendar <span aria-hidden>▾</span>
+        <Icon name="calendar_today" /> Add to calendar <Icon name="arrow_drop_down" />
       </summary>
       <div className="card absolute left-0 z-20 mt-2 flex w-60 flex-col gap-1 p-2 shadow-[0_8px_24px_rgba(20,23,17,0.06)]">
         <a
