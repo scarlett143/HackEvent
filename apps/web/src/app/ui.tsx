@@ -60,6 +60,7 @@ function screenName(path: string): string {
 }
 
 const TOAST_MS = 10_000;
+const LIVE_MS = 60_000; // how often the bell refreshes while the tab is visible
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -92,6 +93,30 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     await api("/api/v1/auth/logout", "POST");
     router.replace("/login");
   }
+
+  // Live bell: refresh every minute while visible, and as soon as the tab is shown again.
+  useEffect(() => {
+    const tick = () => {
+      if (document.visibilityState === "visible") refreshUnread();
+    };
+    const id = setInterval(tick, LIVE_MS);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, [refreshUnread]);
+
+  // Toast when the unread total goes UP (never on first load or when it drops).
+  const total = unread ? unread.new_events + unread.notifications : null;
+  const lastTotal = useRef<number | null>(null);
+  useEffect(() => {
+    if (total === null) return;
+    const prev = lastTotal.current;
+    lastTotal.current = total;
+    if (prev !== null && total > prev)
+      showToast({ message: `${total - prev} new ${total - prev === 1 ? "notification" : "notifications"}` });
+  }, [total, showToast]);
 
   if (!me) return <p className="text-muted p-8">Loading…</p>;
   const tz = me.timezone || DEFAULT_TZ;

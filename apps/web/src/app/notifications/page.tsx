@@ -5,9 +5,9 @@
 // Squad invites / system trust items have no data source yet and are not shown.
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
-import { type Alert, type AlertKind, buildAlerts, parseRead, READ_KEY, serializeRead, unreadCount } from "@/lib/alerts";
+import { type Alert, type AlertKind, buildAlerts, newActionAlerts, parseRead, READ_KEY, serializeRead, unreadCount } from "@/lib/alerts";
 import { safeHttpUrl } from "@/lib/events";
 import { loadEvents } from "@/lib/load-events";
 import { Icon } from "../symbol";
@@ -37,7 +37,8 @@ export default function NotificationsPage() {
 }
 
 function Notifications() {
-  const { tz, refreshUnread } = useShell();
+  const { tz, refreshUnread, toast } = useShell();
+  const known = useRef<Set<string> | null>(null); // ids from the previous refresh; null until the first load
   const [alerts, setAlerts] = useState<Alert[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [read, setRead] = useState<Set<string>>(new Set());
@@ -47,8 +48,22 @@ function Notifications() {
     // Mount-time loads: state is set after an await / from storage, once.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setRead(parseRead(localStorage.getItem(READ_KEY)));
-    loadEvents().then((ev) => (ev ? setAlerts(buildAlerts(ev, new Date(), tz)) : setFailed(true)));
-  }, [tz]);
+    let first = true;
+    const load = () =>
+      loadEvents().then((ev) => {
+        if (!ev) return first && setFailed(true);
+        const next = buildAlerts(ev, new Date(), tz);
+        const fresh = newActionAlerts(known.current, next);
+        known.current = new Set(next.map((a) => a.id));
+        first = false;
+        setAlerts(next);
+        if (fresh.length)
+          toast({ message: fresh.length === 1 ? `${fresh[0].title}: ${fresh[0].detail}` : `${fresh.length} deadlines need action` });
+      });
+    load();
+    const id = setInterval(() => document.visibilityState === "visible" && load(), 60_000);
+    return () => clearInterval(id);
+  }, [tz, toast]);
 
   const persist = useCallback((next: Set<string>) => {
     setRead(next);
