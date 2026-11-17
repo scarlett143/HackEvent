@@ -19,7 +19,7 @@ import {
 } from "@/lib/settings";
 import { loadEvents } from "@/lib/load-events";
 import { matchSettings, type SectionId, SUGGESTIONS } from "@/lib/settings-search";
-import { downloadIcs } from "../calendar-menu";
+import { downloadIcs, downloadXls } from "../calendar-menu";
 import { AppShell, Avatar, useShell } from "../ui";
 import { ThemeSwitch } from "../theme";
 
@@ -186,57 +186,31 @@ function ProfileCard({ me }: { me: Me }) {
   );
 }
 
-function download(name: string, text: string, type: string) {
-  const url = URL.createObjectURL(new Blob([text], { type }));
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = name;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-/** Stitch "Export My Tracked Data (.ics / .json)": everything you track or registered for. */
+/** Export my data: everything you track or registered for, as an Excel sheet (.xls) or a calendar file (.ics). */
 function ExportSection() {
-  const { toast } = useShell();
+  const { toast, tz } = useShell();
   const [busy, setBusy] = useState(false);
 
-  async function run(kind: "ics" | "json") {
+  async function run(kind: "xls" | "ics") {
     setBusy(true);
     const all = await loadEvents();
     setBusy(false);
-    const mine = (all ?? []).filter((e) => e.is_tracked || e.is_registered);
     if (!all) return toast({ message: "Could not load your events. Try again." });
+    const mine = all.filter((e) => e.is_tracked || e.is_registered);
     if (mine.length === 0) return toast({ message: "Nothing to export yet. Track or register for an event first." });
-    if (kind === "ics") return downloadIcs("hackevents.ics", mine);
-    download(
-      "hackevents-tracked.json",
-      JSON.stringify(
-        mine.map((e) => ({
-          id: e.id,
-          title: e.title,
-          registration_deadline: e.registration_deadline,
-          event_start: e.event_start,
-          event_end: e.event_end,
-          location: e.location,
-          registered: e.is_registered,
-          tracked: e.is_tracked,
-        })),
-        null,
-        2,
-      ),
-      "application/json",
-    );
+    if (kind === "ics") downloadIcs("hackevents.ics", mine);
+    else downloadXls("hackevents.xls", mine, tz);
   }
 
   return (
     <Section id="export" title="Export my data">
-      <p className="text-muted text-sm">Everything you track or registered for, as a calendar file or JSON.</p>
+      <p className="text-muted text-sm">Everything you track or registered for, as an Excel sheet or a calendar file.</p>
       <div className="flex flex-wrap gap-2">
+        <button className="btn-secondary" disabled={busy} onClick={() => run("xls")}>
+          Export .xls
+        </button>
         <button className="btn-secondary" disabled={busy} onClick={() => run("ics")}>
           Export .ics
-        </button>
-        <button className="btn-secondary" disabled={busy} onClick={() => run("json")}>
-          Export .json
         </button>
       </div>
     </Section>

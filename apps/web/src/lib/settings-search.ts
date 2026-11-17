@@ -20,11 +20,11 @@ const INDEX: [SectionId, string][] = [
   ["quiet", "quiet hours mute sleep night"],
   ["google", "google calendar sync connect"],
   ["appearance", "appearance dark mode light theme"],
-  ["export", "export my data ics json download tracked calendar"],
+  ["export", "export my data xls excel spreadsheet ics download tracked calendar"],
 ];
 
 /** Chips under the search box (Stitch "Quick Suggestions"). */
-export const SUGGESTIONS = ["Push alerts", "Timezone", "Quiet hours", "Export .ics"] as const;
+export const SUGGESTIONS = ["Push alerts", "Timezone", "Quiet hours", "Export .xls"] as const;
 
 /** Sections whose text contains every word typed (case-insensitive). Empty query = all sections. */
 export function matchSettings(query: string): Set<SectionId> {

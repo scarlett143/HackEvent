@@ -2,17 +2,25 @@
 
 import { buildIcs, googleCalendarUrl } from "@/lib/calendar";
 import type { EventItem } from "@/lib/events";
+import { buildXls } from "@/lib/xls";
 import { Icon } from "./symbol";
 
-/** Browser download of an .ics file. Revoked right after the click. */
-export function downloadIcs(filename: string, events: EventItem[]) {
-  const url = URL.createObjectURL(new Blob([buildIcs(events)], { type: "text/calendar;charset=utf-8" }));
+/** Browser download of any text file. The object URL is revoked right after the click. */
+export function downloadFile(filename: string, text: string, type: string) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
   const a = document.createElement("a");
   a.href = url;
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
 }
+
+export const downloadIcs = (filename: string, events: EventItem[]) =>
+  downloadFile(filename, buildIcs(events), "text/calendar;charset=utf-8");
+
+/** Excel workbook (.xls); times are written in the user's timezone `tz`. */
+export const downloadXls = (filename: string, events: EventItem[], tz: string) =>
+  downloadFile(filename, buildXls(events, tz), "application/vnd.ms-excel");
 
 /** "Add to cal ▾": Google Calendar link + .ics download (Apple/Outlook). Hidden when the event has no dates. */
 export function AddToCalendar({ ev }: { ev: EventItem }) {

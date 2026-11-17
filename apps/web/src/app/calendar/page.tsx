@@ -24,7 +24,7 @@ import {
 } from "@/lib/calendar-view";
 import { type EventItem, formatDeadline, urgency } from "@/lib/events";
 import { loadEvents } from "@/lib/load-events";
-import { downloadIcs } from "../calendar-menu";
+import { downloadIcs, downloadXls } from "../calendar-menu";
 import { Icon } from "../symbol";
 import { AppShell, useNow, useShell } from "../ui";
 
@@ -70,14 +70,24 @@ function Calendar() {
           <h1 className="font-display text-3xl font-bold">Calendar</h1>
           <p className="text-muted text-sm">Times in {tz}. Showing events you track or registered for.</p>
         </div>
-        <button
-          className="btn-secondary inline-flex items-center gap-2"
-          disabled={tracked.length === 0}
-          onClick={() => downloadIcs("hackevents.ics", tracked)}
-        >
-          <Icon name="file_download" />
-          Export .ics
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            className="btn-secondary inline-flex items-center gap-2"
+            disabled={tracked.length === 0}
+            onClick={() => downloadXls("hackevents.xls", tracked, tz)}
+          >
+            <Icon name="file_download" />
+            Export .xls
+          </button>
+          <button
+            className="btn-secondary inline-flex items-center gap-2"
+            disabled={tracked.length === 0}
+            onClick={() => downloadIcs("hackevents.ics", tracked)}
+          >
+            <Icon name="file_download" />
+            Export .ics
+          </button>
+        </div>
       </header>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -104,14 +114,16 @@ function Calendar() {
         </div>
       </div>
 
-      <ul className="text-muted flex flex-wrap gap-4 text-sm" aria-label="Legend">
+      <ul className="flex flex-wrap gap-x-6 gap-y-2 text-base font-medium" aria-label="Legend">
         <li className="flex items-center gap-2">
-          <span aria-hidden className="size-2.5 rounded-full bg-urgent" /> Deadline
+          <span aria-hidden className="size-4 rounded-full bg-urgent" /> Deadline
         </li>
         <li className="flex items-center gap-2">
-          <span aria-hidden className="size-2.5 rounded-full bg-primary" /> Event
+          <span aria-hidden className="size-4 rounded-full bg-primary" /> Event
         </li>
-        <li>✓ Registered</li>
+        <li className="flex items-center gap-2">
+          <Icon name="check_circle" fill size={22} className="text-ok-ink" /> Registered
+        </li>
       </ul>
 
       {failed && (
@@ -149,7 +161,7 @@ function EntryRow({ e, tz, now }: { e: Entry; tz: string; now: Date }) {
   const tone = u === "urgent" ? "text-urgent" : u === "warning" ? "text-warning-ink" : u === "ok" ? "text-ok-ink" : "text-muted";
   return (
     <li className="card flex gap-3 p-3">
-      <span aria-hidden className={`mt-1.5 size-2.5 shrink-0 rounded-full ${deadline ? "bg-urgent" : "bg-primary"}`} />
+      <span aria-hidden className={`mt-1 size-3.5 shrink-0 rounded-full ${deadline ? "bg-urgent" : "bg-primary"}`} />
       <div className="flex min-w-0 flex-col gap-0.5">
         <p className="text-muted text-sm tabular-nums">
           {deadline ? "Deadline" : "Event"} · {timeLabel(e.start, tz)}
@@ -192,17 +204,18 @@ function Month({
               aria-pressed={day === date}
               aria-label={`${dayLabel(day)}, ${on.length} ${on.length === 1 ? "item" : "items"}`}
               onClick={() => onPick(day)}
-              className={`focus-ring flex min-h-14 flex-col items-center gap-1 border-b border-line p-1 text-sm sm:min-h-20 ${
+              className={`focus-ring flex min-h-16 flex-col items-center gap-1 border-b border-line p-1 text-sm sm:min-h-24 ${
                 day === date ? "bg-primary-soft" : "hover:bg-surface"
               } ${inMonth ? "" : "text-muted opacity-50"}`}
             >
-              <span className={`flex size-7 items-center justify-center rounded-full tabular-nums ${day === today ? "bg-primary font-bold text-on-primary" : ""}`}>
+              <span className={`flex size-8 items-center justify-center rounded-full tabular-nums ${day === today ? "bg-ink font-bold text-bg" : ""}`}>
                 {Number(day.slice(8))}
               </span>
-              <span aria-hidden className="flex gap-0.5">
+              <span aria-hidden className="flex items-center gap-1">
                 {on.slice(0, 3).map((e) => (
-                  <span key={e.key} className={`size-1.5 rounded-full ${e.kind === "deadline" ? "bg-urgent" : "bg-primary"}`} />
+                  <span key={e.key} className={`size-3 rounded-full ${e.kind === "deadline" ? "bg-urgent" : "bg-primary"}`} />
                 ))}
+                {on.some((e) => e.registered) && <Icon name="check_circle" fill size={16} className="text-ok-ink" />}
               </span>
             </button>
           );
