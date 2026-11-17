@@ -7,8 +7,6 @@ export type SectionId =
   | "reminders"
   | "channels"
   | "quiet"
-  | "google"
-  | "appearance"
   | "export";
 
 const INDEX: [SectionId, string][] = [
@@ -18,8 +16,6 @@ const INDEX: [SectionId, string][] = [
   ["reminders", "reminders offsets before deadline notify days hours"],
   ["channels", "channels push notifications email digest in-app test alerts"],
   ["quiet", "quiet hours mute sleep night"],
-  ["google", "google calendar sync connect"],
-  ["appearance", "appearance dark mode light theme"],
   ["export", "export my data xls excel spreadsheet ics download tracked calendar"],
 ];
 

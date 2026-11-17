@@ -6,6 +6,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Icon } from "./symbol";
+import { ThemeSwitch } from "./theme";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { api, type Me } from "@/lib/api";
 import {
@@ -159,7 +160,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </span>
               )}
             </Link>
-            <details className="relative">
+            <details className="relative md:hidden">
               <summary
                 className="focus-ring flex size-11 cursor-pointer list-none items-center justify-center rounded-full bg-primary text-sm font-semibold text-on-primary"
                 aria-label={`Account menu for ${me.name}`}
@@ -170,12 +171,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <p className="font-medium">{me.name}</p>
                 <p className="text-muted text-sm break-all">{me.email}</p>
                 <p className="text-muted mb-2 text-sm">{me.role}</p>
-                {me.role === "admin" && (
-                  <Link className="link inline-flex min-h-11 items-center" href="/admin/users">
-                    Admin: users and invites
-                  </Link>
-                )}
-                <button className="btn-secondary" onClick={logout}>
+                <div className="my-2 border-t border-line pt-3">
+                  <ThemeSwitch compact />
+                </div>
+                <button className="btn-secondary inline-flex items-center justify-center gap-2" onClick={logout}>
+                  <Icon name="logout" />
                   Sign out
                 </button>
               </div>
@@ -183,9 +183,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
         <div className="flex flex-1 flex-col md:flex-row">
+          <aside className="md:sticky md:top-0 md:flex md:h-[calc(100dvh-3.8rem)] md:w-56 md:shrink-0 md:flex-col md:self-start md:border-r md:border-line">
           <nav
             aria-label="Main"
-            className="fixed inset-x-0 bottom-0 z-20 flex justify-around gap-1 border-t border-line bg-card px-2 py-1 md:static md:w-56 md:shrink-0 md:flex-col md:justify-start md:border-t-0 md:border-r md:bg-transparent md:p-3"
+            className="fixed inset-x-0 bottom-0 z-20 flex justify-around gap-1 border-t border-line bg-card px-2 py-1 md:static md:flex-col md:justify-start md:border-t-0 md:bg-transparent md:p-3"
           >
             {nav.map((n) => {
               if (n.soon)
@@ -225,6 +226,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               );
             })}
           </nav>
+          {/* Desktop only (phones use the avatar menu in the header): theme, who you are, sign out. */}
+          <div className="mt-auto hidden flex-col gap-3 border-t border-line p-3 md:flex">
+            <ThemeSwitch compact />
+            <div className="flex items-center gap-3">
+              <span
+                aria-hidden
+                className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-on-primary"
+              >
+                {initials || "?"}
+              </span>
+              <div className="min-w-0">
+                <p className="truncate font-medium">{me.name}</p>
+                <p className="text-muted truncate text-xs capitalize">{me.role}</p>
+              </div>
+            </div>
+            <button className="btn-secondary inline-flex items-center justify-center gap-2" onClick={logout}>
+              <Icon name="logout" />
+              Sign out
+            </button>
+          </div>
+          </aside>
           <div className="min-w-0 flex-1 pb-20 md:pb-0">{children}</div>
         </div>
         {/* Toasts: top-right on desktop, bottom on small screens (brief §5); always-mounted live region. */}

@@ -1,10 +1,9 @@
 "use client";
 
 // Settings (design brief §4.5, App Flow F8, HE-077): Profile · Timezone · Reminders · Channels ·
-// Quiet hours · Google · Appearance, plus password change. Each section saves on its own.
+// Quiet hours · Export, plus password change. Each section saves on its own.
 // ponytail: email + in-app channels only; Telegram / ntfy / push rows join with HE-074..076.
 
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api, type Me } from "@/lib/api";
 import {
@@ -21,7 +20,6 @@ import { loadEvents } from "@/lib/load-events";
 import { matchSettings, type SectionId, SUGGESTIONS } from "@/lib/settings-search";
 import { downloadIcs, downloadXls } from "../calendar-menu";
 import { AppShell, Avatar, useShell } from "../ui";
-import { ThemeSwitch } from "../theme";
 
 const MIN_PASSWORD = 12;
 
@@ -133,24 +131,7 @@ function Settings() {
         !loadError && (vis("reminders") || vis("channels")) && <div className="skeleton h-40" aria-hidden />
       )}
       {vis("quiet") && <QuietHoursSection me={me} saveMe={saveMe} />}
-      {vis("google") && (
-        <Section id="google" title="Google Calendar">
-          <p className="text-muted">
-            Two-way sync needs a Google OAuth connection, which is not set up yet. Until then, add events from an
-            event page or export your calendar below.
-          </p>
-          <button className="btn-secondary self-start" disabled aria-disabled="true">
-            Connect Google (not available yet)
-          </button>
-        </Section>
-      )}
-      {vis("appearance") && (
-        <Section id="appearance" title="Appearance">
-          <ThemeSwitch />
-        </Section>
-      )}
       {vis("export") && <ExportSection />}
-      <SignOut />
     </main>
   );
 }
@@ -214,21 +195,6 @@ function ExportSection() {
         </button>
       </div>
     </Section>
-  );
-}
-
-function SignOut() {
-  const router = useRouter();
-  return (
-    <button
-      className="btn-secondary self-start"
-      onClick={async () => {
-        await api("/api/v1/auth/logout", "POST");
-        router.replace("/login");
-      }}
-    >
-      Sign out
-    </button>
   );
 }
 
