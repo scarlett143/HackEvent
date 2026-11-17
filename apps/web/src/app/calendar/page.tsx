@@ -67,7 +67,7 @@ function Calendar() {
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-4 p-4 md:p-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-3xl font-bold">Calendar</h1>
+          <h1 className="font-display text-[1.75rem] leading-8 font-bold">Calendar</h1>
           <p className="text-muted text-sm">Times in {tz}. Showing events you track or registered for.</p>
         </div>
         <div className="flex flex-wrap gap-2">

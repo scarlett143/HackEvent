@@ -93,7 +93,7 @@ function Detail() {
           {ev.is_new && (
             <span className="w-fit rounded bg-new px-1.5 py-0.5 text-xs font-bold text-white">NEW</span>
           )}
-          <h1 className="font-display text-3xl font-bold">{ev.title}</h1>
+          <h1 className="font-display text-[1.75rem] leading-8 font-bold">{ev.title}</h1>
           <EventMeta ev={ev} />
         </div>
       </header>
@@ -220,7 +220,7 @@ const STRIP = {
 function Tile({ label, value, unit }: { label: string; value: string; unit: string }) {
   return (
     <div className="card flex flex-col items-center gap-0.5 p-3">
-      <dd className="font-display text-3xl font-bold tabular-nums">
+      <dd className="font-display text-2xl font-bold tabular-nums">
         {value}
         {unit && <span className="text-muted ml-1 text-base font-semibold">{unit}</span>}
       </dd>

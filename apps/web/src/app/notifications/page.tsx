@@ -91,7 +91,7 @@ function Notifications() {
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-4 md:p-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-3xl font-bold">Notifications</h1>
+          <h1 className="font-display text-[1.75rem] leading-8 font-bold">Notifications</h1>
           <p className="text-muted text-sm" aria-live="polite">
             {alerts ? `${unread} unread of ${alerts.length}` : "Loading…"}
           </p>

@@ -380,7 +380,7 @@ function EventCard({
               <span className="rounded bg-new px-1.5 py-0.5 text-xs font-bold tracking-wide text-white">NEW</span>
             )}
           </div>
-          <h3 className="font-display text-xl font-semibold">
+          <h3 className="font-display text-lg font-semibold">
             <Link href={`/events/${encodeURIComponent(ev.id)}`} className="focus-ring rounded hover:underline">
               {ev.title}
             </Link>
