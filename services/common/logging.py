@@ -55,6 +55,8 @@ _PLAIN_KV = re.compile(
 )
 # Invite links carry the bearer token in the path: /invite/<t> (web), /api/v1/invites/<t>.
 _INVITE_PATH = re.compile(r"(?P<pre>/invites?/)" + _NOT_REDACTED + r"[A-Za-z0-9_-]{20,}")
+# The private calendar feed carries its bearer token in the path: /api/v1/calendar/<t>.ics (HE-062).
+_CALENDAR_PATH = re.compile(r"(?P<pre>/calendar/)" + _NOT_REDACTED + r"[A-Za-z0-9_-]{20,}")
 _SHAPES = re.compile(
     r"AIza[0-9A-Za-z_-]{35}"  # Google API key
     r"|\bAQ\.[0-9A-Za-z_-]{30,}"  # Gemini API key, newer "AQ." format
@@ -82,6 +84,7 @@ _RULES: tuple[tuple[re.Pattern[str], Callable[[re.Match[str]], str]], ...] = (
     (_QUOTED_KV, _keep_prefix),
     (_PLAIN_KV, _keep_prefix),
     (_INVITE_PATH, lambda m: m.group("pre") + REDACTED),
+    (_CALENDAR_PATH, lambda m: m.group("pre") + REDACTED),
     (_SHAPES, lambda m: REDACTED),
 )
 

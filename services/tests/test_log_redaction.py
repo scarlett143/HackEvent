@@ -50,6 +50,12 @@ CASES = [
         f"open https://example.org/invite/{REDACTED}",
     ),
     (
+        "calendar-feed-path",
+        f'"GET /api/v1/calendar/{FAKE}.ics HTTP/1.1" 200',
+        FAKE,
+        f'"GET /api/v1/calendar/{REDACTED}.ics HTTP/1.1" 200',
+    ),
+    (
         "authorization-header",
         f"headers Authorization: Bearer {FAKE}",
         FAKE,
