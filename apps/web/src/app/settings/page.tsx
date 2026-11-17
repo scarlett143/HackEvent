@@ -4,6 +4,7 @@
 // Quiet hours · Google · Appearance, plus password change. Each section saves on its own.
 // ponytail: email + in-app channels only; Telegram / ntfy / push rows join with HE-074..076.
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api, type Me } from "@/lib/api";
 import {
@@ -16,7 +17,10 @@ import {
   timezoneOptions,
   toggleOffset,
 } from "@/lib/settings";
-import { AppShell, useShell } from "../ui";
+import { loadEvents } from "@/lib/load-events";
+import { matchSettings, type SectionId, SUGGESTIONS } from "@/lib/settings-search";
+import { downloadIcs } from "../calendar-menu";
+import { AppShell, OrgAvatar, useShell } from "../ui";
 import { ThemeSwitch } from "../theme";
 
 const MIN_PASSWORD = 12;
@@ -31,8 +35,8 @@ export default function SettingsPage() {
 
 function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
-    <section aria-labelledby={id} className="flex flex-col gap-3 border-b border-line pb-6">
-      <h2 id={id} className="text-lg font-semibold">
+    <section aria-labelledby={id} className="card flex flex-col gap-3 p-4">
+      <h2 id={id} className="font-display text-xl font-semibold">
         {title}
       </h2>
       {children}
@@ -72,12 +76,49 @@ function Settings() {
     return true;
   }
 
+  const [q, setQ] = useState("");
+  const shownIds = matchSettings(q);
+  const vis = (id: SectionId) => shownIds.has(id);
+
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-4 md:p-6">
-      <h1 className="text-2xl font-semibold">Settings</h1>
-      <ProfileSection me={me} saveMe={saveMe} />
-      <PasswordSection />
-      <TimezoneSection me={me} saveMe={saveMe} />
+      <h1 className="font-display text-3xl font-bold">Settings</h1>
+      <ProfileCard me={me} />
+      <div className="flex flex-col gap-2">
+        <label className="sr-only" htmlFor="settings-q">
+          Search settings
+        </label>
+        <input
+          id="settings-q"
+          type="search"
+          placeholder="Search settings"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          className="field"
+        />
+        <div role="group" aria-label="Quick suggestions" className="flex flex-wrap items-center gap-2">
+          <span className="text-muted text-sm">Try:</span>
+          {SUGGESTIONS.map((sug) => (
+            <button key={sug} type="button" className="chip focus-ring min-h-11 px-3 text-sm" aria-pressed={q === sug} onClick={() => setQ(q === sug ? "" : sug)}>
+              {sug}
+            </button>
+          ))}
+        </div>
+        <p className="text-muted text-sm" aria-live="polite">
+          {q.trim() ? `${shownIds.size} matching ${shownIds.size === 1 ? "setting" : "settings"}` : ""}
+        </p>
+        {shownIds.size === 0 && (
+          <p className="card p-4">
+            No settings match &ldquo;{q}&rdquo;.{" "}
+            <button className="link" onClick={() => setQ("")}>
+              Clear search
+            </button>
+          </p>
+        )}
+      </div>
+      {vis("profile") && <ProfileSection me={me} saveMe={saveMe} />}
+      {vis("password") && <PasswordSection />}
+      {vis("timezone") && <TimezoneSection me={me} saveMe={saveMe} />}
       {loadError && (
         <p role="alert" className="text-urgent">
           Could not load your reminder settings. Reload to try again.
@@ -85,23 +126,136 @@ function Settings() {
       )}
       {prefs ? (
         <>
-          <RemindersSection prefs={prefs} savePrefs={savePrefs} />
-          <ChannelsSection me={me} prefs={prefs} savePrefs={savePrefs} onInApp={refreshUnread} />
+          {vis("reminders") && <RemindersSection prefs={prefs} savePrefs={savePrefs} />}
+          {vis("channels") && <ChannelsSection me={me} prefs={prefs} savePrefs={savePrefs} onInApp={refreshUnread} />}
         </>
       ) : (
-        !loadError && <div className="skeleton h-40" aria-hidden />
+        !loadError && (vis("reminders") || vis("channels")) && <div className="skeleton h-40" aria-hidden />
       )}
-      <QuietHoursSection me={me} saveMe={saveMe} />
-      <Section id="google" title="Google">
-        <p className="text-muted">Google Calendar: connect (coming soon).</p>
-        <button className="btn-secondary self-start" disabled aria-disabled="true">
-          Connect Google (coming soon)
-        </button>
-      </Section>
-      <Section id="appearance" title="Appearance">
-        <ThemeSwitch />
-      </Section>
+      {vis("quiet") && <QuietHoursSection me={me} saveMe={saveMe} />}
+      {vis("google") && (
+        <Section id="google" title="Google Calendar">
+          <p className="text-muted">
+            Two-way sync needs a Google OAuth connection, which is not set up yet. Until then, add events from an
+            event page or export your calendar below.
+          </p>
+          <button className="btn-secondary self-start" disabled aria-disabled="true">
+            Connect Google (not available yet)
+          </button>
+        </Section>
+      )}
+      {vis("appearance") && (
+        <Section id="appearance" title="Appearance">
+          <ThemeSwitch />
+        </Section>
+      )}
+      {vis("export") && <ExportSection />}
+      <SignOut />
     </main>
+  );
+}
+
+/** Stitch profile header: who you are + live Tracked / Registered counts from the events API. */
+function ProfileCard({ me }: { me: Me }) {
+  const [stats, setStats] = useState<{ tracked: number; registered: number } | null>(null);
+  useEffect(() => {
+    loadEvents().then(
+      (ev) => ev && setStats({ tracked: ev.filter((e) => e.is_tracked).length, registered: ev.filter((e) => e.is_registered).length }),
+    );
+  }, []);
+  return (
+    <section aria-label="Your profile" className="card flex items-center gap-4 p-4">
+      <OrgAvatar name={me.name} />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <p className="font-display text-xl font-semibold break-words">{me.name}</p>
+        <p className="text-muted text-sm break-all">
+          {me.email} · {me.role}
+        </p>
+      </div>
+      <dl className="flex gap-4 text-center">
+        <div>
+          <dt className="text-muted text-xs">Tracked</dt>
+          <dd className="font-display text-2xl font-bold tabular-nums">{stats?.tracked ?? "—"}</dd>
+        </div>
+        <div>
+          <dt className="text-muted text-xs">Registered</dt>
+          <dd className="font-display text-2xl font-bold tabular-nums">{stats?.registered ?? "—"}</dd>
+        </div>
+      </dl>
+    </section>
+  );
+}
+
+function download(name: string, text: string, type: string) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/** Stitch "Export My Tracked Data (.ics / .json)": everything you track or registered for. */
+function ExportSection() {
+  const { toast } = useShell();
+  const [busy, setBusy] = useState(false);
+
+  async function run(kind: "ics" | "json") {
+    setBusy(true);
+    const all = await loadEvents();
+    setBusy(false);
+    const mine = (all ?? []).filter((e) => e.is_tracked || e.is_registered);
+    if (!all) return toast({ message: "Could not load your events. Try again." });
+    if (mine.length === 0) return toast({ message: "Nothing to export yet. Track or register for an event first." });
+    if (kind === "ics") return downloadIcs("hackevents.ics", mine);
+    download(
+      "hackevents-tracked.json",
+      JSON.stringify(
+        mine.map((e) => ({
+          id: e.id,
+          title: e.title,
+          organiser: e.organiser.name,
+          registration_deadline: e.registration_deadline,
+          event_start: e.event_start,
+          event_end: e.event_end,
+          location: e.location,
+          registered: e.is_registered,
+          tracked: e.is_tracked,
+        })),
+        null,
+        2,
+      ),
+      "application/json",
+    );
+  }
+
+  return (
+    <Section id="export" title="Export my data">
+      <p className="text-muted text-sm">Everything you track or registered for, as a calendar file or JSON.</p>
+      <div className="flex flex-wrap gap-2">
+        <button className="btn-secondary" disabled={busy} onClick={() => run("ics")}>
+          Export .ics
+        </button>
+        <button className="btn-secondary" disabled={busy} onClick={() => run("json")}>
+          Export .json
+        </button>
+      </div>
+    </Section>
+  );
+}
+
+function SignOut() {
+  const router = useRouter();
+  return (
+    <button
+      className="btn-secondary self-start"
+      onClick={async () => {
+        await api("/api/v1/auth/logout", "POST");
+        router.replace("/login");
+      }}
+    >
+      Sign out
+    </button>
   );
 }
 
