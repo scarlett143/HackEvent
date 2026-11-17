@@ -20,7 +20,7 @@ import {
 import { loadEvents } from "@/lib/load-events";
 import { matchSettings, type SectionId, SUGGESTIONS } from "@/lib/settings-search";
 import { downloadIcs } from "../calendar-menu";
-import { AppShell, OrgAvatar, useShell } from "../ui";
+import { AppShell, Avatar, useShell } from "../ui";
 import { ThemeSwitch } from "../theme";
 
 const MIN_PASSWORD = 12;
@@ -165,7 +165,7 @@ function ProfileCard({ me }: { me: Me }) {
   }, []);
   return (
     <section aria-label="Your profile" className="card flex items-center gap-4 p-4">
-      <OrgAvatar name={me.name} />
+      <Avatar name={me.name} />
       <div className="flex min-w-0 flex-1 flex-col">
         <p className="font-display text-xl font-semibold break-words">{me.name}</p>
         <p className="text-muted text-sm break-all">
@@ -214,7 +214,6 @@ function ExportSection() {
         mine.map((e) => ({
           id: e.id,
           title: e.title,
-          organiser: e.organiser.name,
           registration_deadline: e.registration_deadline,
           event_start: e.event_start,
           event_end: e.event_end,

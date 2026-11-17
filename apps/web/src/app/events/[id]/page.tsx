@@ -10,7 +10,7 @@ import { api } from "@/lib/api";
 import { daysBetween, type EventDetail, type EventItem, formatDeadline, formatStart, formatWhen, tMinus, urgency } from "@/lib/events";
 import { AddToCalendar } from "../../calendar-menu";
 import { Icon } from "../../symbol";
-import { AppShell, Chips, EventActions, EventMeta, OrgAvatar, SourceBlock, useNow, useShell } from "../../ui";
+import { AppShell, Chips, Avatar, EventActions, EventMeta, SourceBlock, useNow, useShell } from "../../ui";
 
 type State = { kind: "loading" } | { kind: "missing" } | { kind: "error"; message: string } | { kind: "ready"; ev: EventDetail };
 
@@ -67,7 +67,6 @@ function Detail() {
     );
 
   const ev = state.ev;
-  const o = ev.organiser;
   const u = urgency(ev.registration_deadline, now, tz);
   const daysLeft = ev.registration_deadline && u !== "closed" ? daysBetween(now, new Date(ev.registration_deadline), tz) : null;
   const toStart = ev.event_start && new Date(ev.event_start) > now ? daysBetween(now, new Date(ev.event_start), tz) : null;
@@ -88,14 +87,11 @@ function Detail() {
         </p>
       )}
       <header className="card flex items-start gap-4 p-4">
-        <OrgAvatar name={o.name} />
+        <Avatar name={ev.title} />
         <div className="flex min-w-0 flex-col gap-2">
-          <ul className="flex flex-wrap gap-1.5" aria-label="Organiser">
-            {ev.is_new && <li className="rounded bg-new px-1.5 py-0.5 text-xs font-bold text-white">NEW</li>}
-            {o.tier && <li className="chip">Tier {o.tier}</li>}
-            {o.kind && <li className="chip">{o.kind === "company" ? "Company" : "Institution"}</li>}
-            {o.region && <li className="chip">{o.region === "india" ? "India" : "Global"}</li>}
-          </ul>
+          {ev.is_new && (
+            <span className="w-fit rounded bg-new px-1.5 py-0.5 text-xs font-bold text-white">NEW</span>
+          )}
           <h1 className="font-display text-3xl font-bold">{ev.title}</h1>
           <EventMeta ev={ev} />
         </div>

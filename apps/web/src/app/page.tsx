@@ -19,17 +19,18 @@ import {
   sectionize,
 } from "@/lib/events";
 import { Icon } from "./symbol";
-import { AppShell, Chips, Countdown, EventActions, EventMeta, OrgAvatar, TrackStar, useNow, useShell } from "./ui";
+import { AppShell, Chips, Countdown, EventActions, Avatar, EventMeta, TrackStar, useNow, useShell } from "./ui";
 
 const SEEN_AFTER_MS = 3_000;
 const LATER_SHOWN = 5;
 // Stitch quick-filter chips: label, filter key, value.
 const QUICK = [
-  ["Tier 1", "tier", "1", "workspace_premium"],
   ["Online", "mode", "online", "wifi"],
-  ["India", "region", "india", "location_on"],
-  ["Global", "region", "global", "public"],
+  ["Closing soon", "status", "closing", "alarm"],
+  ["Registered", "registered", true, "check_circle"],
 ] as const;
+// Organisation-based filters are not offered; ignore them if an old link still carries them.
+const HIDDEN_FILTERS = ["kind", "tier", "region"] as const;
 
 const LABELS: { [K in keyof typeof FILTER_OPTIONS]: [string, Record<string, string>] } = {
   kind: ["Type", { company: "Company", institution: "Institution" }],
@@ -55,6 +56,7 @@ function Feed() {
   const router = useRouter();
   const sp = useSearchParams();
   const filters = parseFilters(new URLSearchParams(sp.toString()));
+  for (const k of HIDDEN_FILTERS) delete filters[k];
   const key = filtersToSearch(filters);
 
   const apply = (next: Filters) => {
@@ -146,7 +148,7 @@ function FilterBar({ filters, apply }: { filters: Filters; apply: (f: Filters) =
           Filters{active > 0 && ` (${active})`}
         </summary>
         <div className="flex flex-wrap items-end gap-3 border-t border-line p-3">
-          {(["kind", "tier", "mode", "status", "within"] as const).map((k) => (
+          {(["mode", "status", "within"] as const).map((k) => (
             <label key={k} className="flex flex-col gap-1 text-sm font-medium">
               {LABELS[k][0]}
               <select
@@ -371,17 +373,11 @@ function EventCard({
       onFocus={() => onSelect(ev.id)}
     >
       <div className="flex items-start gap-3">
-        <OrgAvatar name={ev.organiser.name} />
+        <Avatar name={ev.title} />
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <div className="flex flex-wrap items-center gap-1.5">
             {ev.is_new && (
               <span className="rounded bg-new px-1.5 py-0.5 text-xs font-bold tracking-wide text-white">NEW</span>
-            )}
-            {ev.organiser.tier && (
-              <span className="chip gap-1">
-                <Icon name="workspace_premium" size={16} />
-                Tier {ev.organiser.tier}
-              </span>
             )}
           </div>
           <h3 className="font-display text-xl font-semibold">
@@ -416,7 +412,7 @@ function CompactRow({
 }) {
   return (
     <article className="card flex items-center gap-3 p-3">
-      <OrgAvatar name={ev.organiser.name} />
+      <Avatar name={ev.title} />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <h3 className="font-display text-lg font-semibold">
           <Link href={`/events/${encodeURIComponent(ev.id)}`} className="focus-ring rounded hover:underline">

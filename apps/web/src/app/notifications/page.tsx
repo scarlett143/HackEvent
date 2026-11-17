@@ -11,7 +11,7 @@ import { type Alert, type AlertKind, buildAlerts, parseRead, READ_KEY, serialize
 import { safeHttpUrl } from "@/lib/events";
 import { loadEvents } from "@/lib/load-events";
 import { Icon } from "../symbol";
-import { AppShell, EventMeta, OrgAvatar, useShell } from "../ui";
+import { AppShell, Avatar, EventMeta, useShell } from "../ui";
 
 type Tab = "all" | AlertKind;
 const TABS: [Tab, string][] = [
@@ -143,7 +143,7 @@ function AlertCard({ a, isRead, onRead }: { a: Alert; isRead: boolean; onRead: (
   const url = safeHttpUrl(a.event.registration_url);
   return (
     <li className={`card flex gap-3 p-4 ${isRead ? "opacity-60" : ""}`}>
-      <OrgAvatar name={a.event.organiser.name} />
+      <Avatar name={a.title} />
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
           {lvl.label ? (
@@ -175,7 +175,7 @@ function AlertCard({ a, isRead, onRead }: { a: Alert; isRead: boolean; onRead: (
           {url && a.kind === "deadline" && (
             <a className="btn-primary inline-flex items-center" href={url} target="_blank" rel="noopener noreferrer" onClick={onRead}>
               Register <Icon name="arrow_outward" className="ml-1" />
-              <span className="sr-only"> (opens organiser site in a new tab)</span>
+              <span className="sr-only"> (opens the registration page in a new tab)</span>
             </a>
           )}
           <Link className="btn-secondary inline-flex items-center" href={`/events/${encodeURIComponent(a.event.id)}`} onClick={onRead}>
