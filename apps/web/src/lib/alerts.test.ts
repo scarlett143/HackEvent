@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildAlerts, parseRead, serializeRead, unreadCount } from "./alerts";
+import { buildAlerts, newActionAlerts, parseRead, serializeRead, unreadCount } from "./alerts";
 import type { EventItem } from "./events";
 
 const TZ = "Asia/Kolkata";
@@ -75,4 +75,22 @@ describe("read state", () => {
     const a = buildAlerts([ev("n1", { is_new: true }), ev("n2", { is_new: true })], NOW, TZ);
     expect(unreadCount(a, new Set(["new:n1"]))).toBe(1);
   });
+});
+
+describe("newActionAlerts", () => {
+  const now = buildAlerts(
+    [
+      ev("a", { is_tracked: true, registration_deadline: day(0.5) }), // urgent
+      ev("b", { is_tracked: true, registration_deadline: day(2) }), // warning
+      ev("c", { is_new: true }), // info: never toasts
+    ],
+    NOW,
+    TZ,
+  );
+  it("never toasts on the first load", () => expect(newActionAlerts(null, now)).toEqual([]));
+  it("toasts only action alerts that were not there before", () => {
+    const before = new Set([now[0].id]);
+    expect(newActionAlerts(before, now).map((a) => a.event.id)).toEqual(["b"]);
+  });
+  it("nothing new means no toast", () => expect(newActionAlerts(new Set(now.map((a) => a.id)), now)).toEqual([]));
 });

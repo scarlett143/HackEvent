@@ -48,6 +48,12 @@ export function buildAlerts(events: EventItem[], now: Date, tz: string): Alert[]
   return out.map((a, i) => ({ a, i })).sort((x, y) => RANK[x.a.level] - RANK[y.a.level] || x.i - y.i).map((x) => x.a);
 }
 
+/** Alerts that need action (urgent/warning) and were not in the previous refresh: worth a toast.
+ * `before` is null on the first load, so opening the page never toasts what was already there. */
+export function newActionAlerts(before: Set<string> | null, now: Alert[]): Alert[] {
+  return before === null ? [] : now.filter((a) => a.level !== "info" && !before.has(a.id));
+}
+
 /** Parse the stored read-set; anything malformed counts as "nothing read". */
 export function parseRead(raw: string | null): Set<string> {
   try {
