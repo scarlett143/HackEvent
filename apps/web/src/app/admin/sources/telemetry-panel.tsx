@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { pctUsed, quotaLevel, type ProviderStats, type Telemetry, untilReset, usd } from "@/lib/telemetry";
+import { Icon } from "../../symbol";
 import { useNow } from "../../ui";
 
 const REFRESH_MS = 60_000;
@@ -59,10 +60,30 @@ export function TelemetryPanel({ scrapers }: { scrapers: ScraperCounts | null })
       )}
       {data && (
         <>
-          <ul className="grid gap-3 lg:grid-cols-2">
+          <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {data.providers.map((p) => (
               <Provider key={p.id} p={p} />
             ))}
+            {scrapers && (
+              <li className="surface flex flex-col gap-2 rounded-lg p-3">
+                <p className="text-muted flex items-center justify-between text-xs font-semibold tracking-wide uppercase">
+                  Scraper sources <Icon name="sensors" size={20} />
+                </p>
+                <p className="font-display text-3xl font-bold tabular-nums">{scrapers.healthy + scrapers.degraded + scrapers.error}</p>
+                <ul className="flex flex-col gap-1 text-sm tabular-nums">
+                  <li className="flex items-center gap-2"><span aria-hidden className="size-2 rounded-full bg-ok" />{scrapers.healthy} healthy</li>
+                  <li className="flex items-center gap-2"><span aria-hidden className="size-2 rounded-full bg-warning" />{scrapers.degraded} degraded</li>
+                  <li className="flex items-center gap-2"><span aria-hidden className="size-2 rounded-full bg-urgent" />{scrapers.error} failing</li>
+                </ul>
+              </li>
+            )}
+            <li className="surface flex flex-col gap-2 rounded-lg p-3">
+              <p className="text-muted flex items-center justify-between text-xs font-semibold tracking-wide uppercase">
+                Database index <Icon name="database" size={20} />
+              </p>
+              <p className="font-display text-3xl font-bold tabular-nums">{data.total_events.toLocaleString("en-IN")}</p>
+              <p className="text-muted text-sm">events stored</p>
+            </li>
           </ul>
           {data.providers.length > 0 && (
             <p className="text-muted text-sm">
@@ -73,19 +94,6 @@ export function TelemetryPanel({ scrapers }: { scrapers: ScraperCounts | null })
         </>
       )}
 
-      <div className="surface flex flex-wrap items-center justify-between gap-3 rounded-lg p-3 text-sm">
-        <p>
-          <span className="font-display text-lg font-bold tabular-nums">
-            {data ? data.total_events.toLocaleString("en-IN") : "—"}
-          </span>{" "}
-          total events in the database
-        </p>
-        {scrapers && (
-          <p className="text-muted tabular-nums">
-            Scrapers: {scrapers.healthy} healthy · {scrapers.degraded} degraded · {scrapers.error} error
-          </p>
-        )}
-      </div>
     </section>
   );
 }

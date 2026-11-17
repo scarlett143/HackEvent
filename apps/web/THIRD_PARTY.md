@@ -2,7 +2,7 @@
 
 ## Material Symbols Outlined
 
-- File: `src/app/fonts/material-symbols.woff2` — a 101-glyph subset (only the icons the Stitch designs use), fetched from Google Fonts.
+- File: `src/app/fonts/material-symbols.woff2` — a small subset (only the icons the app and the Stitch designs use; regenerate when adding an icon), fetched from Google Fonts.
 - Source: https://fonts.google.com/icons — Copyright Google LLC.
 - License: Apache License 2.0 — https://www.apache.org/licenses/LICENSE-2.0
 

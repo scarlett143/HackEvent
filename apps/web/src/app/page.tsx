@@ -8,6 +8,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import {
+  daysBetween,
+  type EventDetail,
   type EventItem,
   eventsQuery,
   FILTER_OPTIONS,
@@ -17,9 +19,12 @@ import {
   type Page,
   parseFilters,
   sectionize,
+  tMinus,
+  urgency,
 } from "@/lib/events";
+import { AddToCalendar } from "./calendar-menu";
 import { Icon } from "./symbol";
-import { AppShell, Chips, Countdown, EventActions, Avatar, EventMeta, TrackStar, useNow, useShell } from "./ui";
+import { AppShell, Avatar, Chips, Countdown, EventActions, EventMeta, SourceBlock, TrackStar, useNow, useShell } from "./ui";
 
 const SEEN_AFTER_MS = 3_000;
 const LATER_SHOWN = 5;
@@ -87,11 +92,11 @@ function FilterBar({ filters, apply }: { filters: Filters; apply: (f: Filters) =
   };
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="card flex flex-col gap-3 p-3">
+      <div className="flex flex-wrap items-center gap-2 md:hidden">
         <form
           role="search"
-          className="flex min-w-60 flex-1 gap-2"
+          className="flex min-w-60 flex-1 gap-2 md:hidden"
           onSubmit={(e) => {
             e.preventDefault();
             set({ q: String(new FormData(e.currentTarget).get("q") ?? "").trim() || undefined });
@@ -289,7 +294,7 @@ function Results({ query }: { query: string }) {
   const section = (title: string, list: EventItem[], aside?: React.ReactNode, compact = false) =>
     list.length > 0 && (
       <section aria-label={title} className="flex flex-col gap-3">
-        <h2 className="font-display flex items-center gap-3 text-xl font-semibold">
+        <h2 className="font-display flex items-center gap-3 text-xl font-semibold tracking-wide uppercase">
           {title}
           <span aria-hidden className="h-px flex-1 bg-line" />
           {aside}
@@ -306,7 +311,7 @@ function Results({ query }: { query: string }) {
   const laterShown = showAllLater ? later : later.slice(0, LATER_SHOWN);
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_28rem]">
       <div className="flex min-w-0 flex-col gap-6">
         {section(
           `New since last visit (${fresh.length})`,
@@ -345,11 +350,34 @@ function Results({ query }: { query: string }) {
         )}
       </div>
       <aside aria-label="Event preview" className="hidden xl:block">
-        <div className="sticky top-4">
-          <EventPreview ev={preview} now={now} tz={tz} />
+        <div className="sticky top-20">
+          <EventPreview ev={preview} now={now} tz={tz} onPatch={patch} />
         </div>
       </aside>
     </div>
+  );
+}
+
+const MODE_LABEL = { online: "Online", offline: "In person", hybrid: "Hybrid", unknown: "Mode not listed" } as const;
+
+const PILL = {
+  urgent: "border-urgent/30 bg-urgent/10 text-urgent",
+  warning: "border-warning/30 bg-warning/10 text-warning-ink",
+  ok: "border-line bg-surface text-ink",
+  closed: "border-line bg-surface text-muted",
+  none: "border-line bg-surface text-muted",
+} as const;
+
+/** Stitch countdown pill: "2d 04h left", tinted by urgency (the text always says it). */
+function CountdownPill({ deadline, now, tz }: { deadline: string | null; now: Date; tz: string }) {
+  const u = urgency(deadline, now, tz);
+  const left = tMinus(deadline, now);
+  const text = u === "closed" ? "Closed" : left ? `${left.replace("T-", "")} left` : "No deadline";
+  return (
+    <span className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-2.5 text-sm font-semibold tabular-nums ${PILL[u]}`}>
+      <Icon name={u === "urgent" ? "timer" : "schedule"} size={18} />
+      {text}
+    </span>
   );
 }
 
@@ -367,33 +395,38 @@ function EventCard({
   onSelect: (id: string) => void;
 }) {
   return (
-    <article
-      className="card flex flex-col gap-3 p-4"
-      onClick={() => onSelect(ev.id)}
-      onFocus={() => onSelect(ev.id)}
-    >
-      <div className="flex items-start gap-3">
-        <Avatar name={ev.title} />
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <div className="flex flex-wrap items-center gap-1.5">
-            {ev.is_new && (
-              <span className="rounded bg-new px-1.5 py-0.5 text-xs font-bold tracking-wide text-white">NEW</span>
-            )}
+    <article className="card flex flex-col overflow-hidden" onClick={() => onSelect(ev.id)} onFocus={() => onSelect(ev.id)}>
+      <div className="flex flex-col gap-3 p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-start gap-3">
+            <span className="md:hidden">
+              <Avatar name={ev.title} />
+            </span>
+            <ul className="flex flex-wrap gap-1.5" aria-label="Tags">
+              {ev.is_new && <li className="rounded bg-new px-1.5 py-0.5 text-xs font-bold tracking-wide text-white">NEW</li>}
+              <li className="chip">{MODE_LABEL[ev.mode]}</li>
+              {ev.location && <li className="chip">{ev.location}</li>}
+            </ul>
           </div>
-          <h3 className="font-display text-lg font-semibold">
-            <Link href={`/events/${encodeURIComponent(ev.id)}`} className="focus-ring rounded hover:underline">
-              {ev.title}
-            </Link>
-          </h3>
-          <EventMeta ev={ev} />
+          <div className="flex shrink-0 items-center gap-1">
+            <CountdownPill deadline={ev.registration_deadline} now={now} tz={tz} />
+            <TrackStar ev={ev} onPatch={onPatch} ghost />
+          </div>
         </div>
-        <TrackStar ev={ev} onPatch={onPatch} ghost />
+        <h3 className="font-display text-xl font-semibold">
+          <Link href={`/events/${encodeURIComponent(ev.id)}`} className="focus-ring rounded hover:underline">
+            {ev.title}
+          </Link>
+        </h3>
+        <Chips ev={ev} />
       </div>
-      <div className="surface rounded-lg px-3 py-2">
-        <Countdown deadline={ev.registration_deadline} now={now} tz={tz} />
+      <div className="surface flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-3">
+        <p className={`flex items-center gap-1.5 text-sm font-medium ${urgency(ev.registration_deadline, now, tz) === "urgent" ? "text-urgent" : ""}`}>
+          <Icon name="event_busy" size={18} />
+          {ev.registration_deadline ? `Closes ${formatWhen(ev.registration_deadline, tz)}` : "No deadline listed"}
+        </p>
+        <EventActions ev={ev} onPatch={onPatch} />
       </div>
-      <Chips ev={ev} />
-      <EventActions ev={ev} onPatch={onPatch} />
     </article>
   );
 }
@@ -426,25 +459,73 @@ function CompactRow({
   );
 }
 
-function EventPreview({ ev, now, tz }: { ev: EventItem; now: Date; tz: string }) {
+/** Stitch desktop preview pane: deadline and sprint cards, the main actions, prize and source audit.
+ * Prize and sources come from GET /events/:id for the selected event. */
+function EventPreview({
+  ev,
+  now,
+  tz,
+  onPatch,
+}: {
+  ev: EventItem;
+  now: Date;
+  tz: string;
+  onPatch: (id: string, p: Partial<EventItem>) => void;
+}) {
+  const [detail, setDetail] = useState<EventDetail | null>(null);
+  useEffect(() => {
+    let alive = true;
+    api<EventDetail>(`/api/v1/events/${encodeURIComponent(ev.id)}`).then((r) => alive && setDetail(r.ok ? r.data : null));
+    return () => {
+      alive = false;
+    };
+  }, [ev.id]);
+  const d = detail?.id === ev.id ? detail : null;
+  const u = urgency(ev.registration_deadline, now, tz);
+  const left = tMinus(ev.registration_deadline, now);
+  const sprint =
+    ev.event_start && ev.event_end ? daysBetween(new Date(ev.event_start), new Date(ev.event_end), tz) + 1 : null;
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-line p-4">
-      <h2 className="text-lg font-semibold">{ev.title}</h2>
-      <EventMeta ev={ev} />
-      <Countdown deadline={ev.registration_deadline} now={now} tz={tz} />
-      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
-        <dt className="text-muted">Event</dt>
-        <dd>{ev.event_start ? formatWhen(ev.event_start, tz) : "Dates not listed"}</dd>
-        {ev.location && (
-          <>
-            <dt className="text-muted">Where</dt>
-            <dd>{ev.location}</dd>
-          </>
-        )}
-      </dl>
-      <Chips ev={ev} />
-      <Link className="link" href={`/events/${encodeURIComponent(ev.id)}`}>
-        Open details and source
+    <div className="card flex flex-col gap-4 p-4">
+      <div className="flex flex-col gap-1">
+        {ev.is_new && <span className="w-fit rounded bg-new px-1.5 py-0.5 text-xs font-bold text-white">NEW</span>}
+        <h2 className="font-display text-2xl font-bold">{ev.title}</h2>
+        <EventMeta ev={ev} />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="surface flex flex-col gap-1 rounded-lg p-3">
+          <p className="text-muted flex items-center justify-between text-xs font-semibold tracking-wide uppercase">
+            Registration closes <Icon name="alarm" size={18} className={u === "urgent" ? "text-urgent" : ""} />
+          </p>
+          <p className={`font-display text-2xl font-bold tabular-nums ${u === "urgent" ? "text-urgent" : ""}`}>{left ?? (u === "closed" ? "Closed" : "—")}</p>
+          <p className="text-sm tabular-nums">{ev.registration_deadline ? formatWhen(ev.registration_deadline, tz) : "Not listed"}</p>
+        </div>
+        <div className="surface flex flex-col gap-1 rounded-lg p-3">
+          <p className="text-muted flex items-center justify-between text-xs font-semibold tracking-wide uppercase">
+            Sprint window <Icon name="bolt" size={18} />
+          </p>
+          <p className="font-display text-2xl font-bold">{sprint ? `${sprint}-day run` : "—"}</p>
+          <p className="text-sm tabular-nums">{ev.event_start ? formatWhen(ev.event_start, tz) : "Dates not listed"}</p>
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <EventActions ev={ev} onPatch={onPatch} />
+        <AddToCalendar ev={ev} />
+      </div>
+      {d?.prize && (
+        <section aria-label="Prizes" className="surface flex flex-col gap-1 rounded-lg p-3">
+          <h3 className="text-muted text-xs font-semibold tracking-wide uppercase">Prize distribution</h3>
+          <p className="text-ok-ink font-display text-lg font-semibold whitespace-pre-line">{d.prize}</p>
+        </section>
+      )}
+      {d && d.sources.length > 0 && (
+        <section aria-label="Source" className="flex flex-col gap-2">
+          <h3 className="text-muted text-xs font-semibold tracking-wide uppercase">Crawler ingestion audit</h3>
+          <SourceBlock source={d.sources[0]} tz={tz} />
+        </section>
+      )}
+      <Link className="link text-sm" href={`/events/${encodeURIComponent(ev.id)}`}>
+        Open full details
       </Link>
     </div>
   );

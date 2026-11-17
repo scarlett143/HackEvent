@@ -6,7 +6,7 @@ import "./globals.css";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
 const archivo = Archivo_Narrow({ subsets: ["latin"], variable: "--font-archivo" });
-// Material Symbols subset (101 glyphs, 15 KB) so icons cost no network and pass font-src 'self'.
+// Material Symbols subset (only the icons in use, ~15 KB) so icons cost no network and pass font-src 'self'.
 const icons = localFont({ src: "./fonts/material-symbols.woff2", variable: "--font-icons", display: "block" });
 
 export const metadata: Metadata = {
