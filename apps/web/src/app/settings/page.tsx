@@ -17,6 +17,7 @@ import {
   toggleOffset,
 } from "@/lib/settings";
 import { AppShell, useShell } from "../ui";
+import { ThemeSwitch } from "../theme";
 
 const MIN_PASSWORD = 12;
 
@@ -98,7 +99,7 @@ function Settings() {
         </button>
       </Section>
       <Section id="appearance" title="Appearance">
-        <p className="text-muted">Dark mode (coming soon). The app uses light mode for now.</p>
+        <ThemeSwitch />
       </Section>
     </main>
   );

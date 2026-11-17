@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Archivo_Narrow, Geist } from "next/font/google";
+import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
@@ -12,7 +13,14 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geist.variable} ${archivo.variable} h-full font-sans antialiased`}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${geist.variable} ${archivo.variable} h-full font-sans antialiased`}
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
