@@ -41,6 +41,7 @@ Design docs: [docs/](docs/README.md) — PRD, TRD, schema, API, security, AI gua
 | HE-045 | Verify step: confidence < 0.7 → verify provider (Haiku), corrections re-validated against the page, unsupported deadline → needs_review | Done |
 | HE-046 | Keyword pre-filter (no keyword → 0 LLM calls) + `llm_cache` by page-text hash + schema version; repeat page = 0 LLM calls | Done |
 | HE-047 | Dedupe: exact key (normalised title + organiser + UTC start day) + pg_trgm fuzzy pass (≥ 0.9 merge, 0.8–0.9 → needs_review); gap-filling merge, race-safe upsert | Done |
+| HE-047 wiring | Ingest pipeline: changed page → adapter (rss/api) or LLM `extract` → `upsert_candidate` → source health; LLM outage retries then forces a refetch | Done |
 | HE-050 | Events API: filters, keyset cursor, p95 < 300 ms on 5k events | Done |
 | HE-051 | Feed UI: sections, cards, countdown, chips (design brief) | Done |
 | HE-053 | Feed filters with URL state (reload keeps filters) | Done |

@@ -75,9 +75,13 @@ def test_enqueued_job_names_are_registered_on_the_right_worker() -> None:
         return set(w.functions)
 
     assert "scrape_source" in names(settings.ScrapeWorker)
-    assert {"record_scrape", "record_candidates", "cron:schedule_sources"} <= names(
-        settings.SchedulerWorker
-    )
+    assert {
+        "record_scrape",
+        "record_candidates",
+        "ingest_document",
+        "cron:schedule_sources",
+    } <= names(settings.SchedulerWorker)
+    assert "extract" in names(settings.LlmWorker)
 
 
 # --- scrape job (mocked fetch, fake redis)---------------------------------------------
@@ -325,13 +329,15 @@ async def test_changed_stores_raw_document_and_enqueues_extract(
 
 
 @needs_stack
-async def test_non_llm_adapter_stores_document_without_extract(
+async def test_non_llm_adapter_stores_document_and_enqueues_ingest(
     monkeypatch: pytest.MonkeyPatch, arq_redis: ArqRedis
 ) -> None:
     sid = await _source(adapter="rss")
     assert await _scrape_and_record(monkeypatch, arq_redis, sid, _ok()) == "changed"
-    assert len(await q("SELECT 1 FROM raw_documents")) == 1
+    ((raw_id,),) = await q("SELECT id::text FROM raw_documents")
     assert await arq_redis.queued_jobs(queue_name=LLM_QUEUE) == []
+    (ingest_job,) = await arq_redis.queued_jobs(queue_name=SCHEDULER_QUEUE)
+    assert ingest_job.function == "ingest_document" and ingest_job.args == (raw_id,)
 
 
 @needs_stack

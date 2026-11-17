@@ -5,7 +5,6 @@ Health: arq --check workers.settings.ScrapeWorker
 
 Each worker refreshes `<queue>:health-check` in Redis every HEALTH_CHECK_INTERVAL
 seconds; the key expires shortly after, so the API reads its presence as "worker alive".
-Real jobs are added by their own tickets (HE-021 onwards).
 
 worker-scrape has no DB credentials (Security doc §8), so this module must not import DB
 code at import time: scheduler jobs import workers.scheduler inside their wrappers.
@@ -16,6 +15,7 @@ from typing import Any, ClassVar
 
 from arq.connections import RedisSettings
 from arq.cron import CronJob, cron
+from arq.worker import func
 
 from common.config import get_settings
 from common.email import GmailSender, render
@@ -73,6 +73,12 @@ async def record_candidates(ctx: dict[str, Any], source_id: str, count: int) -> 
     return await scheduler.record_candidates(ctx, source_id, count)
 
 
+async def ingest_document(ctx: dict[str, Any], raw_document_id: str) -> str:
+    from workers import ingest
+
+    return await ingest.ingest_document(ctx, raw_document_id)
+
+
 async def install_log_redaction(ctx: dict[str, Any]) -> None:
     """arq on_startup: its CLI runs dictConfig after importing this module."""
     configure_logging()
@@ -98,8 +104,10 @@ class LlmWorker:
     redis_settings = REDIS
     health_check_interval = HEALTH_CHECK_INTERVAL
     on_startup = install_log_redaction
-    functions: ClassVar[list[Any]] = [ping]
+    # LLM_MAX_TRIES in workers.ingest; `extract` = ingest_document for adapter=llm pages.
+    functions: ClassVar[list[Any]] = [ping, func(ingest_document, name="extract")]
     max_jobs = 4
+    max_tries = 5
 
 
 class NotifyWorker:
@@ -115,7 +123,7 @@ class SchedulerWorker:
     redis_settings = REDIS
     health_check_interval = HEALTH_CHECK_INTERVAL
     on_startup = install_log_redaction
-    functions: ClassVar[list[Any]] = [record_scrape, record_candidates]
+    functions: ClassVar[list[Any]] = [record_scrape, record_candidates, ingest_document]
     cron_jobs: ClassVar[list[CronJob]] = [
         cron(heartbeat, run_at_startup=True),
         cron(schedule_sources),  # every minute (second=0)
