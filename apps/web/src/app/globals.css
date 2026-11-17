@@ -97,7 +97,7 @@ body {
   /* Selected filter / active track chip. */
   .chip[aria-pressed="true"],
   .chip-active {
-    @apply border-primary bg-primary-soft text-on-primary;
+    @apply border-primary bg-primary-soft text-ink;
   }
   /* Skeletons appear only when loading takes > 200 ms (brief §5). */
   .skeleton {

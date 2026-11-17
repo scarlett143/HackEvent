@@ -18,9 +18,17 @@ import {
   parseFilters,
   sectionize,
 } from "@/lib/events";
-import { AppShell, Chips, Countdown, EventActions, EventMeta, useNow, useShell } from "./ui";
+import { AppShell, Chips, Countdown, EventActions, EventMeta, OrgAvatar, TrackStar, useNow, useShell } from "./ui";
 
 const SEEN_AFTER_MS = 3_000;
+const LATER_SHOWN = 5;
+// Stitch quick-filter chips: label, filter key, value.
+const QUICK = [
+  ["Tier 1", "tier", "1"],
+  ["Online", "mode", "online"],
+  ["India", "region", "india"],
+  ["Global", "region", "global"],
+] as const;
 
 const LABELS: { [K in keyof typeof FILTER_OPTIONS]: [string, Record<string, string>] } = {
   kind: ["Type", { company: "Company", institution: "Institution" }],
@@ -99,22 +107,27 @@ function FilterBar({ filters, apply }: { filters: Filters; apply: (f: Filters) =
           />
           <button className="btn-secondary">Search</button>
         </form>
-        <fieldset className="flex rounded-xl border border-line p-0.5">
-          <legend className="sr-only">Region</legend>
-          {([undefined, "india", "global"] as const).map((r) => (
-            <button
-              key={r ?? "all"}
-              type="button"
-              aria-pressed={filters.region === r}
-              onClick={() => set({ region: r })}
-              className={`focus-ring min-h-10 rounded-lg px-3 text-sm font-medium ${
-                filters.region === r ? "bg-primary text-on-primary" : "hover:bg-surface"
-              }`}
-            >
-              {r ? LABELS.region[1][r] : "All"}
-            </button>
-          ))}
-        </fieldset>
+      </div>
+      <div role="group" aria-label="Quick filters" className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          className="chip focus-ring min-h-11 px-3 text-sm"
+          aria-pressed={Object.keys(filters).length === 0}
+          onClick={() => apply({})}
+        >
+          All events
+        </button>
+        {QUICK.map(([label, key, value]) => (
+          <button
+            key={label}
+            type="button"
+            className="chip focus-ring min-h-11 px-3 text-sm"
+            aria-pressed={filters[key] === value}
+            onClick={() => set({ [key]: filters[key] === value ? undefined : value })}
+          >
+            {label}
+          </button>
+        ))}
       </div>
       <details className="rounded-xl border border-line" open={active > 0}>
         <summary className="focus-ring flex min-h-11 cursor-pointer items-center px-3 text-sm font-medium">
@@ -179,6 +192,7 @@ function Results({ query }: { query: string }) {
   const now = useNow();
   const [state, setState] = useState<State>({ kind: "loading" });
   const [selected, setSelected] = useState<string | null>(null);
+  const [showAllLater, setShowAllLater] = useState(false);
   const seen = useRef(false);
 
   const fetchPage = useCallback(
@@ -217,6 +231,15 @@ function Results({ query }: { query: string }) {
     );
   }, []);
 
+  /** Stitch "Mark all read": same endpoint as the 3 s auto-seen, but explicit. */
+  async function markAllRead() {
+    const r = await api("/api/v1/me/seen", "POST");
+    if (!r.ok) return;
+    seen.current = true;
+    setState((s) => (s.kind === "ready" ? { ...s, items: s.items.map((e) => ({ ...e, is_new: false })) } : s));
+    refreshUnread();
+  }
+
   async function loadMore() {
     if (state.kind !== "ready" || !state.cursor) return;
     setState({ ...state, more: "loading" });
@@ -249,25 +272,51 @@ function Results({ query }: { query: string }) {
 
   const { fresh, closing, later } = sectionize(state.items, now);
   const preview = state.items.find((e) => e.id === selected) ?? state.items[0];
-  const section = (title: string, list: EventItem[]) =>
+  const section = (title: string, list: EventItem[], aside?: React.ReactNode, compact = false) =>
     list.length > 0 && (
       <section aria-label={title} className="flex flex-col gap-3">
-        <h2 className="text-muted flex items-center gap-3 text-sm font-semibold">
+        <h2 className="font-display flex items-center gap-3 text-xl font-semibold">
           {title}
           <span aria-hidden className="h-px flex-1 bg-line" />
+          {aside}
         </h2>
-        {list.map((ev) => (
-          <EventCard key={ev.id} ev={ev} now={now} tz={tz} onPatch={patch} onSelect={setSelected} />
-        ))}
+        {list.map((ev) =>
+          compact ? (
+            <CompactRow key={ev.id} ev={ev} now={now} tz={tz} onPatch={patch} />
+          ) : (
+            <EventCard key={ev.id} ev={ev} now={now} tz={tz} onPatch={patch} onSelect={setSelected} />
+          ),
+        )}
       </section>
     );
+  const laterShown = showAllLater ? later : later.slice(0, LATER_SHOWN);
 
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
       <div className="flex min-w-0 flex-col gap-6">
-        {section(`New since last visit (${fresh.length})`, fresh)}
+        {section(
+          `New since last visit (${fresh.length})`,
+          fresh,
+          <button type="button" className="link focus-ring min-h-11 text-sm font-medium" onClick={markAllRead}>
+            Mark all read
+          </button>,
+        )}
         {section("Closing this week", closing)}
-        {section("Later", later)}
+        {section(
+          "Later",
+          laterShown,
+          later.length > LATER_SHOWN && (
+            <button
+              type="button"
+              className="link focus-ring min-h-11 text-sm font-medium"
+              aria-expanded={showAllLater}
+              onClick={() => setShowAllLater((v) => !v)}
+            >
+              {showAllLater ? "Show fewer" : `View ${later.length - LATER_SHOWN} more`}
+            </button>
+          ),
+          true,
+        )}
         {state.cursor && (
           <div className="flex flex-col items-center gap-2">
             <button className="btn-secondary" disabled={state.more === "loading"} onClick={loadMore}>
@@ -305,24 +354,60 @@ function EventCard({
 }) {
   return (
     <article
-      className="card flex flex-col gap-2 p-4"
+      className="card flex flex-col gap-3 p-4"
       onClick={() => onSelect(ev.id)}
       onFocus={() => onSelect(ev.id)}
     >
-      <h3 className="flex items-start gap-2 text-base font-semibold">
-        {ev.is_new && (
-          <span className="mt-0.5 rounded bg-new px-1.5 py-0.5 text-xs font-bold tracking-wide text-white">
-            NEW
-          </span>
-        )}
-        <Link href={`/events/${encodeURIComponent(ev.id)}`} className="focus-ring rounded hover:underline">
-          {ev.title}
-        </Link>
-      </h3>
-      <EventMeta ev={ev} />
-      <Countdown deadline={ev.registration_deadline} now={now} tz={tz} />
+      <div className="flex items-start gap-3">
+        <OrgAvatar name={ev.organiser.name} />
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {ev.is_new && (
+              <span className="rounded bg-new px-1.5 py-0.5 text-xs font-bold tracking-wide text-white">NEW</span>
+            )}
+            {ev.organiser.tier && <span className="chip">Tier {ev.organiser.tier}</span>}
+          </div>
+          <h3 className="font-display text-xl font-semibold">
+            <Link href={`/events/${encodeURIComponent(ev.id)}`} className="focus-ring rounded hover:underline">
+              {ev.title}
+            </Link>
+          </h3>
+          <EventMeta ev={ev} />
+        </div>
+      </div>
+      <div className="surface rounded-lg px-3 py-2">
+        <Countdown deadline={ev.registration_deadline} now={now} tz={tz} />
+      </div>
       <Chips ev={ev} />
       <EventActions ev={ev} onPatch={onPatch} />
+    </article>
+  );
+}
+
+/** Stitch "Later this month" row: title, when, and the reminder star. */
+function CompactRow({
+  ev,
+  now,
+  tz,
+  onPatch,
+}: {
+  ev: EventItem;
+  now: Date;
+  tz: string;
+  onPatch: (id: string, p: Partial<EventItem>) => void;
+}) {
+  return (
+    <article className="card flex items-center gap-3 p-3">
+      <OrgAvatar name={ev.organiser.name} />
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <h3 className="font-display text-lg font-semibold">
+          <Link href={`/events/${encodeURIComponent(ev.id)}`} className="focus-ring rounded hover:underline">
+            {ev.title}
+          </Link>
+        </h3>
+        <Countdown deadline={ev.registration_deadline} now={now} tz={tz} />
+      </div>
+      <TrackStar ev={ev} onPatch={onPatch} />
     </article>
   );
 }
