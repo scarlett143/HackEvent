@@ -7,6 +7,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Icon } from "./symbol";
 import { ThemeSwitch } from "./theme";
+import { downloadIcs } from "./calendar-menu";
+import { loadEvents } from "@/lib/load-events";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { api, type Me } from "@/lib/api";
 import {
@@ -63,6 +65,49 @@ function screenName(path: string): string {
 const TOAST_MS = 10_000;
 const LIVE_MS = 60_000; // how often the bell refreshes while the tab is visible
 
+/** "IST (UTC+5:30)" for the top bar's timezone pill. */
+function tzLabel(tz: string): string {
+  const part = (style: "short" | "longOffset") =>
+    new Intl.DateTimeFormat("en-IN", { timeZone: tz, timeZoneName: style })
+      .formatToParts(new Date())
+      .find((p) => p.type === "timeZoneName")?.value ?? "";
+  const offset = part("longOffset").replace("GMT", "UTC").replace(/([+-])0(\d)/, "$1$2").replace(":00", "");
+  return `${part("short")} (${offset || "UTC"})`;
+}
+
+/** One navigation item: a full-width row in the desktop sidebar, an icon-over-label tab on phones. */
+function NavLink({ n, current, badge, desktop }: { n: NavItem; current: boolean; badge: number; desktop: boolean }) {
+  const count = n.href === "/notifications" && badge > 0 ? (badge > 99 ? "99+" : String(badge)) : null;
+  return (
+    <Link
+      href={n.href}
+      aria-current={current ? "page" : undefined}
+      className={
+        desktop
+          ? `focus-ring flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium ${
+              current ? "bg-surface font-semibold" : "hover:bg-surface"
+            }`
+          : `focus-ring relative inline-flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-xs font-semibold ${
+              current ? "bg-primary text-on-primary" : "hover:bg-surface"
+            }`
+      }
+    >
+      <Icon name={n.icon} fill={current} size={22} />
+      <span className={desktop ? "flex-1" : ""}>{n.label}</span>
+      {count && (
+        <span
+          aria-label={`${count} unread`}
+          className={`min-w-5 rounded-full bg-urgent-fill px-1.5 text-center text-xs font-semibold text-white tabular-nums ${
+            desktop ? "" : "absolute top-1 right-3"
+          }`}
+        >
+          {count}
+        </span>
+      )}
+    </Link>
+  );
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -89,6 +134,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     timer.current = setTimeout(() => setToast(null), TOAST_MS);
   }, []);
   useEffect(() => () => clearTimeout(timer.current), []);
+
+  async function exportRadar() {
+    const all = await loadEvents();
+    if (!all) return showToast({ message: "Could not load your events. Try again." });
+    const mine = all.filter((e) => e.is_tracked || e.is_registered);
+    if (!mine.length) return showToast({ message: "Nothing to export yet. Track or register for an event first." });
+    downloadIcs("hackevents.ics", mine);
+  }
 
   async function logout() {
     await api("/api/v1/auth/logout", "POST");
@@ -133,112 +186,127 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <ShellContext.Provider value={{ me, setMe, tz, refreshUnread, toast: showToast }}>
-      <div className="flex min-h-full flex-1 flex-col">
-        {/* Keyboard users can jump past the header and nav (WCAG 2.4.1). */}
+      <div className="flex min-h-full flex-1 flex-col md:flex-row">
+        {/* Keyboard users can jump past the navigation (WCAG 2.4.1). */}
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-lg focus:bg-card focus:px-4 focus:py-2 focus:font-semibold focus:shadow"
         >
           Skip to main content
         </a>
-        <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center justify-between gap-4 border-b border-line bg-card px-4 md:px-6">
-          <Link href="/" className="focus-ring flex items-center gap-2 rounded">
+
+        {/* Desktop sidebar (Stitch desktop): brand, navigation, export, theme and account. Phones use the bottom tabs. */}
+        <aside className="hidden md:sticky md:top-0 md:flex md:h-dvh md:w-64 md:shrink-0 md:flex-col md:gap-6 md:border-r md:border-line md:bg-card md:p-4">
+          <Link href="/" className="focus-ring flex items-center gap-2 rounded px-1">
             <span aria-hidden className="flex size-9 items-center justify-center rounded-lg bg-primary text-on-primary">
               <Icon name="bolt" fill size={22} />
             </span>
-            <span className="flex flex-col leading-tight">
-              <span className="font-display text-xl font-bold">HackEvents</span>
-              <span className="text-muted text-xs">{screenName(pathname)}</span>
-            </span>
+            <span className="font-display text-xl font-bold tracking-[0.12em] uppercase">HackEvents</span>
           </Link>
-          <div className="flex items-center gap-2">
-            <details className="relative md:hidden">
-              <summary
-                className="focus-ring flex size-11 cursor-pointer list-none items-center justify-center rounded-full bg-primary text-sm font-semibold text-on-primary"
-                aria-label={`Account menu for ${me.name}`}
-              >
-                {initials || "?"}
-              </summary>
-              <div className="absolute right-0 z-20 mt-2 flex w-64 flex-col gap-1 rounded-xl border border-line bg-card p-3 shadow-[0_8px_24px_rgba(20,23,17,0.06)]">
-                <p className="font-medium">{me.name}</p>
-                <p className="text-muted text-sm break-all">{me.email}</p>
-                <p className="text-muted mb-2 text-sm">{me.role}</p>
-                <div className="my-2 border-t border-line pt-3">
-                  <ThemeSwitch compact />
-                </div>
-                <button className="btn-secondary inline-flex items-center justify-center gap-2" onClick={logout}>
-                  <Icon name="logout" />
-                  Sign out
-                </button>
-              </div>
-            </details>
-          </div>
-        </header>
-        <div className="flex flex-1 flex-col md:flex-row">
-          <aside className="md:sticky md:top-16 md:flex md:h-[calc(100dvh-4rem)] md:w-56 md:shrink-0 md:flex-col md:self-start md:border-r md:border-line">
-          <nav
-            aria-label="Main"
-            className="fixed inset-x-0 bottom-0 z-20 flex justify-around gap-1 border-t border-line bg-card px-2 py-1 md:static md:flex-col md:justify-start md:border-t-0 md:bg-transparent md:p-3"
-          >
+          <nav aria-label="Main" className="flex flex-col gap-1">
+            <p className="text-muted px-3 pb-1 text-xs font-semibold tracking-[0.12em] uppercase">Navigation</p>
             {nav.map((n) => {
-              if (n.soon)
-                return (
-                  <span
-                    key={n.href}
-                    aria-disabled="true"
-                    className="text-muted inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-lg px-1 text-xs md:flex-none md:justify-start md:px-3 md:text-sm"
-                  >
-                    <Icon name={n.icon} />
-                    {n.label}
-                    <span className="sr-only md:not-sr-only md:rounded md:border md:border-line md:px-1.5 md:text-xs">(Soon)</span>
-                  </span>
-                );
-              const base = n.href.startsWith("/admin") ? "/admin" : n.href; // every admin page highlights Admin
+              const base = n.href.startsWith("/admin") ? "/admin" : n.href;
               const current = base === "/" ? pathname === "/" : pathname.startsWith(base);
-              return (
-                <Link
-                  key={n.href}
-                  href={n.href}
-                  aria-current={current ? "page" : undefined}
-                  className={`focus-ring relative inline-flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-xs font-semibold md:min-h-12 md:flex-none md:flex-row md:justify-start md:gap-3 md:px-3 md:text-sm ${
-                    current ? "bg-primary text-on-primary" : "hover:bg-surface"
-                  }`}
-                >
-                  <Icon name={n.icon} fill={current} size={22} />
-                  {n.label}
-                  {n.href === "/notifications" && badge > 0 && (
-                    <span
-                      aria-label={`${badge} unread`}
-                      className="absolute top-1 right-3 min-w-5 rounded-full bg-urgent-fill px-1 text-center text-xs font-semibold text-white tabular-nums md:static md:ml-auto"
-                    >
-                      {badge > 99 ? "99+" : badge}
-                    </span>
-                  )}
-                </Link>
-              );
+              return <NavLink key={n.href} n={n} current={current} badge={badge} desktop />;
             })}
           </nav>
-          {/* Desktop only (phones use the avatar menu in the header): theme, who you are, sign out. */}
-          <div className="mt-auto hidden flex-col gap-3 border-t border-line p-3 md:flex">
-            <ThemeSwitch compact />
-            <div className="flex items-center gap-3">
-              <span
-                aria-hidden
-                className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-on-primary"
-              >
-                {initials || "?"}
-              </span>
-              <div className="min-w-0">
-                <p className="truncate font-medium">{me.name}</p>
-                <p className="text-muted truncate text-xs capitalize">{me.role}</p>
-              </div>
-            </div>
-            <button className="btn-secondary inline-flex items-center justify-center gap-2" onClick={logout}>
-              <Icon name="logout" />
-              Sign out
+          <div className="mt-auto flex flex-col gap-3">
+            <button className="btn-secondary inline-flex items-center justify-center gap-2" onClick={exportRadar}>
+              <Icon name="file_download" />
+              Export radar (.ics)
             </button>
+            <div className="surface flex flex-col gap-3 rounded-xl p-3">
+              <ThemeSwitch compact />
+              <div className="flex items-center gap-3">
+                <span
+                  aria-hidden
+                  className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-on-primary"
+                >
+                  {initials || "?"}
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{me.name}</p>
+                  <p className="text-muted truncate text-xs capitalize">{me.role}</p>
+                </div>
+              </div>
+              <button className="btn-secondary inline-flex items-center justify-center gap-2" onClick={logout}>
+                <Icon name="logout" />
+                Sign out
+              </button>
+            </div>
           </div>
-          </aside>
+        </aside>
+
+        <div className="flex min-w-0 flex-1 flex-col">
+          {/* Top bar: brand + account menu on phones; search + timezone on desktop. */}
+          <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-3 border-b border-line bg-card px-4 md:bg-bg md:px-6">
+            <Link href="/" className="focus-ring flex items-center gap-2 rounded md:hidden">
+              <span aria-hidden className="flex size-9 items-center justify-center rounded-lg bg-primary text-on-primary">
+                <Icon name="bolt" fill size={22} />
+              </span>
+              <span className="flex flex-col leading-tight">
+                <span className="font-display text-xl font-bold">HackEvents</span>
+                <span className="text-muted text-xs">{screenName(pathname)}</span>
+              </span>
+            </Link>
+            <form
+              role="search"
+              className="hidden min-w-0 flex-1 md:flex md:max-w-xl"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const q = String(new FormData(e.currentTarget).get("q") ?? "").trim();
+                router.push(q ? `/?q=${encodeURIComponent(q)}` : "/");
+              }}
+            >
+              <label className="sr-only" htmlFor="top-q">
+                Search hackathons
+              </label>
+              <div className="relative w-full">
+                <span className="text-muted pointer-events-none absolute top-1/2 left-3 -translate-y-1/2">
+                  <Icon name="search" />
+                </span>
+                <input id="top-q" name="q" type="search" placeholder="Search hackathons, tags, organizers…" className="field w-full pl-10" />
+              </div>
+            </form>
+            <div className="ml-auto flex items-center gap-2">
+              <span className="chip hidden gap-1.5 px-3 py-1.5 text-sm md:inline-flex">
+                <Icon name="schedule" size={18} />
+                {tzLabel(tz)}
+              </span>
+              <details className="relative md:hidden">
+                <summary
+                  className="focus-ring flex size-11 cursor-pointer list-none items-center justify-center rounded-full bg-primary text-sm font-semibold text-on-primary"
+                  aria-label={`Account menu for ${me.name}`}
+                >
+                  {initials || "?"}
+                </summary>
+                <div className="absolute right-0 z-20 mt-2 flex w-64 flex-col gap-1 rounded-xl border border-line bg-card p-3 shadow-[0_8px_24px_rgba(20,23,17,0.06)]">
+                  <p className="font-medium">{me.name}</p>
+                  <p className="text-muted text-sm break-all">{me.email}</p>
+                  <p className="text-muted text-sm capitalize">{me.role}</p>
+                  <div className="my-2 border-t border-line pt-3">
+                    <ThemeSwitch compact />
+                  </div>
+                  <button className="btn-secondary inline-flex items-center justify-center gap-2" onClick={exportRadar}>
+                    <Icon name="file_download" />
+                    Export radar (.ics)
+                  </button>
+                  <button className="btn-secondary inline-flex items-center justify-center gap-2" onClick={logout}>
+                    <Icon name="logout" />
+                    Sign out
+                  </button>
+                </div>
+              </details>
+            </div>
+          </header>
+          <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-20 flex justify-around gap-1 border-t border-line bg-card px-2 py-1 md:hidden">
+            {nav.map((n) => {
+              const base = n.href.startsWith("/admin") ? "/admin" : n.href;
+              const current = base === "/" ? pathname === "/" : pathname.startsWith(base);
+              return <NavLink key={n.href} n={n} current={current} badge={badge} desktop={false} />;
+            })}
+          </nav>
           <div id="main" tabIndex={-1} className="min-w-0 flex-1 pb-20 focus:outline-none md:pb-0">
             {children}
           </div>
