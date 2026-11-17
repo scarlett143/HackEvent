@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { adminRedirect, api, type ApiError, type Me } from "@/lib/api";
+import { filterHealth } from "@/lib/health";
+import { AppShell } from "../../ui";
 
 // App Flow F10 + doc 06 A7: organisations (tier, CSV import), sources (create/edit,
 // Run now) for Admins (HE-091) and source health, red first (HE-092). Fetched text
@@ -67,9 +69,9 @@ type List<T> = { items: T[]; next_cursor: null };
 
 // Design brief §3/§6: colour is decoration only; the text label carries the status.
 const STATUS = {
-  red: { label: "Red", dot: "bg-urgent", edge: "border-l-urgent" },
-  amber: { label: "Amber", dot: "bg-warning", edge: "border-l-warning" },
-  green: { label: "Green", dot: "bg-ok", edge: "border-l-ok" },
+  red: { label: "Error", dot: "bg-urgent", edge: "border-l-urgent", pill: "border-urgent/30 bg-urgent/10 text-urgent" },
+  amber: { label: "Degraded", dot: "bg-warning", edge: "border-l-warning", pill: "border-warning/30 bg-warning/10 text-warning-ink" },
+  green: { label: "Healthy", dot: "bg-ok", edge: "border-l-ok", pill: "border-ok/30 bg-ok/10 text-ok-ink" },
 } as const;
 type Failed = { status: number; error: ApiError };
 
@@ -88,6 +90,8 @@ export default function SourcesPage() {
   const [runs, setRuns] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [hFilter, setHFilter] = useState<"all" | Health["status"]>("all");
+  const [hQuery, setHQuery] = useState("");
 
   const fail = useCallback(
     (r: Failed) => {
@@ -271,8 +275,12 @@ export default function SourcesPage() {
         }).format(new Date(iso))
       : "Never";
 
+  const shownHealth = filterHealth(health ?? [], hFilter, hQuery);
+  const count = (k: Health["status"]) => (health ?? []).filter((h) => h.status === k).length;
+
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-8 p-6">
+    <AppShell>
+    <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-8 p-4 md:p-6">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
         <h1 className="text-xl font-semibold">Sources and organisations</h1>
         <nav aria-label="Admin" className="flex flex-wrap gap-4">
@@ -400,7 +408,7 @@ export default function SourcesPage() {
           <p className="text-muted">No organisations match.</p>
         ) : (
           <div className="max-h-[32rem] overflow-auto">
-            <table className="w-full text-left text-sm">
+            <table className="w-full min-w-[48rem] text-left text-sm">
               <caption className="text-muted p-2 text-left">{orgs.length} organisations</caption>
               <thead className="surface sticky top-0">
                 <tr>
@@ -483,7 +491,7 @@ export default function SourcesPage() {
           <p className="text-muted">No sources yet.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="w-full min-w-[48rem] text-left text-sm">
               <thead className="surface">
                 <tr>
                   <th scope="col" className="p-2">URL</th>
@@ -562,54 +570,97 @@ export default function SourcesPage() {
           Red after 3 failed runs or 5 runs with no events in a row. Admins get an email when a
           source turns red.
         </p>
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filter by status">
+          {(
+            [
+              ["all", `All sources (${health?.length ?? 0})`],
+              ["green", `Healthy (${count("green")})`],
+              ["amber", `Degraded (${count("amber")})`],
+              ["red", `Errors only (${count("red")})`],
+            ] as const
+          ).map(([k, label]) => (
+            <button
+              key={k}
+              type="button"
+              className="chip focus-ring min-h-11 px-3 text-sm"
+              aria-pressed={hFilter === k}
+              onClick={() => setHFilter(k)}
+            >
+              {label}
+            </button>
+          ))}
+          <input
+            type="search"
+            aria-label="Search sources"
+            placeholder="Search sources"
+            value={hQuery}
+            onChange={(e) => setHQuery(e.target.value)}
+            className="field ml-auto w-full sm:w-64"
+          />
+        </div>
         {!health ? (
           <p className="text-muted">Loading…</p>
         ) : health.length === 0 ? (
           <p className="text-muted">No sources yet.</p>
+        ) : shownHealth.length === 0 ? (
+          <p className="text-muted">No sources match.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <caption className="text-muted p-2 text-left">
-                {(["red", "amber", "green"] as const)
-                  .map((k) => `${health.filter((h) => h.status === k).length} ${STATUS[k].label.toLowerCase()}`)
-                  .join(", ")}
-              </caption>
-              <thead className="surface">
-                <tr>
-                  <th scope="col" className="p-2">Status</th>
-                  <th scope="col" className="p-2">Source</th>
-                  <th scope="col" className="p-2">Reason</th>
-                  <th scope="col" className="p-2">Last success</th>
-                  <th scope="col" className="p-2">Last error</th>
-                </tr>
-              </thead>
-              <tbody>
-                {health.map((h) => (
-                  <tr key={h.id} className={`border-t border-l-4 border-t-line align-top ${STATUS[h.status].edge}`}>
-                    <td className="p-2 font-medium whitespace-nowrap">
-                      <span className="inline-flex items-center gap-2">
-                        <span aria-hidden="true" className={`size-3 rounded-full ${STATUS[h.status].dot}`} />
-                        {STATUS[h.status].label}
-                      </span>
-                    </td>
-                    <th scope="row" className="max-w-64 p-2 font-medium break-all">
-                      {h.url}
-                      <span className="text-muted block font-normal">
+          <ul className="grid gap-3 lg:grid-cols-2">
+            {shownHealth.map((h) => {
+              const src = sources?.find((x) => x.id === h.id);
+              return (
+                <li key={h.id} className={`card flex flex-col gap-3 border-l-4 p-4 ${STATUS[h.status].edge}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="font-display text-lg font-semibold break-all">{h.url}</h3>
+                      <p className="text-muted text-sm">
                         {h.organisation_name ?? "Aggregator"} · {h.kind} / {h.adapter}
                         {h.is_enabled ? "" : " · disabled"}
+                      </p>
+                    </div>
+                    <span className={`chip shrink-0 gap-2 ${STATUS[h.status].pill}`}>
+                      <span aria-hidden="true" className={`size-2 rounded-full ${STATUS[h.status].dot}`} />
+                      {STATUS[h.status].label}
+                    </span>
+                  </div>
+                  <dl className="surface grid grid-cols-3 gap-2 rounded-lg p-3 text-center text-sm">
+                    <div>
+                      <dt className="text-muted text-xs">Last success</dt>
+                      <dd className="font-medium">{when(h.last_success_at)}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-muted text-xs">Failed runs</dt>
+                      <dd className="font-medium tabular-nums">{h.error_streak}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-muted text-xs">Empty runs</dt>
+                      <dd className="font-medium tabular-nums">{h.empty_streak}</dd>
+                    </div>
+                  </dl>
+                  <p className="text-sm break-words">
+                    <span className="font-medium">{h.reason}</span>
+                    {h.last_error && <span className="text-urgent block">{h.last_error}</span>}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-3">
+                    {src && (
+                      <button className="btn-secondary" onClick={() => runNow(src)}>
+                        {h.status === "red" ? "Retry source" : "Run scraper"}
+                      </button>
+                    )}
+                    {runs[h.id] && (
+                      <span role="status" className="text-muted text-sm">
+                        {runs[h.id]}
                       </span>
-                    </th>
-                    <td className="max-w-80 p-2 break-words">{h.reason}</td>
-                    <td className="p-2">{when(h.last_success_at)}</td>
-                    <td className="max-w-64 p-2 break-words">{h.last_error ?? "None"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </section>
     </main>
+    </AppShell>
   );
 }
 

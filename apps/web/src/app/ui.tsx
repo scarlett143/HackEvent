@@ -83,6 +83,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   if (!me) return <p className="text-muted p-8">Loading…</p>;
   const tz = me.timezone || DEFAULT_TZ;
+  // Design: admins get an Admin tab (sources + health) next to Settings.
+  const nav = me.role === "admin" ? [...NAV, { href: "/admin/sources", label: "Admin", soon: false }] : NAV;
   const badge = unread ? unread.new_events + unread.notifications : 0;
   const initials = me.name
     .split(/\s+/)
@@ -94,8 +96,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <ShellContext.Provider value={{ me, setMe, tz, refreshUnread, toast: showToast }}>
       <div className="flex min-h-full flex-1 flex-col">
-        <header className="flex items-center justify-between gap-4 border-b border-line px-4 py-2 md:px-6">
-          <Link href="/" className="focus-ring rounded text-xl font-semibold">
+        <header className="flex items-center justify-between gap-4 border-b border-line bg-card px-4 py-2 md:px-6">
+          <Link href="/" className="focus-ring font-display rounded text-2xl font-bold">
             HackEvents
           </Link>
           <div className="flex items-center gap-2">
@@ -117,12 +119,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </span>
             <details className="relative">
               <summary
-                className="focus-ring flex size-11 cursor-pointer list-none items-center justify-center rounded-full bg-primary text-sm font-semibold text-white"
+                className="focus-ring flex size-11 cursor-pointer list-none items-center justify-center rounded-full bg-primary text-sm font-semibold text-on-primary"
                 aria-label={`Account menu for ${me.name}`}
               >
                 {initials || "?"}
               </summary>
-              <div className="absolute right-0 z-20 mt-2 flex w-64 flex-col gap-1 rounded-xl border border-line bg-bg p-3 shadow-md">
+              <div className="absolute right-0 z-20 mt-2 flex w-64 flex-col gap-1 rounded-xl border border-line bg-card p-3 shadow-[0_8px_24px_rgba(20,23,17,0.06)]">
                 <p className="font-medium">{me.name}</p>
                 <p className="text-muted text-sm break-all">{me.email}</p>
                 <p className="text-muted mb-2 text-sm">{me.role}</p>
@@ -141,18 +143,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="flex flex-1 flex-col md:flex-row">
           <nav
             aria-label="Main"
-            className="flex gap-1 overflow-x-auto border-b border-line px-2 md:w-52 md:shrink-0 md:flex-col md:border-r md:border-b-0 md:p-3"
+            className="fixed inset-x-0 bottom-0 z-20 flex justify-around gap-1 border-t border-line bg-card px-2 py-1 md:static md:w-56 md:shrink-0 md:flex-col md:justify-start md:border-t-0 md:border-r md:bg-transparent md:p-3"
           >
-            {NAV.map((n) => {
+            {nav.map((n) => {
               if (n.soon)
                 return (
                   <span
                     key={n.href}
                     aria-disabled="true"
-                    className="text-muted inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl px-3 text-sm"
+                    className="text-muted inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-lg px-1 text-xs md:flex-none md:justify-start md:px-3 md:text-sm"
                   >
                     {n.label}
-                    <span className="rounded-full border border-line px-1.5 text-xs">Soon</span>
+                    <span className="sr-only md:not-sr-only md:rounded md:border md:border-line md:px-1.5 md:text-xs">(Soon)</span>
                   </span>
                 );
               const current = n.href === "/" ? pathname === "/" : pathname.startsWith(n.href);
@@ -161,8 +163,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   key={n.href}
                   href={n.href}
                   aria-current={current ? "page" : undefined}
-                  className={`focus-ring inline-flex min-h-11 shrink-0 items-center rounded-xl px-3 text-sm font-medium ${
-                    current ? "bg-surface text-primary" : "hover:bg-surface"
+                  className={`focus-ring inline-flex min-h-12 flex-1 items-center justify-center rounded-lg px-1 text-xs font-semibold md:flex-none md:justify-start md:px-3 md:text-sm ${
+                    current ? "bg-primary text-on-primary" : "hover:bg-surface"
                   }`}
                 >
                   {n.label}
@@ -170,16 +172,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               );
             })}
           </nav>
-          <div className="min-w-0 flex-1">{children}</div>
+          <div className="min-w-0 flex-1 pb-20 md:pb-0">{children}</div>
         </div>
         {/* Toasts: top-right on desktop, bottom on small screens (brief §5); always-mounted live region. */}
         <div
           role="status"
           aria-live="polite"
-          className="pointer-events-none fixed inset-x-4 bottom-4 z-30 flex justify-center sm:inset-x-auto sm:top-4 sm:right-4 sm:bottom-auto"
+          className="pointer-events-none fixed inset-x-4 bottom-20 z-30 flex justify-center sm:inset-x-auto sm:top-4 sm:right-4 sm:bottom-auto"
         >
           {toast && (
-            <div className="pointer-events-auto flex items-center gap-3 rounded-xl bg-ink px-4 py-2 text-sm text-white shadow-lg">
+            <div className="pointer-events-auto flex items-center gap-3 rounded-xl bg-ink px-4 py-2 text-sm text-white ">
               <span>{toast.message}</span>
               {toast.undo && (
                 <button

@@ -108,7 +108,7 @@ function FilterBar({ filters, apply }: { filters: Filters; apply: (f: Filters) =
               aria-pressed={filters.region === r}
               onClick={() => set({ region: r })}
               className={`focus-ring min-h-10 rounded-lg px-3 text-sm font-medium ${
-                filters.region === r ? "bg-primary text-white" : "hover:bg-surface"
+                filters.region === r ? "bg-primary text-on-primary" : "hover:bg-surface"
               }`}
             >
               {r ? LABELS.region[1][r] : "All"}
@@ -305,7 +305,7 @@ function EventCard({
 }) {
   return (
     <article
-      className="surface flex flex-col gap-2 rounded-xl border border-line p-4 shadow-sm"
+      className="card flex flex-col gap-2 p-4"
       onClick={() => onSelect(ev.id)}
       onFocus={() => onSelect(ev.id)}
     >
