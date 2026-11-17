@@ -266,8 +266,8 @@ export function Countdown({ deadline, now, tz }: { deadline: string | null; now:
 
 // ── Event pieces ─────────────────────────────────────────────────────────────
 
-/** Organiser initials tile (Stitch event cards): "Example Corp" -> "EC". Decorative; the name is always next to it. */
-export function OrgAvatar({ name }: { name: string }) {
+/** Initials tile (Stitch cards): an event title or a person's name -> "EC". Decorative; the name is always next to it. */
+export function Avatar({ name }: { name: string }) {
   const text =
     name
       .split(/\s+/)
@@ -288,16 +288,10 @@ export function OrgAvatar({ name }: { name: string }) {
 
 const MODE: Record<string, string> = { online: "Online", offline: "In person", hybrid: "Hybrid" };
 
-/** "Example Corp · Company · Tier 1 · Online". */
+/** "Online" / "In person · Mumbai". Organisation details are intentionally not shown. */
 export function EventMeta({ ev }: { ev: EventItem }) {
-  const o = ev.organiser;
-  const parts = [
-    o.name,
-    o.kind && (o.kind === "company" ? "Company" : "Institution"),
-    o.tier && `Tier ${o.tier}`,
-    MODE[ev.mode],
-  ].filter(Boolean);
-  return <p className="text-muted text-sm">{parts.join(" · ")}</p>;
+  const parts = [MODE[ev.mode], ev.location].filter(Boolean);
+  return parts.length ? <p className="text-muted text-sm">{parts.join(" · ")}</p> : null;
 }
 
 export function Chips({ ev }: { ev: EventItem }) {
@@ -392,7 +386,7 @@ export function EventActions({
       {url && (
         <a className="btn-primary inline-flex flex-1 items-center justify-center gap-2" href={url} target="_blank" rel="noopener noreferrer">
           Register <Icon name="arrow_outward" />
-          <span className="sr-only"> (opens organiser site in a new tab)</span>
+          <span className="sr-only"> (opens the registration page in a new tab)</span>
         </a>
       )}
       <button
