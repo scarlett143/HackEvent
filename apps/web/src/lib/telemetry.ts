@@ -13,7 +13,8 @@ export type ProviderStats = {
   failed_calls_day: number;
   avg_latency_ms_day: number | null;
 };
-export type Telemetry = { day_resets_at: string; providers: ProviderStats[]; total_events: number };
+export type PurposeStats = { purpose: string; tokens_day: number };
+export type Telemetry = { day_resets_at: string; providers: ProviderStats[]; purposes: PurposeStats[]; total_events: number };
 
 /** Whole percent of a cap used (money arrives as decimal strings). 0 when the cap is 0; may exceed 100. */
 export function pctUsed(spent: string, cap: string): number {

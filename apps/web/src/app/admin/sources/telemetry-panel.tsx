@@ -85,6 +85,7 @@ export function TelemetryPanel({ scrapers }: { scrapers: ScraperCounts | null })
               <p className="text-muted text-sm">events stored</p>
             </li>
           </ul>
+          <QuotaAllocation data={data} now={now} />
           {data.providers.length > 0 && (
             <p className="text-muted text-sm">
               Daily caps reset in <span className="tabular-nums">{untilReset(data.day_resets_at, now)}</span>{" "}
@@ -156,5 +157,57 @@ function Provider({ p }: { p: ProviderStats }) {
         </div>
       </dl>
     </li>
+  );
+}
+
+const PURPOSE_LABEL: Record<string, string> = { extract: "Event extraction", verify: "Verification pass", other: "Other calls" };
+
+/** Stitch "LLM Quota Allocation": today's settled tokens by pipeline step, plus the tier status. */
+function QuotaAllocation({ data, now }: { data: Telemetry; now: Date }) {
+  const total = data.purposes.reduce((s, p) => s + p.tokens_day, 0);
+  const enabled = data.providers.filter((p) => p.is_enabled);
+  const cap = enabled.reduce((s, p) => s + Number(p.daily_cap_usd), 0);
+  return (
+    <section aria-labelledby="quota-h" className="flex flex-col gap-3 border-t border-line pt-4">
+      <div>
+        <h3 id="quota-h" className="font-display text-lg font-semibold">LLM quota allocation</h3>
+        <p className="text-muted text-sm">Today&apos;s tokens by pipeline step.</p>
+      </div>
+      <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {data.purposes.length === 0 && <li className="text-muted text-sm">No LLM calls yet today.</li>}
+        {data.purposes.map((p) => {
+          const pct = total ? Math.round((p.tokens_day / total) * 100) : 0;
+          const label = PURPOSE_LABEL[p.purpose] ?? p.purpose;
+          return (
+            <li key={p.purpose} className="surface flex flex-col gap-2 rounded-lg p-3">
+              <p className="flex items-center justify-between gap-2 text-sm font-medium">
+                {label} <span className="chip tabular-nums">{pct}%</span>
+              </p>
+              <p className="font-mono text-lg font-semibold tabular-nums">{p.tokens_day.toLocaleString("en-IN")} tokens</p>
+              <div
+                role="progressbar"
+                aria-label={`${label} share of today's tokens`}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={pct}
+                className="h-2 overflow-hidden rounded-full bg-line"
+              >
+                <div className="h-full bg-link" style={{ width: `${pct}%` }} />
+              </div>
+            </li>
+          );
+        })}
+        <li className="surface flex flex-col gap-1 rounded-lg p-3">
+          <p className="text-muted text-xs font-semibold tracking-wide uppercase">Tier status</p>
+          <p className="font-display text-lg font-semibold">
+            {enabled.length} active {enabled.length === 1 ? "provider" : "providers"}
+          </p>
+          <p className="text-sm tabular-nums">Total cap: ${cap.toFixed(2)} / day</p>
+          <p className="text-muted flex justify-between text-sm">
+            Cycle reset <span className="font-mono tabular-nums">{untilReset(data.day_resets_at, now)}</span>
+          </p>
+        </li>
+      </ul>
+    </section>
   );
 }
