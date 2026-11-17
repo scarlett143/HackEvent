@@ -107,6 +107,18 @@ export function formatStart(startUtc: string | null, endUtc: string | null, nowU
   return endUtc && new Date(endUtc) > nowUtc ? "Happening now" : "Ended";
 }
 
+/** Detail-page timeline label: "T-2d 04h" (days+hours), or "T-5h 12m" in the last day. Null once passed. */
+export function tMinus(deadlineUtc: string | null, nowUtc: Date): string | null {
+  if (!deadlineUtc) return null;
+  const ms = new Date(deadlineUtc).getTime() - nowUtc.getTime();
+  if (ms <= 0) return null;
+  const hours = Math.floor(ms / 3_600_000);
+  const days = Math.floor(hours / 24);
+  return days > 0
+    ? `T-${days}d ${String(hours % 24).padStart(2, "0")}h`
+    : `T-${hours}h ${String(Math.floor(ms / 60_000) % 60).padStart(2, "0")}m`;
+}
+
 // ── Sections (design brief §4.1) ─────────────────────────────────────────────
 
 /** Pinned "new" first, then deadlines in the next 7 days, then everything else; order kept. */

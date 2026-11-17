@@ -8,6 +8,7 @@ import {
   parseFilters,
   safeHttpUrl,
   sectionize,
+  tMinus,
   urgency,
 } from "./events";
 
@@ -113,5 +114,20 @@ describe("sectionize", () => {
     expect(s.fresh.map((e) => e.id)).toEqual(["b"]);
     expect(s.closing.map((e) => e.id)).toEqual(["a"]);
     expect(s.later.map((e) => e.id)).toEqual(["c", "d"]);
+  });
+});
+
+describe("tMinus", () => {
+  const now = new Date("2026-11-17T00:00:00Z");
+  it("days + hours while more than a day away", () => {
+    expect(tMinus("2026-11-19T04:30:00Z", now)).toBe("T-2d 04h");
+  });
+  it("hours + minutes inside the last day", () => {
+    expect(tMinus("2026-11-17T05:12:00Z", now)).toBe("T-5h 12m");
+  });
+  it("null when passed, exactly now, or no deadline", () => {
+    expect(tMinus("2026-11-16T23:59:00Z", now)).toBeNull();
+    expect(tMinus("2026-11-17T00:00:00Z", now)).toBeNull();
+    expect(tMinus(null, now)).toBeNull();
   });
 });

@@ -5,6 +5,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { Icon } from "./symbol";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { api, type Me } from "@/lib/api";
 import {
@@ -39,12 +40,24 @@ export function useShell(): Shell {
 }
 
 // `soon` items have no page yet: shown as labels, not links (no dead links, no 404 prefetch).
-const NAV: { href: string; label: string; soon: boolean }[] = [
-  { href: "/", label: "Feed", soon: false },
-  { href: "/calendar", label: "Calendar", soon: false },
-  { href: "/notifications", label: "Alerts", soon: false },
-  { href: "/settings", label: "Settings", soon: false },
+type NavItem = { href: string; label: string; icon: string; soon: boolean };
+const NAV: NavItem[] = [
+  { href: "/", label: "Feed", icon: "grid_view", soon: false },
+  { href: "/calendar", label: "Calendar", icon: "calendar_month", soon: false },
+  { href: "/notifications", label: "Alerts", icon: "notifications", soon: false },
+  { href: "/settings", label: "Settings", icon: "settings", soon: false },
 ];
+
+/** Header subtitle under the logo (Stitch shows the current screen's name). */
+function screenName(path: string): string {
+  if (path === "/") return "Feed";
+  if (path.startsWith("/events")) return "Event details";
+  if (path.startsWith("/calendar")) return "Calendar";
+  if (path.startsWith("/notifications")) return "Alerts";
+  if (path.startsWith("/settings")) return "Settings";
+  if (path.startsWith("/admin")) return "Admin console";
+  return "";
+}
 
 const TOAST_MS = 10_000;
 
@@ -83,7 +96,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (!me) return <p className="text-muted p-8">Loading…</p>;
   const tz = me.timezone || DEFAULT_TZ;
   // Design: admins get an Admin tab (sources + health) next to Settings.
-  const nav = me.role === "admin" ? [...NAV, { href: "/admin/sources", label: "Admin", soon: false }] : NAV;
+  const nav: NavItem[] = me.role === "admin" ? [...NAV, { href: "/admin/sources", label: "Admin", icon: "database", soon: false }] : NAV;
   const badge = unread ? unread.new_events + unread.notifications : 0;
   const initials = me.name
     .split(/\s+/)
@@ -96,8 +109,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <ShellContext.Provider value={{ me, setMe, tz, refreshUnread, toast: showToast }}>
       <div className="flex min-h-full flex-1 flex-col">
         <header className="flex items-center justify-between gap-4 border-b border-line bg-card px-4 py-2 md:px-6">
-          <Link href="/" className="focus-ring font-display rounded text-2xl font-bold">
-            HackEvents
+          <Link href="/" className="focus-ring flex items-center gap-2 rounded">
+            <span aria-hidden className="flex size-9 items-center justify-center rounded-lg bg-primary text-on-primary">
+              <Icon name="bolt" fill size={22} />
+            </span>
+            <span className="flex flex-col leading-tight">
+              <span className="font-display text-xl font-bold">HackEvents</span>
+              <span className="text-muted text-xs">{screenName(pathname)}</span>
+            </span>
           </Link>
           <div className="flex items-center gap-2">
             <Link
@@ -105,7 +124,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               className="focus-ring relative inline-flex size-11 items-center justify-center rounded-xl"
               aria-label={badge ? `Notifications, ${badge} unread` : "Notifications"}
             >
-              <span aria-hidden>🔔</span>
+              <Icon name="notifications" size={24} />
               {badge > 0 && (
                 <span
                   aria-hidden
@@ -151,6 +170,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     aria-disabled="true"
                     className="text-muted inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-lg px-1 text-xs md:flex-none md:justify-start md:px-3 md:text-sm"
                   >
+                    <Icon name={n.icon} />
                     {n.label}
                     <span className="sr-only md:not-sr-only md:rounded md:border md:border-line md:px-1.5 md:text-xs">(Soon)</span>
                   </span>
@@ -161,15 +181,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   key={n.href}
                   href={n.href}
                   aria-current={current ? "page" : undefined}
-                  className={`focus-ring inline-flex min-h-12 flex-1 items-center justify-center rounded-lg px-1 text-xs font-semibold md:flex-none md:justify-start md:px-3 md:text-sm ${
+                  className={`focus-ring relative inline-flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-xs font-semibold md:min-h-12 md:flex-none md:flex-row md:justify-start md:gap-3 md:px-3 md:text-sm ${
                     current ? "bg-primary text-on-primary" : "hover:bg-surface"
                   }`}
                 >
+                  <Icon name={n.icon} fill={current} size={22} />
                   {n.label}
                   {n.href === "/notifications" && badge > 0 && (
                     <span
                       aria-label={`${badge} unread`}
-                      className="ml-2 min-w-5 rounded-full bg-urgent px-1 text-center text-xs font-semibold text-white tabular-nums"
+                      className="absolute top-1 right-3 min-w-5 rounded-full bg-urgent px-1 text-center text-xs font-semibold text-white tabular-nums md:static md:ml-auto"
                     >
                       {badge > 99 ? "99+" : badge}
                     </span>
@@ -221,20 +242,20 @@ export function useNow(): Date {
 }
 
 const URGENCY_STYLE: Record<Urgency, { text: string; icon: string }> = {
-  urgent: { text: "text-urgent", icon: "⚠" },
-  warning: { text: "text-warning-ink", icon: "⏱" },
-  ok: { text: "text-ok-ink", icon: "⏱" },
-  closed: { text: "text-muted", icon: "✕" },
-  none: { text: "text-muted", icon: "⏱" },
+  urgent: { text: "text-urgent", icon: "alarm" },
+  warning: { text: "text-warning-ink", icon: "schedule" },
+  ok: { text: "text-ok-ink", icon: "check_circle" },
+  closed: { text: "text-muted", icon: "cancel" },
+  none: { text: "text-muted", icon: "timer" },
 };
 
-/** "⏱ 2 days left to register" + "Closes 15 Nov, 23:59 IST". Colour always paired with the text. */
+/** "2 days left to register" + "Closes 15 Nov, 23:59 IST", with a status icon. Colour always paired with the text. */
 export function Countdown({ deadline, now, tz }: { deadline: string | null; now: Date; tz: string }) {
   const s = URGENCY_STYLE[urgency(deadline, now, tz)];
   return (
     <p className="flex flex-wrap items-baseline gap-x-2 text-sm">
-      <span className={`font-semibold tabular-nums ${s.text}`} aria-live="polite">
-        <span aria-hidden>{s.icon} </span>
+      <span className={`inline-flex items-center gap-1.5 font-semibold tabular-nums ${s.text}`} aria-live="polite">
+        <Icon name={s.icon} size={18} />
         {formatDeadline(deadline, now, tz)}
       </span>
       {deadline && <span className="text-muted tabular-nums">Closes {formatWhen(deadline, tz)}</span>}
@@ -331,21 +352,22 @@ export function useEventFlags(ev: EventItem, onPatch: (id: string, patch: Partia
 export function TrackStar({
   ev,
   onPatch,
+  ghost = false,
 }: {
   ev: EventItem;
   onPatch: (id: string, patch: Partial<EventItem>) => void;
+  /** Plain icon button (card header) instead of the bordered secondary button. */
+  ghost?: boolean;
 }) {
   const flip = useEventFlags(ev, onPatch);
   return (
     <button
-      className="btn-secondary min-w-11 px-3"
+      className={ghost ? "focus-ring inline-flex size-11 shrink-0 items-center justify-center rounded-full hover:bg-surface" : "btn-secondary min-w-11 px-3"}
       aria-pressed={ev.is_tracked}
       aria-label={ev.is_tracked ? `Reminders on for ${ev.title} (turn off)` : `Remind me about ${ev.title}`}
       onClick={() => flip("is_tracked")}
     >
-      <span aria-hidden className={ev.is_tracked ? "text-warning-ink" : ""}>
-        {ev.is_tracked ? "★" : "☆"}
-      </span>
+      <Icon name="star" fill={ev.is_tracked} className={ev.is_tracked ? "text-warning-ink" : ""} />
     </button>
   );
 }
@@ -354,9 +376,12 @@ export function TrackStar({
 export function EventActions({
   ev,
   onPatch,
+  variant = "card",
 }: {
   ev: EventItem;
   onPatch: (id: string, patch: Partial<EventItem>) => void;
+  /** "card": Register + I registered (the star lives top-right of the card). "detail": adds a labelled Remind me. */
+  variant?: "card" | "detail";
 }) {
   const flip = useEventFlags(ev, onPatch);
   const url = safeHttpUrl(ev.registration_url);
@@ -364,25 +389,29 @@ export function EventActions({
   return (
     <div className="flex flex-wrap items-center gap-2">
       {url && (
-        <a className="btn-primary inline-flex items-center" href={url} target="_blank" rel="noopener noreferrer">
-          Register <span aria-hidden>&nbsp;↗</span>
+        <a className="btn-primary inline-flex flex-1 items-center justify-center gap-2" href={url} target="_blank" rel="noopener noreferrer">
+          Register <Icon name="arrow_outward" />
           <span className="sr-only"> (opens organiser site in a new tab)</span>
         </a>
       )}
-      <button className="btn-secondary" aria-pressed={ev.is_registered} onClick={() => flip("is_registered")}>
-        {ev.is_registered ? "Registered ✓" : "I registered"}
-      </button>
       <button
-        className="btn-secondary min-w-11 px-3"
-        aria-pressed={ev.is_tracked}
-        aria-label={ev.is_tracked ? "Reminders on (turn off)" : "Remind me"}
-        title={ev.is_tracked ? "Reminders on" : "Remind me"}
-        onClick={() => flip("is_tracked")}
+        className="btn-secondary inline-flex items-center justify-center gap-2"
+        aria-pressed={ev.is_registered}
+        onClick={() => flip("is_registered")}
       >
-        <span aria-hidden className={ev.is_tracked ? "text-warning-ink" : ""}>
-          {ev.is_tracked ? "★" : "☆"}
-        </span>
+        <Icon name="check" />
+        {ev.is_registered ? "Registered" : "I registered"}
       </button>
+      {variant === "detail" && (
+        <button
+          className="btn-secondary inline-flex items-center justify-center gap-2"
+          aria-pressed={ev.is_tracked}
+          onClick={() => flip("is_tracked")}
+        >
+          <Icon name="alarm" fill={ev.is_tracked} />
+          {ev.is_tracked ? "Reminders on" : "Remind me"}
+        </button>
+      )}
     </div>
   );
 }

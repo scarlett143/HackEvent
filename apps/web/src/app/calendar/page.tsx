@@ -25,6 +25,7 @@ import {
 import { type EventItem, formatDeadline, urgency } from "@/lib/events";
 import { loadEvents } from "@/lib/load-events";
 import { downloadIcs } from "../calendar-menu";
+import { Icon } from "../symbol";
 import { AppShell, useNow, useShell } from "../ui";
 
 const VIEW_LABEL: Record<View, string> = { month: "Month", week: "Week", day: "Day", agenda: "Agenda" };
@@ -70,10 +71,11 @@ function Calendar() {
           <p className="text-muted text-sm">Times in {tz}. Showing events you track or registered for.</p>
         </div>
         <button
-          className="btn-secondary"
+          className="btn-secondary inline-flex items-center gap-2"
           disabled={tracked.length === 0}
           onClick={() => downloadIcs("hackevents.ics", tracked)}
         >
+          <Icon name="file_download" />
           Export .ics
         </button>
       </header>
@@ -81,13 +83,13 @@ function Calendar() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-1">
           <button className="btn-secondary min-w-12" aria-label="Previous" onClick={() => go({ date: step(date, view, -1) })}>
-            <span aria-hidden>‹</span>
+            <Icon name="chevron_left" size={24} />
           </button>
           <button className="btn-secondary" onClick={() => go({ date: today })}>
             Today
           </button>
           <button className="btn-secondary min-w-12" aria-label="Next" onClick={() => go({ date: step(date, view, 1) })}>
-            <span aria-hidden>›</span>
+            <Icon name="chevron_right" size={24} />
           </button>
           <h2 className="font-display ml-2 text-xl font-semibold" aria-live="polite">
             {view === "day" ? dayLabel(date) : monthLabel(date)}
@@ -95,7 +97,7 @@ function Calendar() {
         </div>
         <div role="group" aria-label="View" className="flex gap-1">
           {VIEWS.map((v) => (
-            <button key={v} className="chip focus-ring min-h-11 px-3 text-sm" aria-pressed={view === v} onClick={() => go({ view: v })}>
+            <button key={v} className="chip chip-tab focus-ring min-h-11 px-3 text-sm" aria-pressed={view === v} onClick={() => go({ view: v })}>
               {VIEW_LABEL[v]}
             </button>
           ))}

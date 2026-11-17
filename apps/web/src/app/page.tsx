@@ -18,16 +18,17 @@ import {
   parseFilters,
   sectionize,
 } from "@/lib/events";
+import { Icon } from "./symbol";
 import { AppShell, Chips, Countdown, EventActions, EventMeta, OrgAvatar, TrackStar, useNow, useShell } from "./ui";
 
 const SEEN_AFTER_MS = 3_000;
 const LATER_SHOWN = 5;
 // Stitch quick-filter chips: label, filter key, value.
 const QUICK = [
-  ["Tier 1", "tier", "1"],
-  ["Online", "mode", "online"],
-  ["India", "region", "india"],
-  ["Global", "region", "global"],
+  ["Tier 1", "tier", "1", "workspace_premium"],
+  ["Online", "mode", "online", "wifi"],
+  ["India", "region", "india", "location_on"],
+  ["Global", "region", "global", "public"],
 ] as const;
 
 const LABELS: { [K in keyof typeof FILTER_OPTIONS]: [string, Record<string, string>] } = {
@@ -97,15 +98,23 @@ function FilterBar({ filters, apply }: { filters: Filters; apply: (f: Filters) =
           <label className="sr-only" htmlFor="feed-q">
             Search events
           </label>
-          <input
-            id="feed-q"
-            name="q"
-            type="search"
-            placeholder="Search…"
-            defaultValue={filters.q ?? ""}
-            className="field min-w-0 flex-1"
-          />
-          <button className="btn-secondary">Search</button>
+          <div className="relative min-w-0 flex-1">
+            <span className="text-muted pointer-events-none absolute top-1/2 left-3 -translate-y-1/2">
+              <Icon name="search" />
+            </span>
+            <input
+              id="feed-q"
+              name="q"
+              type="search"
+              placeholder="Search hackathons"
+              defaultValue={filters.q ?? ""}
+              className="field w-full pl-10"
+            />
+          </div>
+          <button className="btn-secondary inline-flex items-center gap-2" aria-label="Search">
+            <Icon name="search" />
+            <span className="hidden sm:inline">Search</span>
+          </button>
         </form>
       </div>
       <div role="group" aria-label="Quick filters" className="flex flex-wrap gap-2">
@@ -115,9 +124,10 @@ function FilterBar({ filters, apply }: { filters: Filters; apply: (f: Filters) =
           aria-pressed={Object.keys(filters).length === 0}
           onClick={() => apply({})}
         >
+          <Icon name="check" size={16} className="mr-1" />
           All events
         </button>
-        {QUICK.map(([label, key, value]) => (
+        {QUICK.map(([label, key, value, icon]) => (
           <button
             key={label}
             type="button"
@@ -125,13 +135,15 @@ function FilterBar({ filters, apply }: { filters: Filters; apply: (f: Filters) =
             aria-pressed={filters[key] === value}
             onClick={() => set({ [key]: filters[key] === value ? undefined : value })}
           >
+            <Icon name={icon} size={16} className="mr-1" />
             {label}
           </button>
         ))}
       </div>
       <details className="rounded-xl border border-line" open={active > 0}>
         <summary className="focus-ring flex min-h-11 cursor-pointer items-center px-3 text-sm font-medium">
-          Filters{active > 0 && ` (${active})`} <span aria-hidden>&nbsp;▾</span>
+          <Icon name="tune" size={18} className="mr-2" />
+          Filters{active > 0 && ` (${active})`}
         </summary>
         <div className="flex flex-wrap items-end gap-3 border-t border-line p-3">
           {(["kind", "tier", "mode", "status", "within"] as const).map((k) => (
@@ -365,7 +377,12 @@ function EventCard({
             {ev.is_new && (
               <span className="rounded bg-new px-1.5 py-0.5 text-xs font-bold tracking-wide text-white">NEW</span>
             )}
-            {ev.organiser.tier && <span className="chip">Tier {ev.organiser.tier}</span>}
+            {ev.organiser.tier && (
+              <span className="chip gap-1">
+                <Icon name="workspace_premium" size={16} />
+                Tier {ev.organiser.tier}
+              </span>
+            )}
           </div>
           <h3 className="font-display text-xl font-semibold">
             <Link href={`/events/${encodeURIComponent(ev.id)}`} className="focus-ring rounded hover:underline">
@@ -374,6 +391,7 @@ function EventCard({
           </h3>
           <EventMeta ev={ev} />
         </div>
+        <TrackStar ev={ev} onPatch={onPatch} ghost />
       </div>
       <div className="surface rounded-lg px-3 py-2">
         <Countdown deadline={ev.registration_deadline} now={now} tz={tz} />

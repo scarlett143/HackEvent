@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Onyx HackEvents tokens (Stitch DESIGN.md, "Functional Precision"). Light mode only; dark mode later (HE-122).
+/* Onyx HackEvents tokens (Stitch DESIGN.md, "Functional Precision"). Light + dark (html[data-theme]).
    Contrast notes: lime #95c400 is a FILL colour (with --color-on-primary ink, ~9:1). As text/outline on
    light surfaces use --color-link (#4d6700, ~6:1). Warning/ok fills are too light for text: use the -ink hues. */
 @theme {
@@ -65,6 +65,24 @@ body {
   .card {
     @apply rounded-xl border border-line bg-card;
   }
+  /* Material Symbols glyph; the name is the ligature text (see app/symbol.tsx). */
+  .icon {
+    font-family: var(--font-icons);
+    font-weight: normal;
+    font-style: normal;
+    line-height: 1;
+    display: inline-block;
+    flex-shrink: 0;
+    letter-spacing: normal;
+    text-transform: none;
+    white-space: nowrap;
+    font-feature-settings: "liga";
+    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+    user-select: none;
+  }
+  .icon-fill {
+    font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24;
+  }
   .font-display {
     font-family: var(--font-display);
     letter-spacing: -0.005em;
@@ -98,6 +116,10 @@ body {
   .chip[aria-pressed="true"],
   .chip-active {
     @apply border-primary bg-primary-soft text-ink;
+  }
+  /* Segmented tabs (Stitch notifications/calendar): the selected one is a solid lime pill. */
+  .chip-tab[aria-pressed="true"] {
+    @apply border-primary bg-primary font-semibold text-on-primary;
   }
   /* Skeletons appear only when loading takes > 200 ms (brief §5). */
   .skeleton {

@@ -7,9 +7,10 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { type EventDetail, type EventItem, formatStart, formatWhen } from "@/lib/events";
+import { daysBetween, type EventDetail, type EventItem, formatDeadline, formatStart, formatWhen, tMinus, urgency } from "@/lib/events";
 import { AddToCalendar } from "../../calendar-menu";
-import { AppShell, Chips, Countdown, EventActions, EventMeta, OrgAvatar, SourceBlock, useNow, useShell } from "../../ui";
+import { Icon } from "../../symbol";
+import { AppShell, Chips, EventActions, EventMeta, OrgAvatar, SourceBlock, useNow, useShell } from "../../ui";
 
 type State = { kind: "loading" } | { kind: "missing" } | { kind: "error"; message: string } | { kind: "ready"; ev: EventDetail };
 
@@ -67,10 +68,16 @@ function Detail() {
 
   const ev = state.ev;
   const o = ev.organiser;
+  const u = urgency(ev.registration_deadline, now, tz);
+  const daysLeft = ev.registration_deadline && u !== "closed" ? daysBetween(now, new Date(ev.registration_deadline), tz) : null;
+  const toStart = ev.event_start && new Date(ev.event_start) > now ? daysBetween(now, new Date(ev.event_start), tz) : null;
+  const sprint = ev.event_start && ev.event_end ? daysBetween(new Date(ev.event_start), new Date(ev.event_end), tz) + 1 : null;
+  const tm = tMinus(ev.registration_deadline, now);
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-4 md:p-6">
-      <Link className="link self-start text-sm" href="/">
-        ← Back to feed
+      <Link className="link inline-flex min-h-11 items-center gap-1 self-start text-sm" href="/">
+        <Icon name="arrow_back_ios_new" size={16} />
+        Back to feed
       </Link>
       {ev.review_status === "needs_review" && (
         <p role="note" className="rounded-xl border border-warning bg-surface p-3 text-sm">
@@ -94,42 +101,91 @@ function Detail() {
         </div>
       </header>
 
-      <section aria-label="Dates" className="grid gap-3 sm:grid-cols-2">
-        <div className="card flex flex-col gap-1 p-4">
-          <h2 className="font-display text-lg font-semibold">Registration closes</h2>
-          <Countdown deadline={ev.registration_deadline} now={now} tz={tz} />
-        </div>
-        <div className="card flex flex-col gap-1 p-4">
-          <h2 className="font-display text-lg font-semibold">Hackathon window</h2>
-          <p className="text-sm">
-            <span className="font-semibold" aria-live="polite">
-              {formatStart(ev.event_start, ev.event_end, now, tz)}
-            </span>
-            {ev.event_start && (
-              <span className="text-muted block tabular-nums">
-                {formatWhen(ev.event_start, tz)}
-                {ev.event_end && ` – ${formatWhen(ev.event_end, tz)}`}
-              </span>
+      <section
+        aria-label="Registration status"
+        className={`flex items-center justify-between gap-3 rounded-xl border p-4 ${STRIP[u].box}`}
+      >
+        <div className="flex min-w-0 items-center gap-3">
+          <Icon name={STRIP[u].icon} size={24} />
+          <div className="min-w-0">
+            <p className="font-display text-lg font-semibold" aria-live="polite">
+              {formatDeadline(ev.registration_deadline, now, tz)}
+            </p>
+            {ev.registration_deadline && (
+              <p className="text-sm tabular-nums">Closes {formatWhen(ev.registration_deadline, tz)}</p>
             )}
-          </p>
+          </div>
         </div>
+        {STRIP[u].label && <span className="chip shrink-0 font-semibold">{STRIP[u].label}</span>}
       </section>
 
+      <dl className="grid grid-cols-3 gap-3 text-center">
+        <Tile label="Days left" value={daysLeft === null ? "—" : String(daysLeft)} unit={daysLeft === null ? "" : "d"} />
+        <Tile label="To start" value={toStart === null ? "—" : String(toStart)} unit={toStart === null ? "" : "d"} />
+        <Tile label="Duration" value={sprint === null ? "—" : String(sprint)} unit={sprint === null ? "" : sprint === 1 ? "day" : "days"} />
+      </dl>
+
       <div className="flex flex-wrap items-center gap-2">
-        <EventActions ev={ev} onPatch={patch} />
+        <EventActions ev={ev} onPatch={patch} variant="detail" />
         <AddToCalendar ev={ev} />
       </div>
 
+      <h2 className="font-display text-xl font-semibold">Critical timeline</h2>
+      <section aria-label="Critical timeline" className="flex flex-col gap-3">
+        <div className="card flex gap-3 p-4">
+          <span aria-hidden className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-urgent/10 text-urgent">
+            <Icon name="hourglass_bottom" size={24} />
+          </span>
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <div className="flex items-baseline justify-between gap-2">
+              <p className="text-xs font-semibold tracking-wide text-urgent uppercase">Registration closes</p>
+              {tm && <p className="text-urgent text-sm font-semibold tabular-nums">{tm}</p>}
+            </div>
+            <p className="font-display text-xl font-semibold tabular-nums">
+              {ev.registration_deadline ? formatWhen(ev.registration_deadline, tz) : "Not listed"}
+            </p>
+            <p className="text-muted text-sm">Times shown in {tz}.</p>
+          </div>
+        </div>
+        <div className="card flex gap-3 p-4">
+          <span aria-hidden className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-teal/15 text-ok-ink">
+            <Icon name="bolt" size={24} />
+          </span>
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <div className="flex items-baseline justify-between gap-2">
+              <p className="text-ok-ink text-xs font-semibold tracking-wide uppercase">Hackathon window</p>
+              {sprint !== null && <span className="chip">{sprint}-day sprint</span>}
+            </div>
+            <p className="font-display text-xl font-semibold tabular-nums" aria-live="polite">
+              {ev.event_start
+                ? `${formatWhen(ev.event_start, tz)}${ev.event_end ? ` – ${formatWhen(ev.event_end, tz)}` : ""}`
+                : "Dates not listed"}
+            </p>
+            <p className="text-muted text-sm">{formatStart(ev.event_start, ev.event_end, now, tz)}</p>
+          </div>
+        </div>
+      </section>
+
       <h2 className="font-display text-xl font-semibold">Event parameters</h2>
-      <dl className="card grid grid-cols-[max-content_1fr] gap-x-4 gap-y-3 p-4">
-        <dt className="text-muted">Eligibility</dt>
-        <dd>{ev.eligibility.length ? <Chips ev={{ ...ev, is_registered: false }} /> : "Not listed"}</dd>
-        <dt className="text-muted">Mode</dt>
-        <dd className="capitalize">{ev.mode === "offline" ? "In person" : ev.mode}</dd>
-        <dt className="text-muted">Location</dt>
-        <dd>{ev.location ?? "Not listed"}</dd>
-        <dt className="text-muted">Prizes</dt>
-        <dd className="whitespace-pre-line">{ev.prize ?? "Not listed"}</dd>
+      <dl className="card flex flex-col px-4">
+        <Row icon="event_busy" label="Registration closes">
+          {ev.registration_deadline ? <span className="text-urgent font-semibold">{formatWhen(ev.registration_deadline, tz)}</span> : "Not listed"}
+        </Row>
+        <Row icon="date_range" label="Event dates">
+          {ev.event_start ? `${formatWhen(ev.event_start, tz)}${ev.event_end ? ` – ${formatWhen(ev.event_end, tz)}` : ""}` : "Not listed"}
+        </Row>
+        <Row icon="school" label="Eligibility">
+          {ev.eligibility.length ? <Chips ev={{ ...ev, is_registered: false }} /> : "Not listed"}
+        </Row>
+        <Row icon="devices" label="Mode">
+          <span className="capitalize">{ev.mode === "offline" ? "In person" : ev.mode}</span>
+        </Row>
+        <Row icon="public" label="Location">
+          {ev.location ?? "Not listed"}
+        </Row>
+        <Row icon="emoji_events" label="Prizes" last>
+          <span className="text-ok-ink font-semibold whitespace-pre-line">{ev.prize ?? "Not listed"}</span>
+        </Row>
       </dl>
 
       {ev.description && (
@@ -152,5 +208,38 @@ function Detail() {
         )}
       </section>
     </main>
+  );
+}
+
+// Status strip under the hero: urgency tint + icon; the chip text always carries the meaning.
+const STRIP = {
+  urgent: { box: "border-urgent/30 bg-urgent/10", icon: "alarm", label: "Urgent" },
+  warning: { box: "border-warning/30 bg-warning/10", icon: "schedule", label: "Closing soon" },
+  ok: { box: "border-ok/30 bg-ok/10", icon: "check_circle", label: "Open" },
+  closed: { box: "border-line bg-surface", icon: "cancel", label: "Closed" },
+  none: { box: "border-line bg-surface", icon: "timer", label: "" },
+} as const;
+
+function Tile({ label, value, unit }: { label: string; value: string; unit: string }) {
+  return (
+    <div className="card flex flex-col items-center gap-0.5 p-3">
+      <dd className="font-display text-3xl font-bold tabular-nums">
+        {value}
+        {unit && <span className="text-muted ml-1 text-base font-semibold">{unit}</span>}
+      </dd>
+      <dt className="text-muted text-xs">{label}</dt>
+    </div>
+  );
+}
+
+function Row({ icon, label, last = false, children }: { icon: string; label: string; last?: boolean; children: React.ReactNode }) {
+  return (
+    <div className={`flex items-center justify-between gap-4 py-3 ${last ? "" : "border-b border-line"}`}>
+      <dt className="text-muted flex items-center gap-3 text-sm">
+        <Icon name={icon} />
+        {label}
+      </dt>
+      <dd className="min-w-0 text-right text-sm">{children}</dd>
+    </div>
   );
 }

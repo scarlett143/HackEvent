@@ -10,6 +10,7 @@ import { api } from "@/lib/api";
 import { type Alert, type AlertKind, buildAlerts, parseRead, READ_KEY, serializeRead, unreadCount } from "@/lib/alerts";
 import { safeHttpUrl } from "@/lib/events";
 import { loadEvents } from "@/lib/load-events";
+import { Icon } from "../symbol";
 import { AppShell, EventMeta, OrgAvatar, useShell } from "../ui";
 
 type Tab = "all" | AlertKind;
@@ -20,10 +21,11 @@ const TABS: [Tab, string][] = [
   ["registered", "Registered"],
 ];
 const LEVEL = {
-  urgent: { label: "Urgent", tone: "border-urgent/30 bg-urgent/10 text-urgent", icon: "⚠" },
-  warning: { label: "Warning", tone: "border-warning/30 bg-warning/10 text-warning-ink", icon: "⏱" },
+  urgent: { label: "Urgent", tone: "border-urgent/30 bg-urgent/10 text-urgent", icon: "alarm" },
+  warning: { label: "Warning", tone: "border-warning/30 bg-warning/10 text-warning-ink", icon: "hourglass_top" },
   info: { label: "", tone: "", icon: "" },
 } as const;
+const KIND_ICON = { deadline: "hourglass_top", new: "bolt", registered: "event_available" } as const;
 const KIND_LABEL: Record<AlertKind, string> = { deadline: "Deadline", new: "New", registered: "Registered" };
 
 export default function NotificationsPage() {
@@ -79,14 +81,15 @@ function Notifications() {
             {alerts ? `${unread} unread of ${alerts.length}` : "Loading…"}
           </p>
         </div>
-        <button className="btn-secondary" disabled={!alerts || unread === 0} onClick={markAllRead}>
+        <button className="btn-secondary inline-flex items-center gap-2" disabled={!alerts || unread === 0} onClick={markAllRead}>
+          <Icon name="done_all" />
           Mark all read
         </button>
       </header>
 
       <div role="group" aria-label="Filter notifications" className="flex flex-wrap gap-2">
         {TABS.map(([t, label]) => (
-          <button key={t} className="chip focus-ring min-h-11 px-3 text-sm" aria-pressed={tab === t} onClick={() => setTab(t)}>
+          <button key={t} className="chip chip-tab focus-ring min-h-11 px-3 text-sm" aria-pressed={tab === t} onClick={() => setTab(t)}>
             {label} ({count(t)})
           </button>
         ))}
@@ -145,11 +148,14 @@ function AlertCard({ a, isRead, onRead }: { a: Alert; isRead: boolean; onRead: (
         <div className="flex flex-wrap items-center gap-2">
           {lvl.label ? (
             <span className={`chip ${lvl.tone}`}>
-              <span aria-hidden>{lvl.icon}&nbsp;</span>
+              <Icon name={lvl.icon} size={16} className="mr-1" />
               {lvl.label}
             </span>
           ) : (
-            <span className="chip">{KIND_LABEL[a.kind]}</span>
+            <span className="chip">
+              <Icon name={KIND_ICON[a.kind]} size={16} className="mr-1" />
+              {KIND_LABEL[a.kind]}
+            </span>
           )}
           {!isRead && (
             <span className="flex items-center gap-1 text-xs font-semibold">
@@ -168,7 +174,7 @@ function AlertCard({ a, isRead, onRead }: { a: Alert; isRead: boolean; onRead: (
         <div className="flex flex-wrap items-center gap-2">
           {url && a.kind === "deadline" && (
             <a className="btn-primary inline-flex items-center" href={url} target="_blank" rel="noopener noreferrer" onClick={onRead}>
-              Register <span aria-hidden>&nbsp;↗</span>
+              Register <Icon name="arrow_outward" className="ml-1" />
               <span className="sr-only"> (opens organiser site in a new tab)</span>
             </a>
           )}
