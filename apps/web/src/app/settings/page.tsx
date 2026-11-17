@@ -81,7 +81,7 @@ function Settings() {
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-4 md:p-6">
-      <h1 className="font-display text-3xl font-bold">Settings</h1>
+      <h1 className="font-display text-[1.75rem] leading-8 font-bold">Settings</h1>
       <ProfileCard me={me} />
       <div className="flex flex-col gap-2">
         <label className="sr-only" htmlFor="settings-q">

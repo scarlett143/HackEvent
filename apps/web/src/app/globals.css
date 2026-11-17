@@ -111,10 +111,10 @@ body {
     @apply outline-2 outline-offset-2 outline-ink;
   }
   .btn-primary {
-    @apply min-h-12 rounded-lg bg-primary px-4 font-semibold text-on-primary active:scale-[0.98] active:opacity-90 disabled:opacity-60;
+    @apply min-h-12 rounded-lg bg-primary px-4 text-sm font-semibold text-on-primary active:scale-[0.98] active:opacity-90 disabled:opacity-60;
   }
   .btn-secondary {
-    @apply min-h-12 rounded-lg border border-line bg-surface px-4 font-semibold text-ink active:scale-[0.98] active:opacity-90;
+    @apply min-h-12 rounded-lg border border-line bg-surface px-4 text-sm font-semibold text-ink active:scale-[0.98] active:opacity-90;
   }
   .link {
     @apply text-link underline underline-offset-2;

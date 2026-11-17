@@ -141,7 +141,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         >
           Skip to main content
         </a>
-        <header className="flex items-center justify-between gap-4 border-b border-line bg-card px-4 py-2 md:px-6">
+        <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center justify-between gap-4 border-b border-line bg-card px-4 md:px-6">
           <Link href="/" className="focus-ring flex items-center gap-2 rounded">
             <span aria-hidden className="flex size-9 items-center justify-center rounded-lg bg-primary text-on-primary">
               <Icon name="bolt" fill size={22} />
@@ -152,21 +152,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </span>
           </Link>
           <div className="flex items-center gap-2">
-            <Link
-              href="/notifications"
-              className="focus-ring relative inline-flex size-11 items-center justify-center rounded-xl"
-              aria-label={badge ? `Notifications, ${badge} unread` : "Notifications"}
-            >
-              <Icon name="notifications" size={24} />
-              {badge > 0 && (
-                <span
-                  aria-hidden
-                  className="absolute top-1 right-0.5 min-w-5 rounded-full bg-urgent-fill px-1 text-center text-xs font-semibold text-white tabular-nums"
-                >
-                  {badge > 99 ? "99+" : badge}
-                </span>
-              )}
-            </Link>
             <details className="relative md:hidden">
               <summary
                 className="focus-ring flex size-11 cursor-pointer list-none items-center justify-center rounded-full bg-primary text-sm font-semibold text-on-primary"
@@ -190,7 +175,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
         <div className="flex flex-1 flex-col md:flex-row">
-          <aside className="md:sticky md:top-0 md:flex md:h-[calc(100dvh-3.8rem)] md:w-56 md:shrink-0 md:flex-col md:self-start md:border-r md:border-line">
+          <aside className="md:sticky md:top-16 md:flex md:h-[calc(100dvh-4rem)] md:w-56 md:shrink-0 md:flex-col md:self-start md:border-r md:border-line">
           <nav
             aria-label="Main"
             className="fixed inset-x-0 bottom-0 z-20 flex justify-around gap-1 border-t border-line bg-card px-2 py-1 md:static md:flex-col md:justify-start md:border-t-0 md:bg-transparent md:p-3"

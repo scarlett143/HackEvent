@@ -212,7 +212,7 @@ export default function SourcesPage() {
     <AppShell>
     <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-8 p-4 md:p-6">
       <header className="flex flex-col gap-3 border-b border-line pb-4">
-        <h1 className="font-display text-3xl font-bold">Sources</h1>
+        <h1 className="font-display text-[1.75rem] leading-8 font-bold">Sources</h1>
         <AdminNav current="sources" />
       </header>
 
