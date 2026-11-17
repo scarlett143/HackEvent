@@ -81,7 +81,8 @@ function Detail() {
       {ev.review_status === "needs_review" && (
         <p role="note" className="rounded-xl border border-warning bg-surface p-3 text-sm">
           <span className="text-warning-ink font-semibold">
-            <span aria-hidden>⚠ </span>Needs review.
+            <Icon name="warning" size={18} className="mr-1 align-[-4px]" />
+            Needs review.
           </span>{" "}
           Some details were not verified yet. Check the source before relying on them.
         </p>

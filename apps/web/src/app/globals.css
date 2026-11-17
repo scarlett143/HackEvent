@@ -23,7 +23,9 @@
   --color-warning: #d97706;
   --color-ok: #217b44;
   --color-new: #7c3aed;
-  --color-warning-ink: #ab6c00;
+  --color-warning-ink: #8f5c00; /* 5.7:1 on white, 5.0:1 on surface (was #ab6c00: 4.3 / 3.8, failed AA) */
+  /* Badge fill under white text: stays #dc2626 in dark mode too (white 4.8:1; the dark --color-urgent text hue is only 3.8:1). */
+  --color-urgent-fill: #dc2626;
   --color-ok-ink: #217b44;
   --radius-xl: 12px;
 }
@@ -45,6 +47,14 @@ html[data-theme="dark"] {
   --color-ok: #4ade80;
   --color-warning-ink: #fbbf24;
   --color-ok-ink: #4ade80;
+}
+
+/* Tailwind v4 resets buttons to cursor: default; clickable controls should show a pointer. */
+button:not(:disabled),
+summary,
+[role="button"],
+[role="switch"]:not(:disabled) {
+  cursor: pointer;
 }
 
 body {
