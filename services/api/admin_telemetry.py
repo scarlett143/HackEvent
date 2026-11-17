@@ -44,9 +44,15 @@ class ProviderStats(BaseModel):
     avg_latency_ms_day: int | None
 
 
+class PurposeStats(BaseModel):
+    purpose: str  # e.g. "extract", "verify" (llm_usage.purpose)
+    tokens_day: int
+
+
 class Telemetry(BaseModel):
     day_resets_at: datetime  # next UTC midnight: when the daily caps reset
     providers: list[ProviderStats]
+    purposes: list[PurposeStats]  # today's settled tokens by purpose, largest first
     total_events: int
 
 
@@ -98,7 +104,20 @@ async def telemetry(db: Annotated[AsyncSession, Depends(get_db)]) -> Telemetry:
                 avg_latency_ms_day=None if latency is None else round(latency),
             )
         )
+    by_purpose = await db.execute(
+        select(
+            func.coalesce(LlmUsage.purpose, "other").label("p"),
+            func.coalesce(func.sum(LlmUsage.input_tokens + LlmUsage.output_tokens), 0).label("t"),
+        )
+        .where(today, settled)
+        .group_by("p")
+        .order_by(func.sum(LlmUsage.input_tokens + LlmUsage.output_tokens).desc())
+    )
+    purposes = [PurposeStats(purpose=str(p), tokens_day=int(t)) for p, t in by_purpose]
     total = await db.scalar(select(func.count()).select_from(Event))
     return Telemetry(
-        day_resets_at=day + timedelta(days=1), providers=providers, total_events=total or 0
+        day_resets_at=day + timedelta(days=1),
+        providers=providers,
+        purposes=purposes,
+        total_events=total or 0,
     )

@@ -7,6 +7,7 @@ import { filterHealth } from "@/lib/health";
 import { Icon } from "../../symbol";
 import { AppShell } from "../../ui";
 import { AdminNav } from "../admin-nav";
+import { LlmVault } from "./llm-vault";
 import { TelemetryPanel } from "./telemetry-panel";
 
 // App Flow F10 + doc 06 A7: organisations (tier, CSV import), sources (create/edit,
@@ -249,6 +250,7 @@ export default function SourcesPage() {
       <TelemetryPanel
         scrapers={health ? { healthy: count("green"), degraded: count("amber"), error: count("red") } : null}
       />
+      <LlmVault />
 
       <section aria-labelledby="health-heading" className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
