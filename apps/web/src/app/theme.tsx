@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { THEME_KEY, type Theme } from "@/lib/theme";
 
 /** Light/dark switch. The <html data-theme> attribute is set before paint (layout script). */
-export function ThemeSwitch() {
+export function ThemeSwitch({ compact = false }: { compact?: boolean }) {
+  const labelId = useId(); // rendered in the sidebar and the phone menu: ids must be unique
   const [theme, setTheme] = useState<Theme | null>(null);
 
   useEffect(() => {
@@ -28,16 +29,16 @@ export function ThemeSwitch() {
   return (
     <div className="flex items-center justify-between gap-4">
       <div>
-        <p className="font-medium" id="theme-label">
+        <p className="font-medium" id={labelId}>
           Dark mode
         </p>
-        <p className="text-muted text-sm">Switch between light and dark visual themes.</p>
+        {!compact && <p className="text-muted text-sm">Switch between light and dark visual themes.</p>}
       </div>
       <button
         type="button"
         role="switch"
         aria-checked={on}
-        aria-labelledby="theme-label"
+        aria-labelledby={labelId}
         disabled={theme === null}
         onClick={flip}
         className={`focus-ring relative inline-flex h-8 w-14 shrink-0 items-center rounded-full border border-line transition-colors ${
