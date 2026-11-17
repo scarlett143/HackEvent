@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { adminRedirect, api, type ApiError, type Me } from "@/lib/api";
 import { filterHealth } from "@/lib/health";
+import { Icon } from "../../symbol";
 import { AppShell } from "../../ui";
 import { AdminNav } from "../admin-nav";
 import { TelemetryPanel } from "./telemetry-panel";
@@ -212,7 +213,27 @@ export default function SourcesPage() {
     <AppShell>
     <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-8 p-4 md:p-6">
       <header className="flex flex-col gap-3 border-b border-line pb-4">
-        <h1 className="font-display text-[1.75rem] leading-8 font-bold">Sources</h1>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div className="flex flex-col gap-1">
+            <p className="flex items-center gap-2 text-sm font-medium">
+              <span className="rounded bg-tertiary/15 px-1.5 py-0.5 text-xs font-bold tracking-wide text-tertiary uppercase">
+                Admin console
+              </span>
+            </p>
+            <h1 className="font-display text-[1.75rem] leading-8 font-bold">Crawler orchestration &amp; LLM pipeline</h1>
+            <p className="text-muted text-sm">Scraper health, source management and LLM token use. LLM usage refreshes every minute.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button className="btn-secondary inline-flex items-center gap-2" onClick={() => loadHealth()}>
+              <Icon name="refresh" />
+              Refresh health
+            </button>
+            <button className="btn-primary inline-flex items-center gap-2" onClick={() => setEditing("new")}>
+              <Icon name="add_circle" />
+              New source
+            </button>
+          </div>
+        </div>
         <AdminNav current="sources" />
       </header>
 
@@ -277,58 +298,78 @@ export default function SourcesPage() {
         ) : shownHealth.length === 0 ? (
           <p className="text-muted">No sources match.</p>
         ) : (
-          <ul className="grid gap-3 lg:grid-cols-2">
-            {shownHealth.map((h) => {
-              const src = sources?.find((x) => x.id === h.id);
-              return (
-                <li key={h.id} className={`card flex flex-col gap-3 border-l-4 p-4 ${STATUS[h.status].edge}`}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h3 className="font-display text-lg font-semibold break-all">{h.url}</h3>
-                      <p className="text-muted text-sm">
-                        {h.kind} / {h.adapter}
-                        {h.is_enabled ? "" : " · disabled"}
-                      </p>
-                    </div>
-                    <span className={`chip shrink-0 gap-2 ${STATUS[h.status].pill}`}>
-                      <span aria-hidden="true" className={`size-2 rounded-full ${STATUS[h.status].dot}`} />
-                      {STATUS[h.status].label}
-                    </span>
-                  </div>
-                  <dl className="surface grid grid-cols-3 gap-2 rounded-lg p-3 text-center text-sm">
-                    <div>
-                      <dt className="text-muted text-xs">Last success</dt>
-                      <dd className="font-medium">{when(h.last_success_at)}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-muted text-xs">Failed runs</dt>
-                      <dd className="font-medium tabular-nums">{h.error_streak}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-muted text-xs">Empty runs</dt>
-                      <dd className="font-medium tabular-nums">{h.empty_streak}</dd>
-                    </div>
-                  </dl>
-                  <p className="text-sm break-words">
-                    <span className="font-medium">{h.reason}</span>
-                    {h.last_error && <span className="text-urgent block">{h.last_error}</span>}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-3">
-                    {src && (
-                      <button className="btn-secondary" onClick={() => runNow(src)}>
-                        {h.status === "red" ? "Retry source" : "Run scraper"}
-                      </button>
-                    )}
-                    {runs[h.id] && (
-                      <span role="status" className="text-muted text-sm">
-                        {runs[h.id]}
+          <div className="card overflow-hidden">
+            <div
+              aria-hidden
+              className="surface text-muted hidden grid-cols-[minmax(0,2.2fr)_8rem_10rem_7rem_minmax(9rem,auto)] gap-3 px-4 py-3 text-xs font-semibold tracking-wide uppercase lg:grid"
+            >
+              <span>Source &amp; endpoint</span>
+              <span>Health</span>
+              <span>Last success</span>
+              <span>Failed / empty</span>
+              <span className="text-right">Actions</span>
+            </div>
+            <ul className="divide-y divide-line">
+              {shownHealth.map((h) => {
+                const src = sources?.find((x) => x.id === h.id);
+                const red = h.status === "red";
+                return (
+                  <li
+                    key={h.id}
+                    className={`grid gap-3 border-l-4 p-4 lg:grid-cols-[minmax(0,2.2fr)_8rem_10rem_7rem_minmax(9rem,auto)] lg:items-center ${STATUS[h.status].edge} ${red ? "bg-urgent/5" : ""}`}
+                  >
+                    <div className="flex min-w-0 items-start gap-3">
+                      <span aria-hidden className={`surface flex size-10 shrink-0 items-center justify-center rounded-lg ${red ? "text-urgent" : ""}`}>
+                        <Icon name={h.adapter === "rss" ? "rss_feed" : h.adapter === "api" ? "database" : "public"} />
                       </span>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+                      <div className="min-w-0">
+                        <h3 className="font-display text-lg font-semibold break-all">{h.url}</h3>
+                        <p className="text-muted text-sm">
+                          {h.kind} / {h.adapter}
+                          {h.is_enabled ? "" : " · disabled"}
+                        </p>
+                        {h.last_error && <p className="text-urgent text-sm break-words">{h.last_error}</p>}
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-start gap-1">
+                      <span className={`chip gap-2 ${STATUS[h.status].pill}`}>
+                        <span aria-hidden="true" className={`size-2 rounded-full ${STATUS[h.status].dot}`} />
+                        {STATUS[h.status].label}
+                      </span>
+                      <span className="text-muted text-xs">{h.reason}</span>
+                    </div>
+                    <p className="text-sm">
+                      <span className="text-muted lg:hidden">Last success: </span>
+                      {when(h.last_success_at)}
+                    </p>
+                    <p className="text-sm tabular-nums">
+                      <span className="text-muted lg:hidden">Failed / empty runs: </span>
+                      {h.error_streak} / {h.empty_streak}
+                    </p>
+                    <div className="flex flex-col items-start gap-1 lg:items-end">
+                      {src && (
+                        <button
+                          className={`${red ? "btn-primary !bg-urgent-fill !text-white" : "btn-secondary"} inline-flex items-center gap-2`}
+                          onClick={() => runNow(src)}
+                        >
+                          <Icon name={red ? "replay" : "play_arrow"} />
+                          {red ? "Retry source" : "Run"}
+                        </button>
+                      )}
+                      {runs[h.id] && (
+                        <span role="status" className="text-muted text-xs">
+                          {runs[h.id]}
+                        </span>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="text-muted border-t border-line px-4 py-3 text-sm">
+              Displaying {shownHealth.length} of {health.length} sources · use Refresh health for the latest status
+            </p>
+          </div>
         )}
       </section>
 
