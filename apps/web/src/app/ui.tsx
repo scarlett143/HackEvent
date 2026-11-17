@@ -42,7 +42,7 @@ export function useShell(): Shell {
 // ponytail: flip `soon` off as Calendar (HE-061) and Notifications (HE-076) land.
 const NAV: { href: string; label: string; soon: boolean }[] = [
   { href: "/", label: "Feed", soon: false },
-  { href: "/calendar", label: "Calendar", soon: true },
+  { href: "/calendar", label: "Calendar", soon: false },
   { href: "/notifications", label: "Notifications", soon: true },
   { href: "/settings", label: "Settings", soon: false },
 ];
