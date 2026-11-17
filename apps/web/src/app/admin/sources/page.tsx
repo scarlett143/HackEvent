@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { adminRedirect, api, type ApiError, type Me } from "@/lib/api";
 import { filterHealth } from "@/lib/health";
 import { AppShell } from "../../ui";
+import { TelemetryPanel } from "./telemetry-panel";
 
 // App Flow F10 + doc 06 A7: organisations (tier, CSV import), sources (create/edit,
 // Run now) for Admins (HE-091) and source health, red first (HE-092). Fetched text
@@ -310,6 +311,10 @@ export default function SourcesPage() {
         )}
         {notice && <p>{notice}</p>}
       </div>
+
+      <TelemetryPanel
+        scrapers={health ? { healthy: count("green"), degraded: count("amber"), error: count("red") } : null}
+      />
 
       <section aria-labelledby="orgs-heading" className="flex flex-col gap-4">
         <h2 id="orgs-heading" className="text-lg font-semibold">

@@ -1,0 +1,152 @@
+"use client";
+
+// Stitch "LLM Quotas & Scraper Telemetry" panel. Data: GET /api/v1/admin/telemetry (spend vs
+// caps, same UTC windows the router enforces). Scraper counts come from the page's health list.
+// Provider names/models are rendered as React text, never HTML.
+
+import { useCallback, useEffect, useState } from "react";
+import { api } from "@/lib/api";
+import { pctUsed, quotaLevel, type ProviderStats, type Telemetry, untilReset, usd } from "@/lib/telemetry";
+import { useNow } from "../../ui";
+
+const REFRESH_MS = 60_000;
+const LEVEL = {
+  ok: { bar: "bg-primary", text: "", label: "" },
+  warning: { bar: "bg-warning", text: "text-warning-ink", label: "Near cap" },
+  urgent: { bar: "bg-urgent", text: "text-urgent", label: "Cap reached" },
+} as const;
+
+export type ScraperCounts = { healthy: number; degraded: number; error: number };
+
+export function TelemetryPanel({ scrapers }: { scrapers: ScraperCounts | null }) {
+  const now = useNow();
+  const [data, setData] = useState<Telemetry | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    const r = await api<Telemetry>("/api/v1/admin/telemetry");
+    if (r.ok) {
+      setData(r.data);
+      setError(null);
+    } else setError(r.error.message);
+  }, []);
+
+  useEffect(() => {
+    // Mount-time fetch; setState runs after an await, not synchronously.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    load();
+    const id = setInterval(load, REFRESH_MS);
+    return () => clearInterval(id);
+  }, [load]);
+
+  return (
+    <section aria-labelledby="telemetry-heading" className="card flex flex-col gap-4 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 id="telemetry-heading" className="font-display text-xl font-bold">
+          LLM quotas and scraper telemetry
+        </h2>
+        <span className="chip border-ok/30 bg-ok/10 text-ok-ink">Refreshes every minute</span>
+      </div>
+
+      {error && (
+        <p role="alert" className="text-urgent text-sm">
+          Could not load telemetry. {error}
+        </p>
+      )}
+      {!data && !error && <div aria-busy="true" aria-label="Loading telemetry" className="skeleton h-24" />}
+      {data && data.providers.length === 0 && (
+        <p className="text-muted text-sm">No LLM providers are configured yet.</p>
+      )}
+      {data && (
+        <>
+          <ul className="grid gap-3 lg:grid-cols-2">
+            {data.providers.map((p) => (
+              <Provider key={p.id} p={p} />
+            ))}
+          </ul>
+          {data.providers.length > 0 && (
+            <p className="text-muted text-sm">
+              Daily caps reset in <span className="tabular-nums">{untilReset(data.day_resets_at, now)}</span>{" "}
+              (00:00 UTC).
+            </p>
+          )}
+        </>
+      )}
+
+      <div className="surface flex flex-wrap items-center justify-between gap-3 rounded-lg p-3 text-sm">
+        <p>
+          <span className="font-display text-lg font-bold tabular-nums">
+            {data ? data.total_events.toLocaleString("en-IN") : "—"}
+          </span>{" "}
+          total events in the database
+        </p>
+        {scrapers && (
+          <p className="text-muted tabular-nums">
+            Scrapers: {scrapers.healthy} healthy · {scrapers.degraded} degraded · {scrapers.error} error
+          </p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function Provider({ p }: { p: ProviderStats }) {
+  const dayPct = pctUsed(p.spent_day_usd, p.daily_cap_usd);
+  const lvl = LEVEL[quotaLevel(dayPct)];
+  const monthPct = pctUsed(p.spent_month_usd, p.monthly_cap_usd);
+  const mlvl = LEVEL[quotaLevel(monthPct)];
+  return (
+    <li className="surface flex flex-col gap-2 rounded-lg p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <h3 className="font-display text-lg font-semibold break-words">{p.name}</h3>
+          <p className="text-muted text-sm break-all">
+            {p.model} · {p.role}
+          </p>
+        </div>
+        {!p.is_enabled && <span className="chip shrink-0">Disabled</span>}
+      </div>
+      <div
+        role="progressbar"
+        aria-label={`${p.name} daily spend`}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.min(dayPct, 100)}
+        aria-valuetext={`${usd(p.spent_day_usd)} of ${usd(p.daily_cap_usd)} daily cap`}
+        className="h-2 overflow-hidden rounded-full bg-line"
+      >
+        <div className={`h-full ${lvl.bar}`} style={{ width: `${Math.min(dayPct, 100)}%` }} />
+      </div>
+      <p className="flex flex-wrap justify-between gap-x-3 text-sm tabular-nums">
+        <span>
+          {usd(p.spent_day_usd)} / {usd(p.daily_cap_usd)} today ({dayPct}%)
+        </span>
+        {lvl.label && <span className={`font-semibold ${lvl.text}`}>{lvl.label}</span>}
+      </p>
+      <p className="flex flex-wrap justify-between gap-x-3 text-sm tabular-nums">
+        <span className="text-muted">
+          {usd(p.spent_month_usd)} / {usd(p.monthly_cap_usd)} this month ({monthPct}%)
+        </span>
+        {mlvl.label && <span className={`font-semibold ${mlvl.text}`}>Monthly: {mlvl.label.toLowerCase()}</span>}
+      </p>
+      <dl className="grid grid-cols-3 gap-2 text-center text-sm">
+        <div>
+          <dt className="text-muted text-xs">Tokens today</dt>
+          <dd className="font-medium tabular-nums">{p.tokens_day.toLocaleString("en-IN")}</dd>
+        </div>
+        <div>
+          <dt className="text-muted text-xs">Calls (failed)</dt>
+          <dd className="font-medium tabular-nums">
+            {p.calls_day} ({p.failed_calls_day})
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted text-xs">Avg latency</dt>
+          <dd className="font-medium tabular-nums">
+            {p.avg_latency_ms_day === null ? "—" : `${p.avg_latency_ms_day} ms`}
+          </dd>
+        </div>
+      </dl>
+    </li>
+  );
+}
