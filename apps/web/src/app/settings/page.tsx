@@ -19,6 +19,7 @@ import {
 import { loadEvents } from "@/lib/load-events";
 import { matchSettings, type SectionId, SUGGESTIONS } from "@/lib/settings-search";
 import { downloadIcs, downloadXls } from "../calendar-menu";
+import { Icon } from "../symbol";
 import { AppShell, Avatar, useShell } from "../ui";
 
 const MIN_PASSWORD = 12;
@@ -364,7 +365,7 @@ function OffsetPicker({
               days.includes(d) ? "border-primary bg-primary text-on-primary" : "border-line"
             }`}
           >
-            {days.includes(d) && <span aria-hidden>✓ </span>}
+            {days.includes(d) && <Icon name="check" size={16} className="mr-1 align-[-3px]" />}
             {offsetLabel(d)}
           </button>
         ))}

@@ -116,7 +116,7 @@ function Calendar() {
 
       <ul className="flex flex-wrap gap-x-6 gap-y-2 text-base font-medium" aria-label="Legend">
         <li className="flex items-center gap-2">
-          <span aria-hidden className="size-4 rounded-full bg-urgent" /> Deadline
+          <span aria-hidden className="size-4 rounded-sm bg-urgent" /> Deadline
         </li>
         <li className="flex items-center gap-2">
           <span aria-hidden className="size-4 rounded-full bg-primary" /> Event
@@ -161,12 +161,17 @@ function EntryRow({ e, tz, now }: { e: Entry; tz: string; now: Date }) {
   const tone = u === "urgent" ? "text-urgent" : u === "warning" ? "text-warning-ink" : u === "ok" ? "text-ok-ink" : "text-muted";
   return (
     <li className="card flex gap-3 p-3">
-      <span aria-hidden className={`mt-1 size-3.5 shrink-0 rounded-full ${deadline ? "bg-urgent" : "bg-primary"}`} />
+      <span aria-hidden className={`mt-1 size-3.5 shrink-0 ${deadline ? "rounded-sm bg-urgent" : "rounded-full bg-primary"}`} />
       <div className="flex min-w-0 flex-col gap-0.5">
         <p className="text-muted text-sm tabular-nums">
           {deadline ? "Deadline" : "Event"} · {timeLabel(e.start, tz)}
           {!deadline && ` – ${timeLabel(e.end, tz)}`}
-          {e.registered && " · ✓ Registered"}
+          {e.registered && (
+            <>
+              {" · "}
+              <Icon name="check_circle" fill size={16} className="text-ok-ink align-[-3px]" /> Registered
+            </>
+          )}
         </p>
         <Link href={`/events/${encodeURIComponent(e.eventId)}`} className="focus-ring font-display rounded text-lg font-semibold hover:underline">
           {e.title}
@@ -213,7 +218,7 @@ function Month({
               </span>
               <span aria-hidden className="flex items-center gap-1">
                 {on.slice(0, 3).map((e) => (
-                  <span key={e.key} className={`size-3 rounded-full ${e.kind === "deadline" ? "bg-urgent" : "bg-primary"}`} />
+                  <span key={e.key} className={`size-3 ${e.kind === "deadline" ? "rounded-sm bg-urgent" : "rounded-full bg-primary"}`} />
                 ))}
                 {on.some((e) => e.registered) && <Icon name="check_circle" fill size={16} className="text-ok-ink" />}
               </span>

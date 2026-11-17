@@ -134,6 +134,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <ShellContext.Provider value={{ me, setMe, tz, refreshUnread, toast: showToast }}>
       <div className="flex min-h-full flex-1 flex-col">
+        {/* Keyboard users can jump past the header and nav (WCAG 2.4.1). */}
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-lg focus:bg-card focus:px-4 focus:py-2 focus:font-semibold focus:shadow"
+        >
+          Skip to main content
+        </a>
         <header className="flex items-center justify-between gap-4 border-b border-line bg-card px-4 py-2 md:px-6">
           <Link href="/" className="focus-ring flex items-center gap-2 rounded">
             <span aria-hidden className="flex size-9 items-center justify-center rounded-lg bg-primary text-on-primary">
@@ -154,7 +161,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {badge > 0 && (
                 <span
                   aria-hidden
-                  className="absolute top-1 right-0.5 min-w-5 rounded-full bg-urgent px-1 text-center text-xs font-semibold text-white tabular-nums"
+                  className="absolute top-1 right-0.5 min-w-5 rounded-full bg-urgent-fill px-1 text-center text-xs font-semibold text-white tabular-nums"
                 >
                   {badge > 99 ? "99+" : badge}
                 </span>
@@ -217,7 +224,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   {n.href === "/notifications" && badge > 0 && (
                     <span
                       aria-label={`${badge} unread`}
-                      className="absolute top-1 right-3 min-w-5 rounded-full bg-urgent px-1 text-center text-xs font-semibold text-white tabular-nums md:static md:ml-auto"
+                      className="absolute top-1 right-3 min-w-5 rounded-full bg-urgent-fill px-1 text-center text-xs font-semibold text-white tabular-nums md:static md:ml-auto"
                     >
                       {badge > 99 ? "99+" : badge}
                     </span>
@@ -247,7 +254,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </button>
           </div>
           </aside>
-          <div className="min-w-0 flex-1 pb-20 md:pb-0">{children}</div>
+          <div id="main" tabIndex={-1} className="min-w-0 flex-1 pb-20 focus:outline-none md:pb-0">
+            {children}
+          </div>
         </div>
         {/* Toasts: top-right on desktop, bottom on small screens (brief §5); always-mounted live region. */}
         <div
@@ -347,7 +356,8 @@ export function Chips({ ev }: { ev: EventItem }) {
     <ul className="flex flex-wrap gap-1.5" aria-label="Eligibility">
       {ev.is_registered && (
         <li className="chip border-ok text-ok-ink">
-          <span aria-hidden>✓&nbsp;</span>Registered
+          <Icon name="check" size={16} className="mr-0.5" />
+          Registered
         </li>
       )}
       {ev.eligibility.map((e) => (
@@ -414,7 +424,7 @@ export function TrackStar({
   );
 }
 
-/** Register ↗ / I registered / ☆. */
+/** Register / I registered (and, on the detail page, Remind me). */
 export function EventActions({
   ev,
   onPatch,
