@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { adminRedirect, api, type ApiError, type Me } from "@/lib/api";
 import { filterHealth } from "@/lib/health";
 import { AppShell } from "../../ui";
+import { AdminNav } from "../admin-nav";
 import { TelemetryPanel } from "./telemetry-panel";
 
 // App Flow F10 + doc 06 A7: organisations (tier, CSV import), sources (create/edit,
@@ -282,25 +282,9 @@ export default function SourcesPage() {
   return (
     <AppShell>
     <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-8 p-4 md:p-6">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
-        <h1 className="text-xl font-semibold">Sources and organisations</h1>
-        <nav aria-label="Admin" className="flex flex-wrap gap-4">
-          <a className="link inline-flex min-h-11 items-center" href="#orgs-heading">
-            Organisations
-          </a>
-          <a className="link inline-flex min-h-11 items-center" href="#sources-heading">
-            Sources
-          </a>
-          <a className="link inline-flex min-h-11 items-center" href="#health-heading">
-            Health
-          </a>
-          <Link className="link inline-flex min-h-11 items-center" href="/admin/users">
-            Users
-          </Link>
-          <Link className="link inline-flex min-h-11 items-center" href="/">
-            Back to HackEvents
-          </Link>
-        </nav>
+      <header className="flex flex-col gap-3 border-b border-line pb-4">
+        <h1 className="font-display text-3xl font-bold">Sources and organisations</h1>
+        <AdminNav current="sources" />
       </header>
 
       <div aria-live="polite" className="min-h-5 text-sm">

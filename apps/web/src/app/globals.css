@@ -118,7 +118,8 @@ body {
     @apply border-primary bg-primary-soft text-ink;
   }
   /* Segmented tabs (Stitch notifications/calendar): the selected one is a solid lime pill. */
-  .chip-tab[aria-pressed="true"] {
+  .chip-tab[aria-pressed="true"],
+  .chip-tab[aria-current="page"] {
     @apply border-primary bg-primary font-semibold text-on-primary;
   }
   /* Skeletons appear only when loading takes > 200 ms (brief §5). */

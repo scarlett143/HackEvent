@@ -175,7 +175,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <span className="sr-only md:not-sr-only md:rounded md:border md:border-line md:px-1.5 md:text-xs">(Soon)</span>
                   </span>
                 );
-              const current = n.href === "/" ? pathname === "/" : pathname.startsWith(n.href);
+              const base = n.href.startsWith("/admin") ? "/admin" : n.href; // every admin page highlights Admin
+              const current = base === "/" ? pathname === "/" : pathname.startsWith(base);
               return (
                 <Link
                   key={n.href}

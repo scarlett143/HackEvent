@@ -1,9 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { adminRedirect, api, type ApiError, type Me } from "@/lib/api";
+import { AppShell } from "../../ui";
+import { AdminNav } from "../admin-nav";
 
 // App Flow F1 step 1 + doc 06 A7: users table, invite form, recent invites (HE-090).
 // ponytail: plain tables; TanStack (design brief §4.6) once sorting/filtering is needed.
@@ -107,17 +108,11 @@ export default function UsersPage() {
     }).format(new Date(iso));
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 p-6">
-      <header className="flex items-center justify-between border-b border-line pb-4">
-        <h1 className="text-xl font-semibold">Users and invites</h1>
-        <nav aria-label="Admin" className="flex flex-wrap gap-4">
-          <Link className="link inline-flex min-h-11 items-center" href="/admin/sources">
-            Sources
-          </Link>
-          <Link className="link inline-flex min-h-11 items-center" href="/">
-            Back to HackEvents
-          </Link>
-        </nav>
+    <AppShell>
+    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 p-4 md:p-6">
+      <header className="flex flex-col gap-3 border-b border-line pb-4">
+        <h1 className="font-display text-3xl font-bold">Users and invites</h1>
+        <AdminNav current="users" />
       </header>
 
       <div aria-live="polite" className="min-h-5 text-sm">
@@ -264,5 +259,6 @@ export default function UsersPage() {
         )}
       </section>
     </main>
+    </AppShell>
   );
 }
