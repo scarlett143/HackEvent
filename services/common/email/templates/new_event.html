@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block body %}
+<p style="margin:0 0 8px;font-size:20px;font-weight:bold">New hackathon</p>
+<p style="margin:0 0 16px">{{ title }} ({{ organiser }})</p>
+<p style="margin:0 0 24px"><strong>Registration closes:</strong> {{ when }}</p>
+<p style="margin:0 0 24px"><a href="{{ app_url(path) }}" style="display:inline-block;padding:10px 16px;background:#2563EB;color:#FFFFFF;text-decoration:none;border-radius:8px">Open in HackEvents</a></p>
+<p style="margin:0;color:#475569;font-size:13px">You get this because new-event alerts are on and this event matches your filters. <a href="{{ app_url('/settings') }}" style="color:#2563EB">Change alerts</a>.</p>
+{% endblock %}

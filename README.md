@@ -58,6 +58,7 @@ Design docs: [docs/](docs/README.md) — PRD, TRD, schema, API, security, AI gua
 | HE-072 | Deadline / start / status change at the source replans every registered or tracking user's reminders (pending replaced, sent kept); "Deadline updated" chip for 48 h | Done |
 | HE-073 | Notifier plugin interface (doc 06 B3: send/test -> SendResult, permanent_failure) with in-app + email plugins and a contract test; `GET /notifications`, `POST /notifications/read`; Alerts page shows reminders and marks them read | Done |
 | HE-077 | Settings: profile, timezone, reminder offsets, quiet hours, channels with Send test (email, in-app), password change | Done |
+| HE-078 | New-event alerts: a new trusted event (created `auto`, or approved from the review queue) alerts active users whose `new_event_alerts` is on and whose region / kind / mode filters match (same rules as the feed filters), in-app and/or email per channel prefs; once per event per user (inbox check + Redis claim); prefs API exposes the toggle and filters | Done |
 | HE-090 | Admin users + invites UI (login, 2FA, invite, accept, role/deactivate) | Done |
 | HE-091 | Admin orgs + sources UI: SSRF-checked URLs, CSV import, Run now | Done |
 | HE-092 | Source health dashboard (red/amber/green with reason) | Done |

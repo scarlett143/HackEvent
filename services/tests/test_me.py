@@ -30,6 +30,8 @@ def test_prefs_defaults_when_no_row(stack_client: TestClient, two_users: Pair) -
         "deadline_offsets_days": [3, 2, 1, 0],
         "event_offsets_days": [3, 2, 1, 0],
         "channels": {"email": True, "in_app": True},
+        "new_event_alerts": True,  # HE-078
+        "new_event_filters": {"region": [], "kind": [], "mode": []},
     }
     me = stack_client.get("/api/v1/me", headers=a.headers).json()
     assert (me["timezone"], me["quiet_start"], me["quiet_end"]) == ("Asia/Kolkata", None, None)
@@ -49,6 +51,27 @@ def test_prefs_put_dedupes_sorts_and_persists(stack_client: TestClient, two_user
     assert stack_client.get(PREFS, headers=b.headers).json()["event_offsets_days"] == [3, 2, 1, 0]
 
 
+def test_new_event_alert_prefs_round_trip_and_are_kept(
+    stack_client: TestClient, two_users: Pair
+) -> None:
+    a, b = two_users
+    filters = {"region": ["india"], "kind": [], "mode": ["online", "hybrid"]}
+    body = _prefs(
+        new_event_alerts=False,
+        new_event_filters={"region": ["india"], "mode": ["online", "hybrid"]},
+    )
+    r = stack_client.put(PREFS, json=body, headers=a.headers)
+    assert r.status_code == 200, r.text
+    assert (r.json()["new_event_alerts"], r.json()["new_event_filters"]) == (False, filters)
+    stack_client.put(PREFS, json=_prefs(event_offsets_days=[2]), headers=a.headers)  # omitted
+    got = stack_client.get(PREFS, headers=a.headers).json()
+    assert (got["new_event_alerts"], got["new_event_filters"]) == (False, filters)
+    assert sql("SELECT new_event_alerts, new_event_filters FROM notification_prefs") == [
+        (False, filters)
+    ]
+    assert stack_client.get(PREFS, headers=b.headers).json()["new_event_alerts"] is True
+
+
 @pytest.mark.parametrize(
     "body",
     [
@@ -57,6 +80,9 @@ def test_prefs_put_dedupes_sorts_and_persists(stack_client: TestClient, two_user
         _prefs(channels={"sms": True}),
         _prefs(channels={"email": "yes please"}),
         {"deadline_offsets_days": [1], "channels": {}},  # missing field (PUT is full)
+        _prefs(new_event_filters={"region": ["mars"]}),  # HE-078: feed values only
+        _prefs(new_event_filters={"tier": [1]}),
+        _prefs(new_event_alerts="sometimes"),
     ],
 )
 def test_prefs_validation(stack_client: TestClient, two_users: Pair, body: object) -> None:
