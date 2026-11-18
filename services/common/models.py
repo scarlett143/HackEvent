@@ -118,6 +118,7 @@ class Channel(enum.StrEnum):
     telegram = "telegram"
     ntfy = "ntfy"
     gcal = "gcal"
+    in_app = "in_app"  # migration 0005 (HE-070)
 
 
 class ChannelPlatform(enum.StrEnum):

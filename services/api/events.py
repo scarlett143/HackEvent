@@ -52,6 +52,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.deps import get_db
 from api.errors import ApiError
 from api.roles import require_role
+from common import reminders
 from common.models import (
     Event,
     EventMode,
@@ -443,9 +444,10 @@ async def get_event(event_id: uuid.UUID, user: AnyUser, db: Db) -> EventDetailOu
 
 
 async def recompute_reminders(db: AsyncSession, user_id: uuid.UUID, event_id: uuid.UUID) -> None:
-    """HE-070 hook: rebuild this user's pending reminders for this event (registered ->
-    event-date offsets, tracked -> deadline offsets, neither -> cancel pending) inside the
-    caller's transaction. No-op until the reminder planner (HE-070) exists."""
+    """Rebuild this user's pending reminders for this event in the caller's transaction
+    (registered -> event-date offsets, tracked -> deadline offsets, neither -> none)."""
+    await db.flush()  # the registration / track change must be visible to the planner
+    await reminders.plan(db, user_id, [event_id])
 
 
 async def _set_interest(

@@ -94,7 +94,8 @@ def test_all_datetimes_are_timestamptz() -> None:
 
 def test_single_linear_head_on_baseline() -> None:
     script = ScriptDirectory.from_config(_config())
-    assert script.get_heads() == ["0004"]
+    assert script.get_heads() == ["0005"]
+    assert script.get_revision("0005").down_revision == "0004"
     assert script.get_revision("0004").down_revision == "0003"
     assert script.get_revision("0003").down_revision == "0002"
     assert script.get_revision("0002").down_revision == "0001"

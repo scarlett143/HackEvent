@@ -19,6 +19,7 @@ from api.deps import get_db
 from api.errors import ApiError
 from api.invites import _ip, _now
 from api.totp import require_admin_2fa
+from common import reminders
 from common.audit import AuditAction, record
 from common.models import Invite, Session, User, UserRole
 
@@ -136,6 +137,8 @@ async def update_user(
         target.is_active = body.is_active
         if not body.is_active:  # end every session now, not just at the next request
             await db.execute(delete(Session).where(Session.user_id == target.id))
+        await db.flush()
+        await reminders.plan(db, target.id)  # inactive: no pending reminders (HE-070)
     await db.commit()
     return _user_out(target)
 
