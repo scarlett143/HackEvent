@@ -16,20 +16,11 @@ from dataclasses import dataclass
 from datetime import datetime
 from html.parser import HTMLParser
 
+from workers.keywords import KEYWORDS
+
 MAX_CHARS = 12_000  # doc 08 A7: "most relevant ~12k characters"
 WINDOW = 1_500  # chars either side of a keyword hit when truncating
 HEAD = 1_000  # always keep the top of the page (title, header)
-# doc 08 A7 keyword list; the pre-filter (pipeline.has_keyword) skips the LLM when none match.
-# ponytail: constant; move to a DB setting when admins need to edit it (A7 "list editable").
-KEYWORDS = (
-    "hackathon",
-    "hack",
-    "ideathon",
-    "codeathon",
-    "challenge",
-    "coding contest",
-    "buildathon",
-)
 
 SYSTEM_PROMPT = """\
 You turn the text of one web page into a structured record of hackathons.

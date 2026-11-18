@@ -30,9 +30,10 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 from common.llm import call_llm
 from common.models import LlmCache, LlmProviderRole
 from workers.extraction.postvalidate import LOW_CONFIDENCE, postvalidate
-from workers.extraction.prompt import KEYWORDS, PageText, build_prompt, page_text
+from workers.extraction.prompt import PageText, build_prompt, page_text
 from workers.extraction.schema import EVENTS_MAX, SCHEMA, SCHEMA_VERSION, ExtractionResult
 from workers.extraction.verify import verify_event
+from workers.keywords import has_keyword
 
 log = logging.getLogger(__name__)
 
@@ -85,11 +86,6 @@ async def extract(
         default_tz=default_tz,
         extra_reasons={int(i): r for i, r in run["extra"].items()},
     )
-
-
-def has_keyword(text: str) -> bool:
-    lower = text.lower()
-    return any(kw in lower for kw in KEYWORDS)
 
 
 def content_hash(text: str) -> str:

@@ -14,6 +14,7 @@ from common.models import LlmProviderRole
 from workers.extraction import SCHEMA, extract, pipeline
 from workers.extraction.postvalidate import postvalidate
 from workers.extraction.prompt import SYSTEM_PROMPT, build_prompt, page_text, truncate
+from workers.keywords import has_keyword
 
 NOW = datetime(2026, 11, 15, 12, 0, tzinfo=UTC)
 SRC = "https://example.edu/events"
@@ -260,4 +261,4 @@ async def test_prefilter_skips_llm_without_keywords(monkeypatch: pytest.MonkeyPa
     html = "<p>Annual sports day on 6 February 2027. Webinar on cloud careers.</p>"
     res = await extract(None, None, html=html, source_url=SRC, fetched_at=NOW)  # type: ignore[arg-type]
     assert res.is_hackathon is False and res.events == []
-    assert pipeline.has_keyword("Join the BUILDATHON") and not pipeline.has_keyword("webinar")
+    assert has_keyword("Join the BUILDATHON") and not has_keyword("webinar")

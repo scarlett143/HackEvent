@@ -5,6 +5,8 @@ entity reference is rejected by a strict expat pre-pass, so the ElementTree pars
 follows can only ever see the five predefined XML entities.
 RSS gives announcements, not schedules: pubDate is publication time, so no event dates or
 deadline are set here (the LLM path enriches those from the linked page).
+Feeds are mostly not hackathons (blogs, Substack newsletters: HE-029), so an item whose
+title + description has no doc 08 A7 keyword is dropped, as the LLM pre-filter would.
 """
 
 import logging
@@ -14,7 +16,8 @@ from xml.parsers import expat
 
 from pydantic import ValidationError
 
-from workers.scrape.adapters.base import EventCandidate, ParseError
+from workers.keywords import has_keyword
+from workers.scrape.adapters.base import EventCandidate, ParseError, to_text
 
 log = logging.getLogger(__name__)
 
@@ -80,6 +83,9 @@ def parse_rss(body: bytes, url: str) -> list[EventCandidate]:
     out: list[EventCandidate] = []
     for item in items:
         title = _text(item, "title")
+        description = _text(item, "description", "summary", "encoded", "content")
+        if not has_keyword(to_text(f"{title or ''} {description or ''}")):
+            continue
         link = _link(item)
         try:
             out.append(
@@ -87,7 +93,7 @@ def parse_rss(body: bytes, url: str) -> list[EventCandidate]:
                     title=title or "",
                     organiser=organiser,
                     registration_url=urljoin(url, link) if link else None,
-                    description=_text(item, "description", "summary", "encoded", "content"),
+                    description=description,
                     evidence=title or "",
                     confidence=CONFIDENCE,
                     extractor="rss",
