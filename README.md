@@ -47,6 +47,7 @@ Design docs: [docs/](docs/README.md) — PRD, TRD, schema, API, security, AI gua
 | HE-047 wiring | Ingest pipeline: changed page → adapter (rss/api) or LLM `extract` → `upsert_candidate` → source health; LLM outage retries then forces a refetch | Done |
 | HE-050 | Events API: filters, keyset cursor, p95 < 300 ms on 5k events | Done |
 | HE-051 | Feed UI: sections, cards, countdown, chips (design brief) | Done |
+| HE-052 | "New since last visit": `is_new` / `new_only`, `GET /me/unread-count` badge, `POST /me/seen` after 3 s of visible feed + Mark all read | Done |
 | HE-053 | Feed filters with URL state (reload keeps filters) | Done |
 | HE-054 | Event detail: two dated countdowns, needs-review banner, source block with plain-text snippet | Done |
 | HE-077 | Settings: profile, timezone, reminder offsets, quiet hours, channels with Send test (email, in-app), password change | Done |

@@ -217,6 +217,8 @@ def test_new_only_unread_count_and_seen(clean: TestClient, two_users: Pair) -> N
     }
     seen = clean.post("/api/v1/me/seen", headers=a.headers)
     assert seen.status_code == 200 and seen.json()["last_seen_at"].endswith("Z")
+    # HE-052 acceptance: the badge clears after seen.
+    assert clean.get("/api/v1/me/unread-count", headers=a.headers).json()["new_events"] == 0
     assert ids(clean, a, new_only="true") == []
     fresh = event("Fresh", first_seen=datetime.now(UTC) + timedelta(seconds=1))
     assert ids(clean, a, new_only="true") == [fresh]
