@@ -1,14 +1,28 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { api, safeNext, type Me } from "@/lib/api";
 import { Icon } from "../symbol";
 
+// HE-012: the API's callback redirects back here with ?error=google_<reason>.
+const GOOGLE_ERRORS: Record<string, string> = {
+  google_no_account:
+    "No HackEvents account uses that Google email. Sign in with your password, or ask your admin for an invite.",
+  google_state: "That Google sign-in expired. Try again.",
+  google_cancelled: "Google sign-in was cancelled.",
+  google_failed: "Google sign-in failed. Try again.",
+};
+
 function LoginForm() {
   const router = useRouter();
-  const next = safeNext(useSearchParams().get("next"));
-  const [error, setError] = useState<string | null>(null);
+  const sp = useSearchParams();
+  const next = safeNext(sp.get("next"));
+  const [error, setError] = useState<string | null>(GOOGLE_ERRORS[sp.get("error") ?? ""] ?? null);
+  const [google, setGoogle] = useState(false);
+  useEffect(() => {
+    api<{ google: boolean }>("/api/v1/auth/providers").then((r) => r.ok && setGoogle(r.data.google));
+  }, []);
   const [busy, setBusy] = useState(false);
   const [show, setShow] = useState(false);
 
@@ -89,6 +103,23 @@ function LoginForm() {
         {busy ? "Signing in…" : "Sign in to workspace"}
         {!busy && <Icon name="arrow_outward" />}
       </button>
+      {google && (
+        <>
+          <p className="text-muted flex items-center gap-3 text-sm" aria-hidden>
+            <span className="h-px flex-1 bg-line" />
+            or
+            <span className="h-px flex-1 bg-line" />
+          </p>
+          {/* A top-level navigation: the API sets the state cookie and redirects to Google. */}
+          <a
+            className="btn-secondary inline-flex items-center justify-center gap-2"
+            href={`/api/v1/auth/google/start?next=${encodeURIComponent(next)}`}
+          >
+            Continue with Google
+          </a>
+          <p className="text-muted text-center text-xs">Uses the Google account with your invited email.</p>
+        </>
+      )}
     </form>
   );
 }

@@ -21,6 +21,7 @@ Design docs: [docs/](docs/README.md) — PRD, TRD, schema, API, security, AI gua
 | HE-007 | Log redaction filter (tokens, keys, cookies, DSN passwords) on API + worker logs | Done |
 | HE-010 | Admin invites: hashed single-use 72 h token, invite email via NotifyWorker, public accept → user + session, audited | Done |
 | HE-011 | Password login (Argon2id), hashed sliding sessions, logout, /me, 5-per-15-min login rate limit | Done |
+| HE-012 | Google sign-in (OIDC, code + PKCE S256, nonce, state bound to an HttpOnly cookie, ID token verified against Google's JWKS): only an existing active user with the same verified email, Google account bound on first use; audited; "Continue with Google" on the login page when configured | Done |
 | HE-013 | `require_role` dependency, row-ownership helper, deny-by-default route check, cross-user test template | Done |
 | HE-014 | Admin TOTP 2FA (RFC 6238, encrypted secret, replay + rate-limit protection); /admin blocked until verified | Done |
 | HE-015 | CSRF double-submit protection (session-bound token, Origin check) on every write | Done |
