@@ -63,6 +63,7 @@ Design docs: [docs/](docs/README.md) — PRD, TRD, schema, API, security, AI gua
 | HE-092 | Source health dashboard (red/amber/green with reason) | Done |
 | HE-093 | Review queue: needs-review events with source snippets, reasons and likely duplicates; Approve, Edit + approve, Merge with, Reject (audited, reminders replanned) | Done |
 | HE-110 | Management dashboard: `GET /dashboard/summary` (Management + Admin; professors 403) with open / closing-this-week / new-this-week counts, who registered for closing events, registrations by person and organiser type; `/dashboard` page, nav link for those roles only | Done |
+| HE-111 | Weekly digest email, Monday 09:00 IST (arq cron 03:30 UTC, scheduler `timezone = UTC`): dashboard summary to active Management + Admin, dates in each recipient's timezone, names only (no addresses); once per IST ISO week via a Redis `SET NX` claim | Done |
 
 Full ticket list: [docs/09-Feature-Ticket-List.md](docs/09-Feature-Ticket-List.md).
 
