@@ -4,7 +4,8 @@ When is an event "new"? When it first becomes visible as a trusted event:
 - dedupe created it with review_status `auto` (workers.ingest, outcome "created"), or
 - an admin approved it from the review queue (api.admin_review).
 A `needs_review` event alerts nobody until it is approved; a rejected one never. Closed
-(deadline passed) and cancelled events alert nobody.
+(deadline passed) and cancelled events alert nobody, nor do non-priority events (not a
+Fortune company or tier 1 college, common.org_match.is_priority), which the feed hides.
 
 Who? Every active user whose `new_event_alerts` is on (default on, also with no prefs
 row) and whose `new_event_filters` match. Filters are `{"region": [...], "kind": [...],
@@ -54,6 +55,7 @@ from common.models import (
     User,
 )
 from common.notifiers import Endpoint, InAppNotifier, Message
+from common.org_match import is_priority
 from common.queues import NOTIFY_QUEUE
 from common.reminders import DEFAULT_CHANNELS, DEFAULT_TZ
 
@@ -145,6 +147,7 @@ async def alert(
                 Event.review_status.in_([ReviewStatus.auto, ReviewStatus.approved]),
                 Event.status == EventStatus.open,
                 or_(deadline.is_(None), deadline >= now),
+                is_priority(),  # the feed shows priority events only; alert on the same set
             )
         )
     ).first()

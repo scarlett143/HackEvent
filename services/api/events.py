@@ -4,7 +4,9 @@
   `status=open,closed`): `kind, tier, region` (of the matched organisation), `mode`,
   `status` (`open` | `closing` | `closed` | `cancelled`; default `open`, so closed and
   cancelled events are hidden unless asked), `deadline_before`, `deadline_after`,
-  `registered` (true/false), `q` (title/organiser substring), `new_only`.
+  `registered` (true/false), `q` (title/organiser substring), `new_only`,
+  `scope` (`priority` default: Fortune companies + tier 1 colleges only, see
+  common.org_match.is_priority; `all`: every event).
   Order: `registration_deadline` ascending, no-deadline events last, `id` breaks ties.
   Keyset cursor = opaque urlsafe base64 of JSON `[deadline ISO | null, id]`.
 - `GET /events/{id}`: same object + description, prize. Every event carries `sources`
@@ -48,7 +50,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.deps import get_db
 from api.errors import ApiError
 from api.roles import require_role
-from common import reminders
+from common import org_match, reminders
 from common.models import (
     Event,
     EventMode,
@@ -357,6 +359,7 @@ async def list_events(  # role: any (doc 07 §3)
     registered: bool | None = None,
     q: Annotated[str | None, Query(max_length=200)] = None,
     new_only: bool = False,
+    scope: Literal["priority", "all"] = "priority",
     cursor: Annotated[str | None, Query(max_length=500)] = None,
     limit: Annotated[int, Query(ge=1, le=MAX_LIMIT)] = DEFAULT_LIMIT,
 ) -> EventPage:
@@ -364,6 +367,8 @@ async def list_events(  # role: any (doc 07 §3)
     stmt = _base(user)
     statuses: list[FeedStatus] = _csv(status, _parse_status, "status") or ["open"]
     stmt = stmt.where(or_(*(_status_clause(s, now) for s in statuses)))
+    if scope == "priority":
+        stmt = stmt.where(org_match.is_priority())
     kinds: list[OrgKind] | None = _csv(kind, OrgKind, "kind")
     if kinds:
         stmt = stmt.where(Organisation.kind.in_(kinds))
@@ -478,7 +483,8 @@ async def unread_count(user: AnyUser, db: Db) -> UnreadCount:  # role: any, own 
     new_events = await db.scalar(
         select(func.count())
         .select_from(Event)
-        .where(_visible(), _status_clause("open", _now()), _is_new(user))
+        .outerjoin(Organisation, Organisation.id == Event.organisation_id)
+        .where(_visible(), _status_clause("open", _now()), _is_new(user), org_match.is_priority())
     )
     notifications = await db.scalar(
         select(func.count())

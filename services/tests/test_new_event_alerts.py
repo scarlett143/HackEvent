@@ -74,15 +74,29 @@ def notify(event_id: str) -> list[tuple[str, tuple[Any, ...], dict[str, Any]]]:
 def event(*, location: str | None = "Bengaluru, India", review: str = "auto",
           deadline: datetime | None = DEADLINE, status: str = "open",
           title: str = "Acme <b>CodeSprint</b>") -> str:  # fmt: skip
+    # Alerts go out for priority events only: link a tier 1 college (an institution, so the
+    # "company" filter user stays unmatched) whose region agrees with the location.
+    (org_id,) = sql(
+        "INSERT INTO organisations (name, kind, region, tier, rank_source, website, is_active)"
+        " VALUES (:n, 'institution', CAST(:r AS org_region), 1, 'test', 'https://x', true)"
+        " RETURNING id::text",
+        n=uuid.uuid4().hex, r="india" if location and "India" in location else "global",
+    )[0]  # fmt: skip
     return str(
         sql(
-            "INSERT INTO events (title, organiser_name, description, registration_url,"
-            " registration_deadline, mode, location, status, review_status, confidence,"
-            " dedupe_key) VALUES (:t, 'Acme', '', 'https://example.com/r', :d, 'online', :l,"
-            " CAST(:st AS event_status), CAST(:rv AS review_status), 0.9, :k) RETURNING id::text",
-            t=title, d=deadline, l=location, st=status, rv=review, k=uuid.uuid4().hex,
+            "INSERT INTO events (title, organiser_name, organisation_id, description,"
+            " registration_url, registration_deadline, mode, location, status, review_status,"
+            " confidence, dedupe_key) VALUES (:t, 'Acme', CAST(:o AS uuid), '',"
+            " 'https://example.com/r', :d, 'online', :l, CAST(:st AS event_status),"
+            " CAST(:rv AS review_status), 0.9, :k) RETURNING id::text",
+            t=title, o=org_id, d=deadline, l=location, st=status, rv=review, k=uuid.uuid4().hex,
         )[0][0]
     )  # fmt: skip
+
+
+def _unmatched(event_id: str) -> str:
+    sql("UPDATE events SET organisation_id = NULL WHERE id = CAST(:e AS uuid)", e=event_id)
+    return event_id
 
 
 def prefs(user: Actor, *, alerts: bool = True, filters: dict[str, Any] | None = None,
@@ -108,7 +122,7 @@ def inbox(event_id: str) -> list[tuple[str, str, str]]:
 
 @pytest.fixture
 def users(stack_client: TestClient) -> dict[str, Actor]:
-    sql("TRUNCATE events, notifications CASCADE")
+    sql("TRUNCATE events, notifications, organisations CASCADE")
     names = [
         "plain",
         "india",
@@ -180,6 +194,7 @@ def test_region_and_trust_rules(users: dict[str, Actor]) -> None:
         event(review="rejected"),
         event(deadline=datetime.now(UTC) - timedelta(hours=1)),
         event(status="cancelled"),
+        _unmatched(event()),  # not a Fortune company / tier 1 college: the feed hides it
     ):
         assert notify(skipped) == [] and inbox(skipped) == []
 
