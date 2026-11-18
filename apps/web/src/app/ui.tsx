@@ -52,6 +52,14 @@ const NAV: NavItem[] = [
   { href: "/settings", label: "Settings", icon: "settings", soon: false },
 ];
 
+/** Management + Admin get the college dashboard (HE-110); admins also an Admin tab (sources + health). */
+export function navFor(role: string): NavItem[] {
+  const nav = [...NAV];
+  if (role === "management" || role === "admin") nav.push({ href: "/dashboard", label: "Dashboard", icon: "group", soon: false });
+  if (role === "admin") nav.push({ href: "/admin/sources", label: "Admin", icon: "database", soon: false });
+  return nav;
+}
+
 /** Header subtitle under the logo (Stitch shows the current screen's name). */
 function screenName(path: string): string {
   if (path === "/") return "Feed";
@@ -59,6 +67,7 @@ function screenName(path: string): string {
   if (path.startsWith("/calendar")) return "Calendar";
   if (path.startsWith("/notifications")) return "Alerts";
   if (path.startsWith("/settings")) return "Settings";
+  if (path.startsWith("/dashboard")) return "Dashboard";
   if (path.startsWith("/admin")) return "Admin console";
   return "";
 }
@@ -175,8 +184,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   if (!me) return <p className="text-muted p-8">Loading…</p>;
   const tz = me.timezone || DEFAULT_TZ;
-  // Design: admins get an Admin tab (sources + health) next to Settings.
-  const nav: NavItem[] = me.role === "admin" ? [...NAV, { href: "/admin/sources", label: "Admin", icon: "database", soon: false }] : NAV;
+  const nav = navFor(me.role);
   const badge = unread ? unread.new_events + unread.notifications : 0;
   const initials = me.name
     .split(/\s+/)

@@ -8,6 +8,7 @@ from api import (
     admin_sources,
     admin_telemetry,
     auth,
+    dashboard,
     events,
     health,
     invites,
@@ -37,6 +38,7 @@ app.include_router(invites.router)
 app.include_router(events.router)
 app.include_router(me.router)
 app.include_router(notifications.router)
+app.include_router(dashboard.router)
 
 
 @app.get("/api/v1/health/live")
