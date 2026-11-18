@@ -13,7 +13,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, create_async_engine
 
 from common.config import get_settings
-from common.queues import LLM_QUEUE, NOTIFY_QUEUE, SCRAPE_QUEUE
+from common.queues import LLM_QUEUE, NOTIFY_QUEUE, SCHEDULER_QUEUE, SCRAPE_QUEUE
 from common.source_health import HealthStatus, source_health
 
 log = logging.getLogger(__name__)
@@ -57,7 +57,7 @@ def scrape_payload(
     }
 
 
-def _engine(ctx: dict[str, Any]) -> AsyncEngine:
+def db_engine(ctx: dict[str, Any]) -> AsyncEngine:
     if "db" not in ctx:
         ctx["db"] = create_async_engine(get_settings().database_url, pool_size=2)
     engine: AsyncEngine = ctx["db"]
@@ -73,7 +73,7 @@ async def schedule_due(ctx: dict[str, Any]) -> int:
     after enqueuing cannot produce a second job for the same slot.
     """
     redis = ctx["redis"]
-    async with _engine(ctx).begin() as conn:
+    async with db_engine(ctx).begin() as conn:
         rows = (
             await conn.execute(
                 text(
@@ -111,7 +111,7 @@ async def record_scrape(ctx: dict[str, Any], result: dict[str, Any]) -> str:
     raw_documents row and, for adapter=llm, enqueue `extract(raw_document_id)`.
     """
     raw_id: str | None = None
-    async with _engine(ctx).begin() as conn:
+    async with db_engine(ctx).begin() as conn:
         source = (
             await conn.execute(
                 text(
@@ -131,7 +131,7 @@ async def record_scrape(ctx: dict[str, Any], result: dict[str, Any]) -> str:
                 ),
                 {"id": result["source_id"], "e": result["error"][:LAST_ERROR_MAX]},
             )
-            await _update_health(conn, ctx["redis"], result["source_id"])
+            await update_health(conn, ctx["redis"], result["source_id"])
             return "error"
         changed = result["outcome"] == "changed" and result["content_hash"] != source.content_hash
         await conn.execute(
@@ -149,7 +149,7 @@ async def record_scrape(ctx: dict[str, Any], result: dict[str, Any]) -> str:
                 "h": result["content_hash"],
             },
         )
-        await _update_health(conn, ctx["redis"], result["source_id"])
+        await update_health(conn, ctx["redis"], result["source_id"])
         if not changed:
             return "unchanged"  # TRD §4.1 step 3: same content as last run, stop
         raw_id = (
@@ -167,22 +167,25 @@ async def record_scrape(ctx: dict[str, Any], result: dict[str, Any]) -> str:
             )
         ).scalar_one()
     # After commit: a failed enqueue leaves a `new` row to re-drive, never a dangling job.
+    # Both run workers.ingest.ingest_document: LLM pages on worker-llm, the rest here.
     if source.adapter == "llm":
-        # worker-llm implements `extract` later (doc 08); until then arq logs it unknown.
         await ctx["redis"].enqueue_job(
             "extract", raw_id, _job_id=f"extract:{raw_id}", _queue_name=LLM_QUEUE
         )
-    # HE-023/024 adapters hook in here: rss | api | selector parse the stored document.
+    else:
+        await ctx["redis"].enqueue_job(
+            "ingest_document", raw_id, _job_id=f"ingest:{raw_id}", _queue_name=SCHEDULER_QUEUE
+        )
     return "changed"
 
 
 async def record_candidates(ctx: dict[str, Any], source_id: str, count: int) -> str:
     """Report how many event candidates one run of `source_id` produced (HE-031).
 
-    Called by the adapter (HE-023/024) and extraction (HE-044) paths once per changed
+    Called by workers.ingest once per changed
     document: 0 → empty_streak + 1, otherwise reset. Returns the new health status.
     """
-    async with _engine(ctx).begin() as conn:
+    async with db_engine(ctx).begin() as conn:
         found = (
             await conn.execute(
                 text(
@@ -195,10 +198,10 @@ async def record_candidates(ctx: dict[str, Any], source_id: str, count: int) -> 
         ).first()
         if found is None:
             return "gone"
-        return await _update_health(conn, ctx["redis"], source_id)
+        return await update_health(conn, ctx["redis"], source_id)
 
 
-async def _update_health(conn: AsyncConnection, redis: Any, source_id: str) -> HealthStatus:
+async def update_health(conn: AsyncConnection, redis: Any, source_id: str) -> HealthStatus:
     """Alert all active Admins once when a source turns red; re-arm when it is green.
 
     `health_alerted_at` is the alerted state: set on the transition into red, cleared only
