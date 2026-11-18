@@ -35,6 +35,9 @@ jobs:
             dockerfile: apps/web/Dockerfile
           - image: hackevents-services
             dockerfile: services/Dockerfile
+          - image: hackevents-browser
+            dockerfile: services/Dockerfile
+            target: browser
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -60,6 +63,7 @@ jobs:
         with:
           context: .
           file: ${{ matrix.dockerfile }}
+          target: ${{ matrix.target }}
           platforms: linux/arm64
           push: true
           tags: |

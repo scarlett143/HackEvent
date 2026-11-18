@@ -20,6 +20,8 @@ class Settings(BaseSettings):
 
     # Scraper politeness (HE-022): min seconds between requests to one host, all workers.
     fetch_domain_interval_s: float = 5.0
+    # JS rendering (HE-027): `playwright run-server` in the browser container. Empty = off.
+    browser_ws_url: str = ""
 
     # Email (HE-030, runbook B7). Empty = email not configured.
     gmail_sender: str = ""

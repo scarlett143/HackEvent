@@ -324,6 +324,8 @@ async def _validate(db: AsyncSession, v: dict[str, Any]) -> int | None:
     cfg = v["selector_config"]
     if cfg is not None and len(json.dumps(cfg).encode()) > SELECTOR_CONFIG_MAX_BYTES:
         raise _bad("selector_config is too large.")
+    if "render" in (cfg or {}) and not isinstance(cfg["render"], bool):
+        raise _bad("selector_config.render must be true or false.")
     if v["adapter"] == SourceAdapter.api and (cfg or {}).get("parser") not in API_PARSERS:
         raise _bad(f"API sources need selector_config.parser, one of: {', '.join(API_PARSERS)}.")
     if v["organisation_id"] is None:
@@ -569,6 +571,7 @@ async def run_source(
             source.last_modified,
             source.content_hash,
             source.kind.value,
+            source.selector_config,
         ),
         _job_id=job_id,
         _queue_name=SCRAPE_QUEUE,

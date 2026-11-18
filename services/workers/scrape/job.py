@@ -9,7 +9,9 @@ from typing import Any
 
 from arq import Retry
 
+from common.config import get_settings
 from common.fetch import FetchError, RetryLater, fetch
+from common.fetch.render import render
 from common.fetch.ssrf import BlockedURL
 from common.queues import SCHEDULER_QUEUE
 
@@ -24,16 +26,27 @@ def _body_text(body: bytes) -> str:
 
 async def scrape_source(ctx: dict[str, Any], source: dict[str, Any]) -> str:
     """Fetch one source. `source` keys: id, url, etag, last_modified, content_hash,
-    respect_robots. Returns the outcome ("changed" | "unchanged" | "error")."""
+    respect_robots, render (optional: JS-render in the browser container, HE-027).
+    Returns the outcome ("changed" | "unchanged" | "error")."""
     result: dict[str, Any] = {"source_id": source["id"], "url": source["url"]}
     try:
-        fetched = await fetch(
-            source["url"],
-            source.get("etag"),
-            source.get("last_modified"),
-            redis=ctx["redis"],
-            respect_robots=source["respect_robots"],
-        )
+        if source.get("render"):
+            fetched = await render(
+                source["url"],
+                source.get("etag"),
+                source.get("last_modified"),
+                redis=ctx["redis"],
+                ws_endpoint=get_settings().browser_ws_url,
+                respect_robots=source["respect_robots"],
+            )
+        else:
+            fetched = await fetch(
+                source["url"],
+                source.get("etag"),
+                source.get("last_modified"),
+                redis=ctx["redis"],
+                respect_robots=source["respect_robots"],
+            )
     except RetryLater as e:
         if ctx.get("job_try", 1) < MAX_TRIES:
             raise Retry(defer=e.retry_after) from None

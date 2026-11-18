@@ -18,13 +18,15 @@ TRD_SERVICES = {
     "postgres",
     "redis",
     "ntfy",
+    "browser",
 }
 TRD_MEMORY_MB = {
     "caddy": 128,
     "web": 512,
     "api": 512,
     "scheduler": 256,
-    "worker-scrape": 1536,
+    "worker-scrape": 512,
+    "browser": 1024,  # worker-scrape + browser = TRD's 1.5 GB for httpx + Playwright
     "worker-llm": 512,
     "worker-notify": 256,
     "postgres": 1024,
@@ -66,3 +68,14 @@ def test_scraper_has_no_db_credentials() -> None:
     env = _services()["worker-scrape"].get("environment", {})
     assert "DATABASE_URL" not in env
     assert "postgres" not in _services()["worker-scrape"].get("depends_on", {})
+
+
+def test_browser_is_isolated() -> None:
+    """HE-027: browser only on the internal network; no env, nothing secret."""
+    data = yaml.safe_load(COMPOSE.read_text())
+    browser = data["services"]["browser"]
+    assert browser["networks"] == ["browser"]
+    assert data["networks"]["browser"]["internal"] is True
+    assert not browser.get("environment")
+    users = {n for n, s in data["services"].items() if "browser" in (s.get("networks") or [])}
+    assert users == {"browser", "worker-scrape"}

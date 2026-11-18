@@ -21,6 +21,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import create_async_engine
 from tests.stack import DB_URL, REDIS_URL, make_actor, needs_stack, sql
 
+from common.config import get_settings
 from common.fetch import FetchError, FetchResult, RetryLater, RobotsDisallowed
 from common.fetch.ssrf import BlockedURL
 from common.queues import LLM_QUEUE, NOTIFY_QUEUE, SCHEDULER_QUEUE, SCRAPE_QUEUE
@@ -194,6 +195,36 @@ async def test_retry_later_defers_the_job_then_gives_up(monkeypatch: pytest.Monk
     assert redis.jobs == []
     assert await job.scrape_source({"redis": redis, "job_try": job.MAX_TRIES}, SOURCE) == "error"
     assert "retry limit" in _handed_off(redis)["error"]
+
+
+async def test_render_sources_go_through_the_browser(monkeypatch: pytest.MonkeyPatch) -> None:
+    """HE-027: payload render=True -> common.fetch.render with BROWSER_WS_URL; else fetch."""
+    _mock_fetch(monkeypatch, FetchError("plain fetch must not be used"))
+    calls: list[Any] = []
+
+    async def fake_render(url: str, etag: str | None, lm: str | None, **kw: Any) -> FetchResult:
+        calls.append((url, kw["ws_endpoint"], kw["respect_robots"]))
+        return _ok()
+
+    monkeypatch.setattr(job, "render", fake_render)
+    monkeypatch.setenv("BROWSER_WS_URL", "ws://browser:3000/")
+    get_settings.cache_clear()
+    try:
+        redis = _FakeRedis()
+        assert await job.scrape_source({"redis": redis}, {**SOURCE, "render": True}) == "changed"
+    finally:
+        get_settings.cache_clear()
+    assert calls == [(SOURCE["url"], "ws://browser:3000/", True)]
+
+
+def test_scrape_payload_render_flag() -> None:
+    from workers.scheduler import scrape_payload
+
+    def flag(cfg: Any) -> Any:
+        return scrape_payload("i", "u", None, None, None, "official", cfg)["render"]
+
+    assert flag(None) is False and flag({"parser": "x"}) is False
+    assert flag({"render": True}) is True and flag({"render": "yes"}) is False
 
 
 # --- Postgres + Redis ------------------------------------------------------------------
