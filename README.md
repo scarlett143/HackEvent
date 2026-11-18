@@ -33,6 +33,7 @@ Design docs: [docs/](docs/README.md) — PRD, TRD, schema, API, security, AI gua
 | HE-025 | Unstop adapter (fixture-tested) | Done |
 | HE-026 | MLH adapter: season events page (Inertia JSON), exact UTC start/end, mode, location | Done |
 | HE-027 | Playwright browser container (internal network, no egress); `selector_config.render` sources rendered with every request intercepted and fetched through the SSRF guard | Done |
+| HE-028 | Reddit via the official API: app-only OAuth token (Redis-cached), `oauth.reddit.com/r/<sub>/new` through the guarded fetch, listing adapter; needs REDDIT_CLIENT_ID/SECRET to run | Done |
 | HE-029 | Substack `/feed` via the RSS adapter; feed items without a doc 08 hackathon keyword are dropped | Done |
 | HE-030 | Gmail API email sender (refresh-token OAuth, retries, revoked-token alert) + autoescaped invite/test templates | Done |
 | HE-031 | Source health: green/amber/red with reason; one admin alert on 3 errors / 5 empty runs | Done |

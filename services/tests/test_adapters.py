@@ -8,6 +8,9 @@ Fixture provenance (fetched 2026-11-14 with User-Agent HackEventsBot/0.1):
 - mlh/mlh_season_2027.html: https://www.mlh.com/seasons/2027/events (fetched 2026-11-18;
   mlh.io redirects there). Shell reduced to the Inertia data-page script; props kept
   verbatim except upcomingEvents cut to 6, pastEvents to 2, navigation emptied.
+- reddit/hackathons_new.json: SYNTHETIC (anonymous Reddit access is refused, so no real
+  response could be saved). Shape follows the documented Listing / t3 schema; example
+  names only. Covers the skip rules: stickied, NSFW, removed, no keyword, non-post child.
 - substack/substack_ai_engineer.xml: https://aiengineer.substack.com/feed (fetched 2026-11-18);
   trimmed to 3 items, each content:encoded cut to its first paragraph, author names and
   emails replaced with placeholders.
@@ -377,3 +380,37 @@ def test_mlh_modes_ended_and_fallback_url() -> None:
 def test_mlh_malformed_is_parse_error(body: bytes) -> None:
     with pytest.raises(ParseError):
         parse("mlh", body, MLH_URL)
+
+
+# --- HE-028 Reddit -------------------------------------------------------------------------
+
+
+REDDIT_URL = "https://oauth.reddit.com/r/hackathons/new?limit=50&raw_json=1"
+
+
+def test_reddit_fixture() -> None:
+    out = parse("reddit", fixture("reddit/hackathons_new.json"), REDDIT_URL)
+    # stickied, no-keyword, NSFW, removed posts and the comment child are skipped
+    assert [c.title for c in out] == [
+        "[Online] Example Accessibility Hackathon, apply by Dec 15",
+        "Example Corp Global Buildathon 2027",
+    ]
+    self_post, link_post = out
+    assert self_post.registration_url == (
+        "https://www.reddit.com/r/hackathons/comments/p2/x/"
+    )  # self post -> the thread
+    assert self_post.description and "Applications close December 15." in self_post.description
+    assert link_post.registration_url == "https://buildathon.example.com/2027"
+    for c in out:
+        assert c.organiser == "r/hackathons" and c.extractor == "reddit"
+        assert c.confidence == 0.5 and c.registration_deadline is None and c.event_start is None
+        assert "example_user" not in (c.description or "") + c.evidence  # no author names
+        assert_plain(c)
+
+
+@pytest.mark.parametrize(
+    "body", [b"{}", b"not json", b'{"kind": "t3", "data": {"children": []}}', b"[]"]
+)
+def test_reddit_malformed_is_parse_error(body: bytes) -> None:
+    with pytest.raises(ParseError):
+        parse("reddit", body, REDDIT_URL)

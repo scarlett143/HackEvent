@@ -11,6 +11,7 @@ from arq import Retry
 
 from common.config import get_settings
 from common.fetch import FetchError, RetryLater, fetch
+from common.fetch.reddit import fetch_listing
 from common.fetch.render import render
 from common.fetch.ssrf import BlockedURL
 from common.queues import SCHEDULER_QUEUE
@@ -26,11 +27,19 @@ def _body_text(body: bytes) -> str:
 
 async def scrape_source(ctx: dict[str, Any], source: dict[str, Any]) -> str:
     """Fetch one source. `source` keys: id, url, etag, last_modified, content_hash,
-    respect_robots, render (optional: JS-render in the browser container, HE-027).
+    respect_robots, render (optional: JS-render in the browser container, HE-027),
+    reddit (optional: read via the Reddit API, HE-028).
     Returns the outcome ("changed" | "unchanged" | "error")."""
     result: dict[str, Any] = {"source_id": source["id"], "url": source["url"]}
     try:
-        if source.get("render"):
+        if source.get("reddit"):
+            fetched = await fetch_listing(
+                source["url"],
+                source.get("etag"),
+                source.get("last_modified"),
+                redis=ctx["redis"],
+            )
+        elif source.get("render"):
             fetched = await render(
                 source["url"],
                 source.get("etag"),
