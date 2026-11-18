@@ -82,3 +82,20 @@ def test_management_and_admin_see_college_wide_numbers(c: TestClient, two_users:
         assert s["registrations_by_user"][0]["name"] == "a"
         by_kind = {k["kind"]: k["registrations"] for k in s["registrations_by_kind"]}
         assert by_kind == {"company": 2, "unmatched": 2}
+
+
+@needs_stack
+def test_people_with_the_same_name_are_both_listed(c: TestClient) -> None:
+    mgmt = make_actor("dean2@example.com", "management")
+    one = make_actor("sam1@example.com")
+    two = make_actor("sam2@example.com")
+    sql(
+        "UPDATE users SET name = 'Sam' WHERE id IN (CAST(:a AS uuid), CAST(:b AS uuid))",
+        a=one.id,
+        b=two.id,
+    )
+    ev = event("Twin Hack", NOW + timedelta(days=2))
+    register(one.id, ev)
+    register(two.id, ev)
+    (closing,) = c.get(URL, headers=mgmt.headers).json()["closing_soon"]
+    assert closing["registered_by"] == ["Sam", "Sam"]

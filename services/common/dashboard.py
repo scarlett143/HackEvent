@@ -80,7 +80,8 @@ async def summary(db: AsyncSession, *, now: datetime | None = None) -> Summary:
         await db.scalar(count.where(_visible(), Event.first_seen_at >= now - CLOSING_WINDOW)) or 0
     )
 
-    names = func.array_remove(func.array_agg(User.name.distinct()), None)
+    # One registration per (user, event): no DISTINCT, so two people with the same name both count.
+    names = func.array_remove(func.array_agg(User.name), None)
     soon = await db.execute(
         select(Event.id, Event.title, Event.organiser_name, Event.registration_deadline, names)
         .outerjoin(Registration, Registration.event_id == Event.id)
