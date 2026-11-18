@@ -45,6 +45,7 @@ Design docs: [docs/](docs/README.md) — PRD, TRD, schema, API, security, AI gua
 | HE-046 | Keyword pre-filter (no keyword → 0 LLM calls) + `llm_cache` by page-text hash + schema version; repeat page = 0 LLM calls | Done |
 | HE-047 | Dedupe: exact key (normalised title + organiser + UTC start day) + pg_trgm fuzzy pass (≥ 0.9 merge, 0.8–0.9 → needs_review); gap-filling merge, race-safe upsert | Done |
 | HE-047 wiring | Ingest pipeline: changed page → adapter (rss/api) or LLM `extract` → `upsert_candidate` → source health; LLM outage retries then forces a refetch | Done |
+| HE-048 | LLM golden set: 50 labelled synthetic pages (official, aggregator, social, decoys, 8 injection cases), A9 scorer + per-provider `-m golden` gate and workflow; billed provider runs pending keys | Done |
 | HE-050 | Events API: filters, keyset cursor, p95 < 300 ms on 5k events | Done |
 | HE-051 | Feed UI: sections, cards, countdown, chips (design brief) | Done |
 | HE-052 | "New since last visit": `is_new` / `new_only`, `GET /me/unread-count` badge, `POST /me/seen` after 3 s of visible feed + Mark all read | Done |
