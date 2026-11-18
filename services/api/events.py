@@ -11,6 +11,8 @@
   (url, plain-text snippet, found_at, via host) and `needs_review`.
 - `POST/DELETE /events/{id}/registration`, `POST/DELETE /events/{id}/track`: idempotent,
   always scoped to the current user's row (doc 07 §3).
+  Registering also adds the user's calendar copy of the event run (HE-060, api/calendar.py);
+  unregistering removes it.
 - `GET /me/unread-count`, `POST /me/seen`: "New since last visit" (App Flow F2).
 
 Effective status is computed at read time, because `events.status` is only refreshed when
@@ -54,6 +56,7 @@ from api.errors import ApiError
 from api.roles import require_role
 from common import reminders
 from common.models import (
+    CalendarItem,
     Event,
     EventMode,
     EventSource,
@@ -452,6 +455,21 @@ async def recompute_reminders(db: AsyncSession, user_id: uuid.UUID, event_id: uu
     await reminders.plan(db, user_id, [event_id])
 
 
+def calendar_copy(user_id: uuid.UUID, ev: Event) -> CalendarItem:
+    """The user's own calendar copy of an event's run (doc 05: drag/resize edits the copy,
+    never the event). No end date -> one hour, as the web calendar shows it."""
+    assert ev.event_start is not None
+    end = ev.event_end if ev.event_end and ev.event_end > ev.event_start else None
+    return CalendarItem(
+        user_id=user_id,
+        event_id=ev.id,
+        title=plain_text(ev.title),
+        starts_at=ev.event_start,
+        ends_at=end or ev.event_start + timedelta(hours=1),
+        all_day=False,
+    )
+
+
 async def _set_interest(
     db: AsyncSession,
     model: type[Registration] | type[Track],
@@ -459,15 +477,24 @@ async def _set_interest(
     event_id: uuid.UUID,
     on: bool,
 ) -> None:
-    await _visible_event(db, event_id)
+    ev = await _visible_event(db, event_id)
     if on:
-        await db.execute(
+        added = await db.scalar(
             insert(model)
             .values(user_id=user.id, event_id=event_id)
             .on_conflict_do_nothing(index_elements=["user_id", "event_id"])
+            .returning(model.id)
         )
+        if added is not None and model is Registration and ev.event_start is not None:
+            db.add(calendar_copy(user.id, ev))  # App Flow F4.3: registered -> on the calendar
     else:  # ownership: only ever the caller's own row
         await db.execute(delete(model).where(model.user_id == user.id, model.event_id == event_id))
+        if model is Registration:
+            await db.execute(
+                delete(CalendarItem).where(
+                    CalendarItem.user_id == user.id, CalendarItem.event_id == event_id
+                )
+            )
     await recompute_reminders(db, user.id, event_id)
     await db.commit()
 
