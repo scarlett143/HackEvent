@@ -11,6 +11,7 @@ code at import time: scheduler jobs import workers.scheduler inside their wrappe
 """
 
 import time
+from datetime import UTC
 from typing import Any, ClassVar
 
 from arq.connections import RedisSettings
@@ -91,6 +92,12 @@ async def send_reminder(ctx: dict[str, Any], reminder_id: str) -> str:
     return await reminders.send_reminder(ctx, reminder_id)
 
 
+async def weekly_digest(ctx: dict[str, Any]) -> int:
+    from workers import digest
+
+    return await digest.send_weekly_digest(ctx)
+
+
 async def install_log_redaction(ctx: dict[str, Any]) -> None:
     """arq on_startup: its CLI runs dictConfig after importing this module."""
     configure_logging()
@@ -136,8 +143,11 @@ class SchedulerWorker:
     health_check_interval = HEALTH_CHECK_INTERVAL
     on_startup = install_log_redaction
     functions: ClassVar[list[Any]] = [record_scrape, record_candidates, ingest_document]
+    timezone = UTC  # arq evaluates cron times in this zone (default: the host's)
     cron_jobs: ClassVar[list[CronJob]] = [
         cron(heartbeat, run_at_startup=True),
         cron(schedule_sources),  # every minute (second=0)
         cron(dispatch_reminders, second=30),  # HE-071: every minute, offset from sources
+        # HE-111: Monday 09:00 IST = 03:30 UTC; idempotent per ISO week (workers.digest)
+        cron(weekly_digest, weekday="mon", hour=3, minute=30, second=0),
     ]
