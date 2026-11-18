@@ -62,6 +62,7 @@ Design docs: [docs/](docs/README.md) — PRD, TRD, schema, API, security, AI gua
 | HE-091 | Admin orgs + sources UI: SSRF-checked URLs, CSV import, Run now | Done |
 | HE-092 | Source health dashboard (red/amber/green with reason) | Done |
 | HE-093 | Review queue: needs-review events with source snippets, reasons and likely duplicates; Approve, Edit + approve, Merge with, Reject (audited, reminders replanned) | Done |
+| HE-096 | Audit log viewer: newest first, filter by actor and action, cursor paging; meta shown as text | Done |
 
 Full ticket list: [docs/09-Feature-Ticket-List.md](docs/09-Feature-Ticket-List.md).
 
