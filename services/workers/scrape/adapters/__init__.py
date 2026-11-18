@@ -11,6 +11,7 @@ from pydantic import ValidationError
 from workers.scrape.adapters.base import EventCandidate, ParseError, UnknownAdapter
 from workers.scrape.adapters.devpost import parse_devpost
 from workers.scrape.adapters.mlh import parse_mlh
+from workers.scrape.adapters.reddit import parse_reddit
 from workers.scrape.adapters.rss import parse_rss
 from workers.scrape.adapters.unstop import parse_unstop
 
@@ -20,6 +21,7 @@ ADAPTERS: dict[str, Adapter] = {
     "rss": parse_rss,
     "devpost": parse_devpost,
     "mlh": parse_mlh,
+    "reddit": parse_reddit,
     "unstop": parse_unstop,
 }
 

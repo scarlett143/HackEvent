@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     fetch_domain_interval_s: float = 5.0
     # JS rendering (HE-027): `playwright run-server` in the browser container. Empty = off.
     browser_ws_url: str = ""
+    # Reddit API app (HE-028), worker-scrape only. Empty = Reddit sources report an error.
+    reddit_client_id: str = ""
+    reddit_client_secret: SecretStr = SecretStr("")
 
     # Email (HE-030, runbook B7). Empty = email not configured.
     gmail_sender: str = ""

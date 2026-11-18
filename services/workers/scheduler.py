@@ -56,6 +56,7 @@ def scrape_payload(
         "content_hash": content_hash,
         "respect_robots": kind != "social",  # TRD §4.1: robots for non-social
         "render": (selector_config or {}).get("render") is True,  # HE-027 JS pages
+        "reddit": kind == "reddit",  # HE-028: official API, not page scraping
     }
 
 

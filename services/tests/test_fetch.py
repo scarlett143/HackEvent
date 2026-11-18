@@ -372,3 +372,21 @@ async def test_fetch_takes_a_token_per_request(
     with pytest.raises(RetryLater):
         await fetch("https://example.com/b", redis=redis, client=client, respect_robots=False)
     assert [r.url.path for r in seen] == ["/a"]
+
+
+async def test_extra_headers_never_follow_a_redirect_to_another_host() -> None:
+    """HE-028: an API credential stays on the host it was meant for."""
+
+    def handler(r: httpx2.Request) -> httpx2.Response:
+        if r.headers["host"] == "example.com":
+            return httpx2.Response(302, headers={"location": "https://other.example.com/new"})
+        return httpx2.Response(200, content=b"moved")
+
+    client, seen = client_for(handler)
+    await fetch_guarded(
+        "https://example.com/api",
+        client=client,
+        extra_headers={"Authorization": "Bearer s3cr3t-token"},
+    )
+    assert seen[0].headers["authorization"] == "Bearer s3cr3t-token"
+    assert "authorization" not in seen[1].headers

@@ -36,7 +36,7 @@ from api.errors import ApiError
 from api.invites import _ip
 from api.totp import require_admin_2fa
 from common.audit import AuditAction, record
-from common.fetch import ssrf
+from common.fetch import FetchError, reddit, ssrf
 from common.models import (
     Organisation,
     OrgKind,
@@ -324,6 +324,15 @@ async def _validate(db: AsyncSession, v: dict[str, Any]) -> int | None:
     cfg = v["selector_config"]
     if cfg is not None and len(json.dumps(cfg).encode()) > SELECTOR_CONFIG_MAX_BYTES:
         raise _bad("selector_config is too large.")
+    if v["kind"] == SourceKind.reddit:  # HE-028: read through the official API only
+        try:
+            reddit.listing_url(v["url"])
+        except FetchError:
+            raise _bad(
+                "Reddit sources need a subreddit URL: https://www.reddit.com/r/<name>."
+            ) from None
+        if v["adapter"] != SourceAdapter.api or (cfg or {}).get("parser") != "reddit":
+            raise _bad('Reddit sources use adapter "api" with selector_config.parser "reddit".')
     if "render" in (cfg or {}) and not isinstance(cfg["render"], bool):
         raise _bad("selector_config.render must be true or false.")
     if v["adapter"] == SourceAdapter.api and (cfg or {}).get("parser") not in API_PARSERS:

@@ -19,7 +19,11 @@ pytestmark = needs_stack
 ORGS = "/api/v1/admin/organisations"
 SOURCES = "/api/v1/admin/sources"
 HEADER = "name,kind,region,tier,rank_source,website\n"
-DNS = {"example.org": "93.184.216.34", "internal.example": "10.0.0.5"}
+DNS = {
+    "example.org": "93.184.216.34",
+    "internal.example": "10.0.0.5",
+    "www.reddit.com": "151.101.1.140",
+}
 
 
 @pytest.fixture
@@ -218,6 +222,10 @@ def test_source_create_validates_and_audits(c: TestClient, admin: Actor) -> None
         ({"adapter": "api"}, "parser"),
         ({"adapter": "api", "selector_config": {"parser": "rss"}}, "parser"),
         ({"adapter": "llm", "selector_config": {"render": "yes"}}, "render"),
+        (
+            {"kind": "reddit", "adapter": "api", "selector_config": {"parser": "reddit"}},
+            "subreddit",
+        ),
         ({"organisation_id": "00000000-0000-0000-0000-000000000000"}, "Organisation"),
     ):
         r = new_source(c, admin, url="https://example.org/feed", **body)
@@ -358,6 +366,7 @@ def test_run_now_payload_matches_scheduler(c: TestClient, admin: Actor) -> None:
             "content_hash": "h",
             "respect_robots": False,  # social
             "render": False,  # HE-027: no selector_config.render
+            "reddit": False,  # HE-028: not a reddit source
         },
     )
 
@@ -440,3 +449,15 @@ def test_health_refused_to_non_admins(c: TestClient) -> None:
     sql("UPDATE sessions SET totp_verified_at = NULL WHERE user_id = CAST(:u AS uuid)", u=admin.id)
     assert c.get(HEALTH, headers=admin.headers).json()["error"]["code"] == "totp_required"
     assert c.get(HEALTH).status_code == 401
+
+
+def test_reddit_sources_must_be_subreddits_via_the_api(c: TestClient, admin: Actor) -> None:
+    """HE-028: only https://www.reddit.com/r/<name>, adapter api + parser reddit."""
+    url = "https://www.reddit.com/r/hackathons"
+    r = new_source(c, admin, url=url, kind="reddit", adapter="llm")
+    assert r.status_code == 422 and "parser" in r.json()["error"]["message"]
+    r = new_source(
+        c, admin, url=url, kind="reddit", adapter="api", selector_config={"parser": "reddit"}
+    )
+    assert r.status_code == 201, r.text
+    assert r.json()["kind"] == "reddit"

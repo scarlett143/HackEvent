@@ -8,6 +8,7 @@
 import asyncio
 import hashlib
 import time
+from collections.abc import Mapping
 from dataclasses import dataclass
 from urllib.robotparser import RobotFileParser
 
@@ -92,9 +93,13 @@ async def fetch_guarded(
     *,
     client: httpx2.AsyncClient | None = None,
     allowed_ports: frozenset[int] = ALLOWED_PORTS,
+    extra_headers: Mapping[str, str] | None = None,
 ) -> FetchResult:
-    """GET `url` under the SSRF guard. Raises BlockedURL / FetchError."""
-    headers = {"User-Agent": user_agent(), "Accept": "*/*"}
+    """GET `url` under the SSRF guard. Raises BlockedURL / FetchError.
+
+    `extra_headers` (e.g. an API's Authorization) are sent to the starting host only: a
+    redirect to any other host drops them, so a credential never follows a redirect."""
+    headers = {"User-Agent": user_agent(), "Accept": "*/*", **(extra_headers or {})}
     if etag:
         headers["If-None-Match"] = etag
     if last_modified:
@@ -108,7 +113,11 @@ async def fetch_guarded(
                 response, body = await _get_once(http, current, headers, allowed_ports)
                 location = response.headers.get("location")
                 if response.status_code in REDIRECT_STATUSES and location:
-                    current = current.join(location)  # checked at the top of the next hop
+                    nxt = current.join(location)  # checked at the top of the next hop
+                    if nxt.host != current.host or nxt.scheme != current.scheme:
+                        for name in extra_headers or {}:
+                            headers.pop(name, None)
+                    current = nxt
                     continue
                 not_modified = response.status_code == 304
                 return FetchResult(
@@ -190,6 +199,7 @@ async def fetch(
     redis: Redis,
     respect_robots: bool = True,
     client: httpx2.AsyncClient | None = None,
+    extra_headers: Mapping[str, str] | None = None,
 ) -> FetchResult:
     """Polite guarded GET. `respect_robots=False` only for social sources (TRD §4.1).
 
@@ -199,4 +209,4 @@ async def fetch(
     if respect_robots and not await robots_allowed(redis, parsed, client=client):
         raise RobotsDisallowed(f"robots.txt disallows {url}")
     await acquire(redis, _host_key(parsed))
-    return await fetch_guarded(url, etag, last_modified, client=client)
+    return await fetch_guarded(url, etag, last_modified, client=client, extra_headers=extra_headers)

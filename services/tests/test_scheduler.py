@@ -217,6 +217,28 @@ async def test_render_sources_go_through_the_browser(monkeypatch: pytest.MonkeyP
     assert calls == [(SOURCE["url"], "ws://browser:3000/", True)]
 
 
+async def test_reddit_sources_go_through_the_api(monkeypatch: pytest.MonkeyPatch) -> None:
+    """HE-028: payload reddit=True -> common.fetch.reddit.fetch_listing, not page fetch."""
+    _mock_fetch(monkeypatch, FetchError("plain fetch must not be used"))
+    calls: list[Any] = []
+
+    async def fake_listing(url: str, etag: str | None, lm: str | None, **kw: Any) -> FetchResult:
+        calls.append((url, etag))
+        return _ok()
+
+    monkeypatch.setattr(job, "fetch_listing", fake_listing)
+    src = {**SOURCE, "url": "https://www.reddit.com/r/hackathons", "reddit": True}
+    assert await job.scrape_source({"redis": _FakeRedis()}, src) == "changed"
+    assert calls == [("https://www.reddit.com/r/hackathons", '"old"')]
+
+
+def test_scrape_payload_reddit_flag() -> None:
+    from workers.scheduler import scrape_payload
+
+    assert scrape_payload("i", "u", None, None, None, "reddit")["reddit"] is True
+    assert scrape_payload("i", "u", None, None, None, "rss")["reddit"] is False
+
+
 def test_scrape_payload_render_flag() -> None:
     from workers.scheduler import scrape_payload
 
