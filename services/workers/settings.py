@@ -79,6 +79,18 @@ async def ingest_document(ctx: dict[str, Any], raw_document_id: str) -> str:
     return await ingest.ingest_document(ctx, raw_document_id)
 
 
+async def dispatch_reminders(ctx: dict[str, Any]) -> int:
+    from workers import reminders
+
+    return await reminders.dispatch_due(ctx)
+
+
+async def send_reminder(ctx: dict[str, Any], reminder_id: str) -> str:
+    from workers import reminders
+
+    return await reminders.send_reminder(ctx, reminder_id)
+
+
 async def install_log_redaction(ctx: dict[str, Any]) -> None:
     """arq on_startup: its CLI runs dictConfig after importing this module."""
     configure_logging()
@@ -115,7 +127,7 @@ class NotifyWorker:
     redis_settings = REDIS
     health_check_interval = HEALTH_CHECK_INTERVAL
     on_startup = install_log_redaction
-    functions: ClassVar[list[Any]] = [ping, send_email]
+    functions: ClassVar[list[Any]] = [ping, send_email, send_reminder]
 
 
 class SchedulerWorker:
@@ -127,4 +139,5 @@ class SchedulerWorker:
     cron_jobs: ClassVar[list[CronJob]] = [
         cron(heartbeat, run_at_startup=True),
         cron(schedule_sources),  # every minute (second=0)
+        cron(dispatch_reminders, second=30),  # HE-071: every minute, offset from sources
     ]

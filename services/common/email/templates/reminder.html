@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block body %}
+<p style="margin:0 0 8px;font-size:20px;font-weight:bold">{{ headline }}</p>
+<p style="margin:0 0 16px">{{ title }}</p>
+<p style="margin:0 0 24px"><strong>{{ when_label }}:</strong> {{ when }}</p>
+<p style="margin:0 0 24px"><a href="{{ app_url(path) }}" style="display:inline-block;padding:10px 16px;background:#2563EB;color:#FFFFFF;text-decoration:none;border-radius:8px">Open in HackEvents</a></p>
+<p style="margin:0;color:#475569;font-size:13px">You get this because you asked HackEvents to remind you. <a href="{{ app_url('/settings') }}" style="color:#2563EB">Change reminders</a>.</p>
+{% endblock %}

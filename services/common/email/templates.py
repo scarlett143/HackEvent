@@ -18,6 +18,7 @@ SUBJECTS = {
     "invite": "Your HackEvents invite",
     "test": "HackEvents test email",
     "source_health_red": "HackEvents: a source needs attention",
+    "reminder": "{headline}: {title}",  # HE-071; fields flattened to one line below
 }
 # Invite links expire after 72 h (Security doc §4).
 DEFAULTS: dict[str, dict[str, Any]] = {"invite": {"expires_hours": 72}}
@@ -40,7 +41,8 @@ class RenderedEmail:
 def render(name: str, *, app_domain: str | None = None, **context: Any) -> RenderedEmail:
     """Render template `name` (a key of SUBJECTS). Unknown variables raise."""
     domain = app_domain or get_settings().app_domain
-    subject = SUBJECTS[name]
+    one_line = {k: " ".join(str(v).split()) for k, v in context.items() if isinstance(v, str)}
+    subject = SUBJECTS[name].format(**one_line) if "{" in SUBJECTS[name] else SUBJECTS[name]
 
     def app_url(path: str) -> str:
         return f"https://{domain}{quote(path)}"
