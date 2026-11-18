@@ -5,6 +5,7 @@
 // ponytail: email + in-app channels only; Telegram / ntfy / push rows join with HE-074..076.
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { api, type Me } from "@/lib/api";
 import {
   type Channel,
@@ -134,6 +135,7 @@ function Settings() {
       )}
       {vis("quiet") && <QuietHoursSection me={me} saveMe={saveMe} />}
       {vis("export") && <ExportSection />}
+      {vis("delete") && <DeleteAccountSection />}
     </main>
   );
 }
@@ -589,5 +591,75 @@ function QuietHoursSection({ me, saveMe }: { me: Me; saveMe: SaveMe }) {
         </button>
       </form>
     </Section>
+  );
+}
+
+const DELETE_PHRASE = "delete my account";
+
+/** Bottom of Settings: delete own account. Needs the typed phrase + password (POST /me/delete). */
+function DeleteAccountSection() {
+  const router = useRouter();
+  const [phrase, setPhrase] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const ready = phrase.trim().replace(/\s+/g, " ").toLowerCase() === DELETE_PHRASE && password.length > 0;
+
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!ready) return;
+    setBusy(true);
+    setError(null);
+    const r = await api("/api/v1/me/delete", "POST", { password, confirm: phrase });
+    setBusy(false);
+    if (r.ok) {
+      router.replace("/login");
+      return;
+    }
+    setError(r.error.message);
+  }
+
+  return (
+    <section aria-labelledby="delete-heading" className="card flex flex-col gap-3 border-urgent/40 p-4">
+      <h2 id="delete-heading" className="font-display text-xl font-semibold text-urgent">
+        Delete my account
+      </h2>
+      <p className="text-sm">
+        This <strong className="text-urgent">permanently deletes</strong> your account and everything in it: registrations,
+        reminders, calendar items, notifications and settings. <strong className="text-urgent">This cannot be undone.</strong>
+      </p>
+      <form onSubmit={submit} className="flex flex-col gap-3" noValidate>
+        <label className="flex flex-col gap-1 text-sm font-medium">
+          <span>
+            Type <span className="font-mono text-urgent">{DELETE_PHRASE}</span> to confirm
+          </span>
+          <input
+            className="field"
+            value={phrase}
+            onChange={(e) => setPhrase(e.target.value)}
+            autoComplete="off"
+            spellCheck={false}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm font-medium">
+          Your password
+          <input
+            className="field"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
+          />
+        </label>
+        {error && (
+          <p role="alert" className="text-urgent text-sm">
+            {error}
+          </p>
+        )}
+        <button type="submit" className="btn-secondary self-start border-urgent text-urgent" disabled={!ready || busy}>
+          {busy ? "Deleting…" : "Delete my account"}
+        </button>
+      </form>
+    </section>
   );
 }

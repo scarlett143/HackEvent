@@ -7,7 +7,8 @@ export type SectionId =
   | "reminders"
   | "channels"
   | "quiet"
-  | "export";
+  | "export"
+  | "delete";
 
 const INDEX: [SectionId, string][] = [
   ["profile", "profile name email role account"],
@@ -17,6 +18,7 @@ const INDEX: [SectionId, string][] = [
   ["channels", "channels push notifications email digest in-app test alerts"],
   ["quiet", "quiet hours mute sleep night"],
   ["export", "export my data xls excel spreadsheet ics download tracked calendar"],
+  ["delete", "delete my account remove close account danger"],
 ];
 
 /** Chips under the search box (Stitch "Quick Suggestions"). */

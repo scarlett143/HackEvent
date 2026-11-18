@@ -338,7 +338,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           className="pointer-events-none fixed inset-x-4 bottom-20 z-30 flex justify-center sm:inset-x-auto sm:top-4 sm:right-4 sm:bottom-auto"
         >
           {toast && (
-            <div className="pointer-events-auto flex items-center gap-3 rounded-xl bg-ink px-4 py-2 text-sm text-white ">
+            <div className="pointer-events-auto flex items-center gap-3 rounded-xl bg-ink px-4 py-2 text-sm text-card shadow-lg">
               <span>{toast.message}</span>
               {toast.undo && (
                 <button

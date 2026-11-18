@@ -32,6 +32,7 @@ class AuditAction(enum.StrEnum):
     INVITE_ACCEPT = "invite.accept"
     USER_ROLE_CHANGE = "user.role_change"
     USER_DEACTIVATE = "user.deactivate"
+    ACCOUNT_DELETE = "user.delete"  # own account (doc 06 A2 /me/delete, doc 07 §10)
     PROVIDER_ADD = "provider.add"
     PROVIDER_EDIT = "provider.edit"
     PROVIDER_DELETE = "provider.delete"
