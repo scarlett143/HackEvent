@@ -1,19 +1,26 @@
 "use client";
 
-// Calendar (Stitch calendar / week / day / agenda): the events you track or have registered for,
-// as deadlines and event runs. Built client-side from GET /events; no calendar API needed.
+// Calendar (Stitch calendar / week / day / agenda): deadlines of the events you track or registered for
+// (GET /events) plus your calendar items (GET /calendar-items, HE-060): personal events and your own copy
+// of each registered event's run. Items are draggable (native HTML5 drag and drop): drop on a day or hour
+// to move, drag the handle to resize; every change is PATCHed. Click an hour (day view) or "New event" to create.
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { createContext, type DragEvent, Suspense, useContext, useEffect, useMemo, useState } from "react";
+import { api } from "@/lib/api";
 import {
   addDays,
   agenda,
+  type CalendarItem,
+  dropTimes,
   type Entry,
   entriesFor,
   entriesOnDay,
   dayKeyOf,
   dayLabel,
+  fromLocal,
+  localInput,
   monthGrid,
   monthLabel,
   step,
@@ -30,6 +37,20 @@ import { AppShell, useNow, useShell } from "../ui";
 
 const VIEW_LABEL: Record<View, string> = { month: "Month", week: "Week", day: "Day", agenda: "Agenda" };
 const DOW = ["S", "M", "T", "W", "T", "F", "S"];
+const MS_DAY = 86_400_000;
+const HOUR_MS = 3_600_000;
+
+/** Draft of the create / edit form; `start` and `end` are datetime-local values in the user's timezone. */
+type Draft = { id: string | null; title: string; start: string; end: string };
+type DropProps = { onDragOver: (e: DragEvent) => void; onDrop: (e: DragEvent) => void };
+/** What the views can do to items, without threading props through every view. */
+type Actions = {
+  target: (day: string, hour: number | null) => DropProps;
+  edit: (e: Entry) => void;
+  create: (day: string, hour: number) => void;
+};
+const ActionsCtx = createContext<Actions | null>(null);
+const useActions = () => useContext(ActionsCtx)!;
 
 export default function CalendarPage() {
   return (
@@ -42,7 +63,7 @@ export default function CalendarPage() {
 }
 
 function Calendar() {
-  const { tz } = useShell();
+  const { tz, toast } = useShell();
   const now = useNow();
   const router = useRouter();
   const sp = useSearchParams();
@@ -54,13 +75,73 @@ function Calendar() {
 
   const [events, setEvents] = useState<EventItem[] | null>(null);
   const [failed, setFailed] = useState(false);
+  const [items, setItems] = useState<CalendarItem[] | null>(null);
+  const [draft, setDraft] = useState<Draft | null>(null);
   useEffect(() => {
     loadEvents().then((e) => (e ? setEvents(e) : setFailed(true)));
+    // ponytail: one fixed window (1 year back, 2 ahead) instead of refetching per view; page it if it grows.
+    const q = new URLSearchParams({
+      from: new Date(Date.now() - 365 * MS_DAY).toISOString(),
+      to: new Date(Date.now() + 730 * MS_DAY).toISOString(),
+    });
+    api<{ items: CalendarItem[] }>(`/api/v1/calendar-items?${q}`).then((r) => (r.ok ? setItems(r.data.items) : setFailed(true)));
   }, []);
+
+  const itemUrl = (id: string) => `/api/v1/calendar-items/${encodeURIComponent(id)}`;
+  /** Optimistic drag/resize: show the new times at once, roll back if the API says no. */
+  const move = async (id: string, start: Date, end: Date) => {
+    const body = { starts_at: start.toISOString(), ends_at: end.toISOString() };
+    const before = items;
+    setItems((l) => l && l.map((i) => (i.id === id ? { ...i, ...body } : i)));
+    const r = await api<CalendarItem>(itemUrl(id), "PATCH", body);
+    if (r.ok) setItems((l) => l && l.map((i) => (i.id === id ? r.data : i)));
+    else {
+      setItems(before);
+      toast({ message: `Could not move it: ${r.error.message}` });
+    }
+  };
+  const save = async (d: Draft): Promise<string | null> => {
+    const body = { title: d.title.trim(), starts_at: fromLocal(d.start, tz).toISOString(), ends_at: fromLocal(d.end, tz).toISOString() };
+    const r = d.id
+      ? await api<CalendarItem>(itemUrl(d.id), "PATCH", body)
+      : await api<CalendarItem>("/api/v1/calendar-items", "POST", body);
+    if (!r.ok) return r.error.message;
+    setItems((l) => (l ? (d.id ? l.map((i) => (i.id === d.id ? r.data : i)) : [...l, r.data]) : l));
+    setDraft(null);
+    return null;
+  };
+  const remove = async (id: string): Promise<string | null> => {
+    const r = await api<null>(itemUrl(id), "DELETE");
+    if (!r.ok) return r.error.message;
+    setItems((l) => l && l.filter((i) => i.id !== id));
+    setDraft(null);
+    return null;
+  };
 
   const go = (next: { view?: View; date?: string }) =>
     router.replace(`/calendar?view=${next.view ?? view}&date=${next.date ?? date}`, { scroll: false });
-  const entries = useMemo(() => (events ? entriesFor(events) : []), [events]);
+  const entries = useMemo(() => (events && items ? entriesFor(events, items) : []), [events, items]);
+  const actions: Actions = {
+    target: (day, hour) => ({
+      onDragOver: (e) => e.preventDefault(),
+      onDrop: (e) => {
+        e.preventDefault();
+        const [mode, id] = e.dataTransfer.getData("text/plain").split(":");
+        const en = entries.find((x) => x.itemId === id);
+        if (!en || (mode !== "move" && mode !== "end")) return;
+        const t = dropTimes(en, mode, day, hour, tz);
+        if (t && (t.start.getTime() !== en.start.getTime() || t.end.getTime() !== en.end.getTime())) void move(id, t.start, t.end);
+      },
+    }),
+    edit: (e) => {
+      if (e.itemId) setDraft({ id: e.itemId, title: e.title, start: localInput(e.start, tz), end: localInput(e.end, tz) });
+    },
+    create: (day, hour) => {
+      const start = fromLocal(`${day}T${String(hour).padStart(2, "0")}:00`, tz);
+      setDraft({ id: null, title: "", start: localInput(start, tz), end: localInput(new Date(start.getTime() + HOUR_MS), tz) });
+    },
+  };
+  const ready = events && items;
   const tracked = useMemo(() => (events ?? []).filter((e) => e.is_tracked || e.is_registered), [events]);
   // Stitch "Radar layers": which kinds of entries the calendar shows.
   const [layers, setLayers] = useState({ registered: true, deadlines: true, watchlisted: true });
@@ -68,7 +149,8 @@ function Calendar() {
     () =>
       entries.filter(
         (e) =>
-          (e.kind !== "deadline" || layers.deadlines) && (e.registered ? layers.registered : layers.watchlisted),
+          e.eventId === null || // personal items are always shown
+          ((e.kind !== "deadline" || layers.deadlines) && (e.registered ? layers.registered : layers.watchlisted)),
       ),
     [entries, layers],
   );
@@ -78,9 +160,13 @@ function Calendar() {
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-[1.75rem] leading-8 font-bold">Calendar</h1>
-          <p className="text-muted text-sm">Times in {tz}. Showing events you track or registered for.</p>
+          <p className="text-muted text-sm">Times in {tz}. Showing events you track or registered for, and your own events.</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <button className="btn-primary inline-flex items-center gap-2" disabled={!items} onClick={() => actions.create(date, 9)}>
+            <Icon name="add_circle" />
+            New event
+          </button>
           <button
             className="btn-secondary inline-flex items-center gap-2"
             disabled={tracked.length === 0}
@@ -139,28 +225,29 @@ function Calendar() {
         </li>
       </ul>
 
+      {draft && <ItemForm key={draft.id ?? "new"} draft={draft} onSave={save} onDelete={remove} onCancel={() => setDraft(null)} />}
       {failed && (
         <p role="alert" className="text-urgent">
           Could not load your events. Reload to try again.
         </p>
       )}
-      {!events && !failed && <div aria-busy="true" aria-label="Loading calendar" className="skeleton h-96" />}
-      {events && entries.length === 0 && (
+      {!ready && !failed && <div aria-busy="true" aria-label="Loading calendar" className="skeleton h-96" />}
+      {ready && entries.length === 0 && (
         <div className="card flex flex-col items-start gap-2 p-6">
           <p className="font-medium">Nothing on your calendar yet.</p>
-          <p className="text-muted text-sm">Tap the star on an event in the feed, or mark it registered, and it shows up here.</p>
+          <p className="text-muted text-sm">Tap the star on an event in the feed, mark it registered, or add your own with New event.</p>
           <Link className="link" href="/">
             Browse the feed
           </Link>
         </div>
       )}
-      {events && entries.length > 0 && (
-        <>
+      {ready && entries.length > 0 && (
+        <ActionsCtx.Provider value={actions}>
           {view === "month" && <Month date={date} today={today} entries={shown} tz={tz} now={now} onPick={(d) => go({ date: d })} />}
           {view === "week" && <Week date={date} today={today} entries={shown} tz={tz} now={now} />}
           {view === "day" && <Day date={date} entries={shown} tz={tz} now={now} />}
           {view === "agenda" && <Agenda from={date < today ? today : date} entries={shown} tz={tz} now={now} />}
-        </>
+        </ActionsCtx.Provider>
       )}
         </div>
       </div>
@@ -170,16 +257,91 @@ function Calendar() {
 
 // ── Pieces ───────────────────────────────────────────────────────────────────
 
+function ItemForm({
+  draft, onSave, onDelete, onCancel,
+}: {
+  draft: Draft;
+  onSave: (d: Draft) => Promise<string | null>;
+  onDelete: (id: string) => Promise<string | null>;
+  onCancel: () => void;
+}) {
+  const [d, setD] = useState(draft);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const run = async (p: Promise<string | null>) => {
+    setBusy(true);
+    setError(await p);
+    setBusy(false);
+  };
+  return (
+    <form
+      aria-label={draft.id ? "Edit event" : "New event"}
+      className="card flex flex-col gap-3 p-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (d.end < d.start) setError("The end must not be before the start.");
+        else void run(onSave(d));
+      }}
+    >
+      <h2 className="font-display text-lg font-semibold">{draft.id ? "Edit event" : "New event"}</h2>
+      <label className="flex flex-col gap-1 text-sm font-medium">
+        Title
+        <input className="field" required maxLength={200} autoFocus value={d.title} onChange={(e) => setD({ ...d, title: e.target.value })} />
+      </label>
+      <div className="flex flex-wrap gap-3">
+        <label className="flex flex-col gap-1 text-sm font-medium">
+          Starts
+          <input className="field" type="datetime-local" required value={d.start} onChange={(e) => setD({ ...d, start: e.target.value })} />
+        </label>
+        <label className="flex flex-col gap-1 text-sm font-medium">
+          Ends
+          <input className="field" type="datetime-local" required value={d.end} onChange={(e) => setD({ ...d, end: e.target.value })} />
+        </label>
+      </div>
+      {error && (
+        <p role="alert" className="text-urgent text-sm">
+          {error}
+        </p>
+      )}
+      <div className="flex flex-wrap gap-2">
+        <button className="btn-primary" disabled={busy || !d.title.trim()}>
+          Save
+        </button>
+        <button type="button" className="btn-secondary" onClick={onCancel}>
+          Cancel
+        </button>
+        {draft.id && (
+          <button type="button" className="btn-secondary text-urgent" disabled={busy} onClick={() => void run(onDelete(draft.id!))}>
+            Delete
+          </button>
+        )}
+      </div>
+    </form>
+  );
+}
+
+const dragAs = (mode: "move" | "end", id: string) => (ev: DragEvent) => {
+  ev.stopPropagation(); // the resize handle sits inside the draggable row
+  ev.dataTransfer.setData("text/plain", `${mode}:${id}`);
+  ev.dataTransfer.effectAllowed = "move";
+};
+
 function EntryRow({ e, tz, now }: { e: Entry; tz: string; now: Date }) {
+  const act = useActions();
   const deadline = e.kind === "deadline";
   const u = deadline ? urgency(e.end.toISOString(), now, tz) : "none";
   const tone = u === "urgent" ? "text-urgent" : u === "warning" ? "text-warning-ink" : u === "ok" ? "text-ok-ink" : "text-muted";
   return (
-    <li className="card flex gap-3 p-3">
+    <li
+      className={`card flex gap-3 p-3 ${e.itemId ? "cursor-grab" : ""}`}
+      draggable={!!e.itemId}
+      onDragStart={e.itemId ? dragAs("move", e.itemId) : undefined}
+      data-item={e.itemId ?? undefined}
+    >
       <span aria-hidden className={`mt-1 size-3.5 shrink-0 ${deadline ? "rounded-sm bg-urgent" : "rounded-full bg-primary"}`} />
       <div className="flex min-w-0 flex-col gap-0.5">
         <p className="text-muted text-sm tabular-nums">
-          {deadline ? "Deadline" : "Event"} · {timeLabel(e.start, tz)}
+          {deadline ? "Deadline" : e.eventId ? "Event" : "Personal"} · {timeLabel(e.start, tz)}
           {!deadline && ` – ${timeLabel(e.end, tz)}`}
           {e.registered && (
             <>
@@ -188,15 +350,35 @@ function EntryRow({ e, tz, now }: { e: Entry; tz: string; now: Date }) {
             </>
           )}
         </p>
-        <Link href={`/events/${encodeURIComponent(e.eventId)}`} className="focus-ring font-display rounded text-lg font-semibold hover:underline">
-          {e.title}
-        </Link>
+        {e.eventId ? (
+          <Link href={`/events/${encodeURIComponent(e.eventId)}`} className="focus-ring font-display rounded text-lg font-semibold hover:underline">
+            {e.title}
+          </Link>
+        ) : (
+          <p className="font-display text-lg font-semibold">{e.title}</p>
+        )}
         {deadline ? (
           <p className={`text-sm font-medium ${tone}`}>{formatDeadline(e.end.toISOString(), now, tz)}</p>
         ) : (
           e.location && <p className="text-muted text-sm">{e.location}</p>
         )}
       </div>
+      {e.itemId && (
+        <div className="ml-auto flex shrink-0 flex-col items-end gap-1">
+          <button className="link focus-ring min-h-11 text-sm" onClick={() => act.edit(e)} aria-label={`Edit ${e.title}`}>
+            Edit
+          </button>
+          <span
+            draggable
+            onDragStart={dragAs("end", e.itemId)}
+            data-resize={e.itemId}
+            title="Drag to a day or hour to change when it ends"
+            className="text-muted cursor-ns-resize text-xs"
+          >
+            <span aria-hidden>⇕</span> Resize
+          </span>
+        </div>
+      )}
     </li>
   );
 }
@@ -204,6 +386,7 @@ function EntryRow({ e, tz, now }: { e: Entry; tz: string; now: Date }) {
 function Month({
   date, today, entries, tz, now, onPick,
 }: { date: string; today: string; entries: Entry[]; tz: string; now: Date; onPick: (d: string) => void }) {
+  const act = useActions();
   const grid = monthGrid(date);
   const picked = entriesOnDay(entries, date, tz);
   return (
@@ -224,6 +407,8 @@ function Month({
               aria-pressed={day === date}
               aria-label={`${dayLabel(day)}, ${on.length} ${on.length === 1 ? "item" : "items"}`}
               onClick={() => onPick(day)}
+              {...act.target(day, null)}
+              data-day={day}
               className={`focus-ring flex min-h-16 flex-col items-center gap-1 border-b border-line p-1 text-sm sm:min-h-24 lg:min-h-28 lg:items-stretch ${
                 day === date ? "bg-primary-soft" : "hover:bg-surface"
               } ${inMonth ? "" : "text-muted opacity-50"}`}
@@ -268,12 +453,13 @@ function Month({
 }
 
 function Week({ date, today, entries, tz, now }: { date: string; today: string; entries: Entry[]; tz: string; now: Date }) {
+  const act = useActions();
   return (
     <div className="grid gap-3 md:grid-cols-7">
       {weekDays(date).map((day) => {
         const on = entriesOnDay(entries, day, tz);
         return (
-          <section key={day} aria-label={dayLabel(day)} className="flex flex-col gap-2">
+          <section key={day} aria-label={dayLabel(day)} className="flex flex-col gap-2" {...act.target(day, null)} data-day={day}>
             <h3 className={`font-display rounded-lg px-2 py-1 text-base font-semibold ${day === today ? "bg-primary text-on-primary" : "surface"}`}>
               {dayLabel(day)}
             </h3>
@@ -292,6 +478,7 @@ function Week({ date, today, entries, tz, now }: { date: string; today: string; 
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
 
 function Day({ date, entries, tz, now }: { date: string; entries: Entry[]; tz: string; now: Date }) {
+  const act = useActions();
   const on = entriesOnDay(entries, date, tz);
   const hourOf = (d: Date) => Number(timeLabel(d, tz).slice(0, 2));
   const isToday = dayKeyOf(now, tz) === date;
@@ -308,8 +495,14 @@ function Day({ date, entries, tz, now }: { date: string; entries: Entry[]; tz: s
         {rows.map((h) => {
           const here = on.filter((e) => (dayKeyOf(e.start, tz) === date ? hourOf(e.start) === h : h === 0));
           return (
-            <li key={h} className="flex gap-3 border-t border-line py-2">
-              <span className="text-muted w-14 shrink-0 text-sm tabular-nums">{String(h).padStart(2, "0")}:00</span>
+            <li key={h} className="flex gap-3 border-t border-line py-2" {...act.target(date, h)} data-hour={h}>
+              <button
+                className="text-muted focus-ring w-14 shrink-0 self-start rounded text-left text-sm tabular-nums hover:underline"
+                aria-label={`New event at ${String(h).padStart(2, "0")}:00`}
+                onClick={() => act.create(date, h)}
+              >
+                {String(h).padStart(2, "0")}:00
+              </button>
               <div className="flex min-w-0 flex-1 flex-col gap-2">
                 {isToday && h === nowHour && (
                   <p className="text-urgent text-xs font-semibold" aria-label="Current time">
