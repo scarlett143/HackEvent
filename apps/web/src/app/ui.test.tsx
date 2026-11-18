@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { SourceBlock } from "./ui";
+import { onNextReturn, SourceBlock } from "./ui";
 
 describe("SourceBlock", () => {
   it("renders the scraped snippet as plain text, never HTML", () => {
@@ -31,5 +31,43 @@ describe("SourceBlock", () => {
     );
     expect(html).not.toContain("href=");
     expect(html).toContain("unknown source");
+  });
+});
+
+describe("onNextReturn", () => {
+  function fakeDoc() {
+    const target = new EventTarget();
+    const doc = {
+      visibilityState: "visible" as DocumentVisibilityState,
+      addEventListener: target.addEventListener.bind(target),
+      removeEventListener: target.removeEventListener.bind(target),
+    };
+    const set = (v: DocumentVisibilityState) => {
+      doc.visibilityState = v;
+      target.dispatchEvent(new Event("visibilitychange"));
+    };
+    return { doc, set };
+  }
+
+  it("fires once, when the tab comes back", () => {
+    const { doc, set } = fakeDoc();
+    let calls = 0;
+    onNextReturn(doc, () => calls++);
+    set("hidden"); // user switched to the organiser's tab
+    expect(calls).toBe(0);
+    set("visible");
+    set("hidden");
+    set("visible");
+    expect(calls).toBe(1);
+  });
+
+  it("can be cancelled", () => {
+    const { doc, set } = fakeDoc();
+    let calls = 0;
+    const cancel = onNextReturn(doc, () => calls++);
+    cancel();
+    set("hidden");
+    set("visible");
+    expect(calls).toBe(0);
   });
 });
