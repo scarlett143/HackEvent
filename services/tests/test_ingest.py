@@ -35,6 +35,7 @@ class _FakeRedis:
     def __init__(self) -> None:
         self.jobs: list[str] = []
         self.keys: set[str] = set()
+        self.counts: dict[str, int] = {}
 
     async def enqueue_job(self, name: str, *args: Any, **kwargs: Any) -> None:
         self.jobs.append(name)
@@ -43,6 +44,13 @@ class _FakeRedis:
         if nx and key in self.keys:
             return False
         self.keys.add(key)
+        return True
+
+    async def incr(self, key: str) -> int:  # new-event email daily cap (HE-078)
+        self.counts[key] = self.counts.get(key, 0) + 1
+        return self.counts[key]
+
+    async def expire(self, key: str, seconds: int) -> bool:
         return True
 
 

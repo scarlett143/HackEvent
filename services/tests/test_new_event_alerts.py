@@ -45,6 +45,12 @@ class Queue:
     async def set(self, *a: Any, **kw: Any) -> Any:
         return await self.r.set(*a, **kw)
 
+    async def incr(self, *a: Any) -> Any:
+        return await self.r.incr(*a)
+
+    async def expire(self, *a: Any) -> Any:
+        return await self.r.expire(*a)
+
     async def enqueue_job(self, name: str, *args: Any, **kw: Any) -> None:
         self.jobs.append((name, args, kw))
 
@@ -176,3 +182,15 @@ def test_region_and_trust_rules(users: dict[str, Actor]) -> None:
         event(status="cancelled"),
     ):
         assert notify(skipped) == [] and inbox(skipped) == []
+
+
+@needs_stack
+def test_first_crawl_flood_is_capped_per_user_per_day(users: dict[str, Actor]) -> None:
+    """Many events created at once: each user gets at most EMAIL_DAILY_CAP emails a day,
+    every event still reaches the inbox."""
+    cap = new_event_alerts.EMAIL_DAILY_CAP
+    events = [event(title=f"Flood {i}") for i in range(cap + 3)]
+    mails = [job for e in events for job in notify(e) if job[1][0] == "plain@example.com"]
+    assert len(mails) == cap
+    for e in events:
+        assert "plain@example.com" in [row[0] for row in inbox(e)]

@@ -60,6 +60,13 @@ from common.reminders import DEFAULT_CHANNELS, DEFAULT_TZ
 KIND = "new_event"  # notifications.type (doc 05)
 FILTER_KEYS = ("region", "kind", "mode")
 EMAIL_CLAIM_TTL = 90 * 24 * 3600  # longer than any event stays "new"
+# A first crawl creates hundreds of "new" events at once; without a cap every user would get
+# hundreds of emails and exhaust the Gmail sending quota that reminders also need. Past the
+# cap the alert is in-app only (and the feed's "New" badge still shows the event).
+# A capped email is skipped for good (sending it later would defeat the cap); a user with
+# in-app off gets nothing for alerts past the cap, the feed's "New" badge still shows them.
+# ponytail: fixed cap; a once-a-day "N new events" summary email if users want the rest.
+EMAIL_DAILY_CAP = 10
 
 
 def region_expr() -> Any:
@@ -196,12 +203,22 @@ async def alert(
     return emails
 
 
-async def enqueue(redis: Any, event_id: uuid.UUID, emails: list[EmailAlert]) -> None:
-    """Queue the emails `alert` returned; call only after its transaction committed."""
+async def enqueue(
+    redis: Any, event_id: uuid.UUID, emails: list[EmailAlert], *, now: datetime | None = None
+) -> None:
+    """Queue the emails `alert` returned; call only after its transaction committed.
+    At most EMAIL_DAILY_CAP new-event emails per user per IST day."""
+    day = (now or datetime.now(UTC)).astimezone(ZoneInfo(DEFAULT_TZ)).date().isoformat()
     for e in emails:
         key = f"new_event:{event_id}:{e.user_id}"
         if not await redis.set(key, "1", nx=True, ex=EMAIL_CLAIM_TTL):
             continue  # this user already got (or is getting) this event's email
+        sent_today = f"new_event_mail:{e.user_id}:{day}"
+        count = await redis.incr(sent_today)
+        if count == 1:
+            await redis.expire(sent_today, 2 * 24 * 3600)
+        if count > EMAIL_DAILY_CAP:
+            continue  # in-app alert already written; no more email today
         await redis.enqueue_job(
             "send_email",
             e.to,
