@@ -34,7 +34,7 @@ PLATFORMS: list[tuple[str, SourceAdapter, dict[str, Any] | None]] = [
         {"parser": "unstop"},
     ),
     ("https://devfolio.co/hackathons", SourceAdapter.llm, None),
-    ("https://mlh.io/seasons/2027/events", SourceAdapter.llm, None),
+    ("https://www.mlh.com/seasons/2027/events", SourceAdapter.api, {"parser": "mlh"}),
     ("https://www.hackerearth.com/challenges/hackathon/", SourceAdapter.llm, None),
     ("https://hack2skill.com/", SourceAdapter.llm, None),
     ("https://dorahacks.io/hackathon", SourceAdapter.llm, None),

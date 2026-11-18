@@ -5,6 +5,9 @@ Fixture provenance (fetched 2026-11-14 with User-Agent HackEventsBot/0.1):
   3 items, dc:creator names replaced, items mentioning individual users dropped.
 - devpost/hackathons_open_upcoming_page3.json: verbatim response of
   https://devpost.com/api/hackathons?status[]=upcoming&status[]=open&page=3 (9 items).
+- mlh/mlh_season_2027.html: https://www.mlh.com/seasons/2027/events (fetched 2026-11-18;
+  mlh.io redirects there). Shell reduced to the Inertia data-page script; props kept
+  verbatim except upcomingEvents cut to 6, pastEvents to 2, navigation emptied.
 - substack/substack_ai_engineer.xml: https://aiengineer.substack.com/feed (fetched 2026-11-18);
   trimmed to 3 items, each content:encoded cut to its first paragraph, author names and
   emails replaced with placeholders.
@@ -306,3 +309,71 @@ def test_unstop_ambiguous_deadline_is_none() -> None:
 def test_unstop_malformed_is_parse_error(body: bytes) -> None:
     with pytest.raises(ParseError):
         parse("unstop", body, UNSTOP_URL)
+
+
+# --- HE-026 MLH ----------------------------------------------------------------------------
+
+
+MLH_URL = "https://www.mlh.com/seasons/2027/events"
+
+
+def test_mlh_fixture() -> None:
+    out = parse("mlh", fixture("mlh/mlh_season_2027.html"), MLH_URL)
+    assert len(out) == 6  # 6 upcoming; the 2 pastEvents are never read
+    first = out[0]
+    assert first.title == "Hack Western 13"
+    assert first.organiser == "Major League Hacking (MLH)"
+    assert first.registration_url == "https://hackwestern.com"
+    assert first.event_start == datetime(2026, 11, 20, 23, 0, tzinfo=UTC)
+    assert first.event_end == datetime(2026, 11, 22, 20, 0, tzinfo=UTC)
+    assert first.registration_deadline is None  # MLH lists none
+    assert first.mode == "offline" and first.location == "London, Ontario"
+    assert first.extractor == "mlh" and first.confidence == 1.0
+    assert "NOV 20 - 22" in first.evidence
+    for c in out:
+        assert_plain(c)
+
+
+def test_mlh_modes_ended_and_fallback_url() -> None:
+    import json
+
+    events = [
+        {
+            "name": "A",
+            "status": "pending",
+            "formatType": "hybrid_physical",
+            "location": "X",
+            "url": "/events/a/prizes",
+            "startsAt": "2027-01-01T10:00:00Z",
+        },
+        {
+            "name": "B",
+            "status": "pending",
+            "formatType": "digital",
+            "location": "Everywhere",
+            "organizationName": "Org B",
+        },
+        {"name": "C", "status": "ended", "formatType": "physical"},
+        {"name": "", "status": "pending"},  # invalid item skipped, not fatal
+    ]
+    page = {"props": {"upcomingEvents": events}}
+    body = f'<script data-page="app" type="application/json">{json.dumps(page)}</script>'
+    out = parse("mlh", body.encode(), MLH_URL)
+    assert [c.title for c in out] == ["A", "B"]
+    assert (
+        out[0].mode == "hybrid" and out[0].registration_url == "https://www.mlh.com/events/a/prizes"
+    )
+    assert out[1].mode == "online" and out[1].location is None and out[1].organiser == "Org B"
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        b"<html>no data</html>",
+        b'<script data-page="app" type="application/json">{not json</script>',
+        b'<script data-page="app" type="application/json">{"props": {}}</script>',
+    ],
+)
+def test_mlh_malformed_is_parse_error(body: bytes) -> None:
+    with pytest.raises(ParseError):
+        parse("mlh", body, MLH_URL)
