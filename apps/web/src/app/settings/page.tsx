@@ -21,6 +21,7 @@ import { matchSettings, type SectionId, SUGGESTIONS } from "@/lib/settings-searc
 import { downloadIcs, downloadXls } from "../calendar-menu";
 import { Icon } from "../symbol";
 import { AppShell, Avatar, useShell } from "../ui";
+import { playChime, setSoundEnabled, soundEnabled } from "@/lib/sound";
 
 const MIN_PASSWORD = 12;
 
@@ -495,7 +496,45 @@ function ChannelsSection({
           );
         })}
       </ul>
+      <SoundToggle />
     </Section>
+  );
+}
+
+/** Per-browser chime for new in-app notifications (lib/sound.ts). */
+function SoundToggle() {
+  const [on, setOn] = useState(true);
+  useEffect(() => {
+    // Mount-time read of this browser's choice (localStorage is not available on the server).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setOn(soundEnabled());
+  }, []);
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line p-4">
+      <div className="min-w-48">
+        <p className="font-medium">Notification sound</p>
+        <p className="text-muted text-sm">Plays a short chime when a new in-app notification arrives (this browser only).</p>
+      </div>
+      <div className="flex items-center gap-2">
+        <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 px-1 text-sm font-medium">
+          <input
+            type="checkbox"
+            role="switch"
+            className="focus-ring size-5 accent-primary"
+            checked={on}
+            onChange={(e) => {
+              setOn(e.target.checked);
+              setSoundEnabled(e.target.checked);
+              if (e.target.checked) playChime();
+            }}
+          />
+          Play sound
+        </label>
+        <button type="button" className="btn-secondary" onClick={playChime}>
+          Preview
+        </button>
+      </div>
+    </div>
   );
 }
 
