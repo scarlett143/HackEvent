@@ -11,6 +11,7 @@ from common.fetch import ssrf
 from common.models import SourceAdapter
 from seeds import platforms
 from workers.scheduler import cadence_hours_for
+from workers.scrape.adapters import ADAPTERS
 
 
 def test_platform_list_is_well_formed() -> None:
@@ -19,9 +20,7 @@ def test_platform_list_is_well_formed() -> None:
     assert all(u.startswith("https://") for u in urls)
     for url, adapter, config in platforms.PLATFORMS:
         if adapter is SourceAdapter.api:
-            assert config and config.get("parser") in {"devpost", "unstop"}, (
-                url
-            )  # dedicated parsers only
+            assert config and config.get("parser") in ADAPTERS, url  # a registered parser
         else:
             assert adapter is SourceAdapter.llm and config is None, url
 

@@ -31,6 +31,7 @@ Design docs: [docs/](docs/README.md) — PRD, TRD, schema, API, security, AI gua
 | HE-023 | RSS/Atom adapter (XXE-safe, plain text) | Done |
 | HE-024 | Devpost adapter (public listing JSON, fixture-tested) | Done |
 | HE-025 | Unstop adapter (fixture-tested) | Done |
+| HE-026 | MLH adapter: season events page (Inertia JSON), exact UTC start/end, mode, location | Done |
 | HE-029 | Substack `/feed` via the RSS adapter; feed items without a doc 08 hackathon keyword are dropped | Done |
 | HE-030 | Gmail API email sender (refresh-token OAuth, retries, revoked-token alert) + autoescaped invite/test templates | Done |
 | HE-031 | Source health: green/amber/red with reason; one admin alert on 3 errors / 5 empty runs | Done |
