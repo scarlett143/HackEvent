@@ -43,6 +43,7 @@ from api.auth import (
 )
 from api.deps import get_db, get_redis
 from api.errors import ApiError
+from common import reminders
 from common.models import Notification, NotificationPrefs, Session, User
 from common.queues import NOTIFY_QUEUE
 
@@ -53,8 +54,8 @@ Db = Annotated[AsyncSession, Depends(get_db)]
 Rds = Annotated[Redis, Depends(get_redis)]
 
 MAX_OFFSET_DAYS = 30
-DEFAULT_OFFSETS = [3, 2, 1, 0]  # PRD §"Reminders": 3, 2, 1, 0 days by default
-DEFAULT_CHANNELS = {"email": True, "in_app": True}
+DEFAULT_OFFSETS = reminders.DEFAULT_OFFSETS  # PRD §"Reminders": 3, 2, 1, 0 days by default
+DEFAULT_CHANNELS = reminders.DEFAULT_CHANNELS
 TEST_LIMIT = 5  # doc 06 A8: /channels/:id/test 5 / hour per user
 TEST_WINDOW_SECONDS = 3600
 
@@ -73,8 +74,9 @@ def _parse_hhmm(value: str | None) -> time | None:
 
 
 async def _after_prefs_change(db: AsyncSession, user: User) -> None:
-    """No-op hook: the reminder planner (HE-070) recomputes this user's pending reminders
-    here once it exists (offsets, timezone and quiet hours all feed it)."""
+    """Offsets, channels, timezone and quiet hours all feed the planner (HE-070)."""
+    await db.flush()
+    await reminders.plan(db, user.id)
 
 
 # --- profile ---
