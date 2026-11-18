@@ -69,6 +69,7 @@ Design docs: [docs/](docs/README.md) — PRD, TRD, schema, API, security, AI gua
 | Feed | Priority feed: only hackathons from Fortune-listed companies (seeded Fortune Global 500 / India 500) and tier 1 colleges (NIRF 1–50) by default (`scope=all` for everything), organisers matched to the seed lists (IIT/NIT expansion, brand aliases such as Google → Alphabet); aggregators and tier 1 sources crawled hourly; feed reloads every 30 min plus a Refresh button; Admin → Changes lists new events, moved deadlines and cancellations, with Refresh now (10 min cooldown) | Done |
 | HE-096 | Audit log viewer: newest first, filter by actor and action, cursor paging; meta shown as text | Done |
 | HE-131 | Ops alerts to Admin (email + in-app): scheduler heartbeat, worker health, disk > 80%, reminder lag; once per incident (2 failed runs), re-armed on recovery; `scripts.send_test_alert` | Done |
+| HE-132 | `infra/provision.sh` (Runbook B3+B4): idempotent Ubuntu 24.04 hardening + Docker, `--check` dry run, lock-out guards; `docker-compose.prod.yml` runs the GHCR arm64 images; `scripts.create_admin` for the first Admin | Done |
 
 Full ticket list: [docs/09-Feature-Ticket-List.md](docs/09-Feature-Ticket-List.md).
 
