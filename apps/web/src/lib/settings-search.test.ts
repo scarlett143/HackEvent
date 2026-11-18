@@ -3,8 +3,8 @@ import { matchSettings, SUGGESTIONS } from "./settings-search";
 
 describe("matchSettings", () => {
   it("an empty or whitespace query shows every section", () => {
-    expect(matchSettings("").size).toBe(7);
-    expect(matchSettings("   ").size).toBe(7);
+    expect(matchSettings("").size).toBe(8);
+    expect(matchSettings("   ").size).toBe(8);
   });
   it("matches case-insensitively on title and keywords", () => {
     expect([...matchSettings("QUIET")]).toEqual(["quiet"]);
@@ -15,7 +15,7 @@ describe("matchSettings", () => {
     expect(matchSettings("quiet banana").size).toBe(0);
   });
   it("punctuation in the query is ignored, not treated as a pattern", () => {
-    expect(matchSettings("(.*)").size).toBe(7); // no usable words
+    expect(matchSettings("(.*)").size).toBe(8); // no usable words
     expect(matchSettings("ics?").has("export")).toBe(true);
   });
   it("every quick suggestion finds at least one section", () => {

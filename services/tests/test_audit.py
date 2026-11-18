@@ -97,7 +97,7 @@ def test_deep_nesting_capped() -> None:
 
 
 def test_action_list_matches_doc() -> None:
-    assert len(AuditAction) == 17
+    assert len(AuditAction) == 18  # + user.delete (own account, /me/delete)
     assert all("." in a.value for a in AuditAction)
 
 

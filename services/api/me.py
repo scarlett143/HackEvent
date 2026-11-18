@@ -22,14 +22,15 @@ from typing import Annotated, Any, Literal
 from zoneinfo import available_timezones
 
 from arq.connections import ArqRedis
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request, Response
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from redis.asyncio import Redis
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import (
+    SESSION_COOKIE,
     Auth,
     MeOut,
     _consume_attempt,
@@ -42,10 +43,22 @@ from api.auth import (
     current_user,
     hash_password,
 )
+from api.csrf import clear_csrf_cookie
 from api.deps import get_db, get_redis
 from api.errors import ApiError
+from api.invites import _ip
 from common import reminders
-from common.models import EventMode, NotificationPrefs, OrgKind, OrgRegion, Session, User
+from common.audit import AuditAction, record
+from common.models import (
+    EventMode,
+    Invite,
+    NotificationPrefs,
+    OrgKind,
+    OrgRegion,
+    Session,
+    User,
+    UserRole,
+)
 from common.notifiers import Endpoint, InAppNotifier
 from common.queues import NOTIFY_QUEUE
 
@@ -238,6 +251,62 @@ async def change_password(
         delete(Session).where(Session.user_id == user.id, Session.id != auth.session.id)
     )
     await db.commit()
+
+
+# --- delete own account ---
+
+DELETE_PHRASE = "delete my account"
+
+
+class DeleteIn(BaseModel):
+    password: str = Field(min_length=1, max_length=1024)
+    confirm: str = Field(max_length=100)  # must be the phrase, typed by the user
+
+
+@router.post("/me/delete", status_code=204)
+async def delete_account(
+    body: DeleteIn,
+    request: Request,
+    response: Response,
+    auth: Annotated[Auth, Depends(current_auth)],
+    db: Db,
+    redis: Rds,
+) -> None:  # role: any; deletes only the caller's own account
+    """Doc 06 A2 / doc 07: removes the user and everything that is theirs (sessions, prefs,
+    endpoints, registrations, tracks, reminders, notifications, calendar items cascade;
+    invites they sent are deleted); audit entries stay with actor_id set to NULL."""
+    user = auth.user
+    if " ".join(body.confirm.split()).lower() != DELETE_PHRASE:
+        raise ApiError(422, "confirm_phrase", f'Type "{DELETE_PHRASE}" to confirm.')
+    keys = _login_keys(user.email)
+    await _consume_attempt(redis, keys)  # same 5 / 15 min limit as login: no password guessing
+    if user.password_hash is None or not _verify(user.password_hash, body.password):
+        raise ApiError(400, "invalid_password", "Password is incorrect.")
+    await _refund_attempt(redis, keys)
+    if user.role == UserRole.admin:
+        admins = await db.scalar(
+            select(func.count())
+            .select_from(User)
+            .where(User.role == UserRole.admin, User.is_active)
+        )
+        if (admins or 0) <= 1:
+            raise ApiError(
+                409, "last_admin", "You are the only admin. Make someone else admin first."
+            )
+    await record(
+        db,
+        action=AuditAction.ACCOUNT_DELETE,
+        actor_id=user.id,
+        target_type="user",
+        target_id=user.id,
+        ip=_ip(request),
+        meta={"role": user.role.value},
+    )
+    await db.execute(delete(Invite).where(Invite.created_by == user.id))
+    await db.delete(user)
+    await db.commit()
+    response.delete_cookie(SESSION_COOKIE, path="/", secure=True, httponly=True, samesite="lax")
+    clear_csrf_cookie(response)
 
 
 # --- channel tests ---
