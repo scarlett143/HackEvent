@@ -1,0 +1,8 @@
+{{ headline }}: {{ title }}
+
+{{ when_label }}: {{ when }}
+
+Details: {{ app_url(path) }}
+
+--
+You get this because you asked HackEvents to remind you. Change reminders in Settings: {{ app_url('/settings') }}
