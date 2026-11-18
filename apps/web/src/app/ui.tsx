@@ -11,6 +11,7 @@ import { downloadIcs } from "./calendar-menu";
 import { loadEvents } from "@/lib/load-events";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { api, type Me } from "@/lib/api";
+import { playChime, shouldChime, soundEnabled } from "@/lib/sound";
 import {
   DEFAULT_TZ,
   type EventItem,
@@ -181,6 +182,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (prev !== null && total > prev)
       showToast({ message: `${total - prev} new ${total - prev === 1 ? "notification" : "notifications"}` });
   }, [total, showToast]);
+
+  // Sound for new in-app notifications (lib/sound.ts; Settings can turn it off per browser).
+  const inbox = unread ? unread.notifications : null;
+  const lastInbox = useRef<number | null>(null);
+  useEffect(() => {
+    if (inbox === null) return;
+    const prev = lastInbox.current;
+    lastInbox.current = inbox;
+    if (shouldChime(prev, inbox) && soundEnabled()) playChime();
+  }, [inbox]);
 
   if (!me) return <p className="text-muted p-8">Loading…</p>;
   const tz = me.timezone || DEFAULT_TZ;
