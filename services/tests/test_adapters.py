@@ -5,6 +5,9 @@ Fixture provenance (fetched 2026-11-14 with User-Agent HackEventsBot/0.1):
   3 items, dc:creator names replaced, items mentioning individual users dropped.
 - devpost/hackathons_open_upcoming_page3.json: verbatim response of
   https://devpost.com/api/hackathons?status[]=upcoming&status[]=open&page=3 (9 items).
+- substack/substack_ai_engineer.xml: https://aiengineer.substack.com/feed (fetched 2026-11-18);
+  trimmed to 3 items, each content:encoded cut to its first paragraph, author names and
+  emails replaced with placeholders.
 - unstop/hackathons_open_page1.json: response of https://unstop.com/api/public/opportunity/
   search-result?opportunity=hackathons&page=1&per_page=10&oppstatus=open (10 items); only
   change: each `details` HTML string cut to its first 1500 characters to keep the file small.
@@ -105,17 +108,37 @@ ATOM = b"""<?xml version="1.0" encoding="utf-8"?>
     <summary type="html">&lt;p&gt;Register by &lt;b&gt;March 1&lt;/b&gt;&lt;/p&gt;</summary>
   </entry>
   <entry><title></title><link href="https://example.com/untitled"/></entry>
-  <entry><title>Bad link</title><link href="ftp://example.com/x"/></entry>
+  <entry><title>Bad link hackathon</title><link href="ftp://example.com/x"/></entry>
+  <entry><title>Quarterly report</title><summary>&lt;a href="https://hack.example"&gt;x&lt;/a&gt;</summary></entry>
 </feed>"""
 
 
 def test_atom_feed() -> None:
     out = parse("rss", ATOM, "https://example.com/feed.atom")
-    assert [c.title for c in out] == ["Spring Hack 2027", "Bad link"]  # untitled entry skipped
+    # untitled entry skipped; no keyword in the text (only in a link) -> not a hackathon
+    assert [c.title for c in out] == ["Spring Hack 2027", "Bad link hackathon"]
     assert out[0].organiser == "Example Org Events"
     assert out[0].registration_url == "https://example.com/events/spring-hack"
     assert out[0].description == "Register by March 1"
     assert out[1].registration_url is None
+
+
+def test_substack_feed_keeps_only_keyword_items() -> None:
+    """HE-029: Substack /feed is RSS 2.0 (CDATA, content:encoded, itunes namespaces)."""
+    url = "https://aiengineer.substack.com/feed"
+    out = parse("rss", fixture("substack/substack_ai_engineer.xml"), url)
+    # 3 posts; only the one whose text has a doc 08 keyword ("Hackers") survives. The
+    # LLM step on the linked page is what rejects false positives like this one.
+    assert [c.title for c in out] == [
+        "Your Agent Hallucinates Packages. Hackers Just Weaponised That."
+    ]
+    c = out[0]
+    assert c.organiser == "The AI Engineer"
+    assert c.registration_url and c.registration_url.startswith(
+        "https://aiengineer.substack.com/p/"
+    )
+    assert c.confidence == 0.5 and c.registration_deadline is None
+    assert_plain(c)
 
 
 BILLION_LAUGHS = b"""<?xml version="1.0"?>
