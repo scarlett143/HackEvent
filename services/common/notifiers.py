@@ -24,7 +24,7 @@ from typing import Any, Protocol
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from common.email import EmailError, GmailSender, TokenRevoked, render
+from common.email import EmailError, EmailSender, TokenRevoked, render, sender_from_settings
 
 
 @dataclass(frozen=True)
@@ -97,11 +97,11 @@ class InAppNotifier:
 
 
 class EmailNotifier:
-    """Gmail API (HE-030). `endpoint.address` is the user's email."""
+    """Email via Gmail API or SMTP (sender_from_settings). `endpoint.address` = the user's email."""
 
     channel = "email"
 
-    def __init__(self, gmail: GmailSender) -> None:
+    def __init__(self, gmail: EmailSender) -> None:
         self.gmail = gmail
 
     async def _send(self, endpoint: Endpoint, template: str, ctx: dict[str, Any]) -> SendResult:
@@ -142,6 +142,6 @@ def build(channel: str, ctx: dict[str, Any], conn: AsyncConnection) -> Notifier 
         return InAppNotifier(conn)
     if channel == "email":
         if "gmail" not in ctx:
-            ctx["gmail"] = GmailSender.from_settings()
+            ctx["gmail"] = sender_from_settings()
         return EmailNotifier(ctx["gmail"])
     return None
