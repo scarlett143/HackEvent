@@ -12,7 +12,7 @@ extractor emit the same `EventCandidate`):
    needs_review, so an admin can merge it in the review queue (HE-093).
 3. Merge only *fills gaps*: empty fields take the candidate's value, eligibility chips are
    unioned. A different deadline from a trusted (not needs_review) candidate replaces the
-   old one and stamps `deadline_changed_at` (reminder recompute is HE-072). Admin
+   old one and stamps `deadline_changed_at` (and replans its reminders, HE-072). Admin
    decisions (approved / rejected) and `cancelled` are never overwritten.
 4. Every call upserts the `event_sources` row (event, source_url) with the evidence.
 
@@ -33,6 +33,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
 
+from common import reminders
 from common.models import Event, EventMode, EventSource, EventStatus, ReviewStatus
 from workers.scrape.adapters.base import EventCandidate
 
@@ -212,7 +213,10 @@ async def upsert_candidate(
             ev = await db.scalar(by_key)  # lost the insert race: merge into the winner
             assert ev is not None
             outcome = "merged_exact"
+        before = (ev.registration_deadline, ev.event_start, ev.status)
         _merge(ev, cand, now)
         await db.flush()
+        if (ev.registration_deadline, ev.event_start, ev.status) != before:
+            await reminders.replan_event(db, ev.id, now=now)  # HE-072
         await _link_source(db, ev.id, cand, source_url, raw_document_id)
         return Upsert(ev.id, outcome, score)

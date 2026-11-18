@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  deadlineUpdated,
   type EventItem,
   eventsQuery,
   filtersToSearch,
@@ -129,5 +130,16 @@ describe("tMinus", () => {
     expect(tMinus("2026-11-16T23:59:00Z", now)).toBeNull();
     expect(tMinus("2026-11-17T00:00:00Z", now)).toBeNull();
     expect(tMinus(null, now)).toBeNull();
+  });
+});
+
+describe("deadlineUpdated (HE-072)", () => {
+  const now = new Date("2026-12-03T12:00:00Z");
+  it("shows for 48 h after the deadline moved", () => {
+    expect(deadlineUpdated({ deadline_changed_at: "2026-12-03T11:00:00Z" }, now)).toBe(true);
+    expect(deadlineUpdated({ deadline_changed_at: "2026-12-01T12:00:01Z" }, now)).toBe(true);
+    expect(deadlineUpdated({ deadline_changed_at: "2026-12-01T12:00:00Z" }, now)).toBe(false);
+    expect(deadlineUpdated({ deadline_changed_at: null }, now)).toBe(false);
+    expect(deadlineUpdated({}, now)).toBe(false);
   });
 });
