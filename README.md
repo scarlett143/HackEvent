@@ -36,6 +36,7 @@ Design docs: [docs/](docs/README.md) — PRD, TRD, schema, API, security, AI gua
 | HE-028 | Reddit via the official API: app-only OAuth token (Redis-cached), `oauth.reddit.com/r/<sub>/new` through the guarded fetch, listing adapter; needs REDDIT_CLIENT_ID/SECRET to run | Done |
 | HE-029 | Substack `/feed` via the RSS adapter; feed items without a doc 08 hackathon keyword are dropped | Done |
 | HE-030 | Gmail API email sender (refresh-token OAuth, retries, revoked-token alert) + autoescaped invite/test templates | Done |
+| HE-030 SMTP | SMTP sender (runbook B7.5, e.g. Gmail app password): STARTTLS 587 / TLS 465 with verified certificates, retries, rejected login = permanent; `SMTP_HOST` set switches every email to SMTP | Done |
 | HE-031 | Source health: green/amber/red with reason; one admin alert on 3 errors / 5 empty runs | Done |
 | HE-040 | LLM adapter (JSON-only, no tools, single call_llm choke point) + Gemini provider, contract-tested | Done |
 | HE-041 | Anthropic Haiku provider (structured outputs, effort low), same contract suite | Done |
@@ -58,10 +59,14 @@ Design docs: [docs/](docs/README.md) — PRD, TRD, schema, API, security, AI gua
 | HE-072 | Deadline / start / status change at the source replans every registered or tracking user's reminders (pending replaced, sent kept); "Deadline updated" chip for 48 h | Done |
 | HE-073 | Notifier plugin interface (doc 06 B3: send/test -> SendResult, permanent_failure) with in-app + email plugins and a contract test; `GET /notifications`, `POST /notifications/read`; Alerts page shows reminders and marks them read | Done |
 | HE-077 | Settings: profile, timezone, reminder offsets, quiet hours, channels with Send test (email, in-app), password change | Done |
+| HE-078 | New-event alerts: a new trusted event (created `auto`, or approved from the review queue) alerts active users whose `new_event_alerts` is on and whose region / kind / mode filters match (same rules as the feed filters), in-app and/or email per channel prefs; once per event per user (inbox check + Redis claim); prefs API exposes the toggle and filters | Done |
 | HE-090 | Admin users + invites UI (login, 2FA, invite, accept, role/deactivate) | Done |
 | HE-091 | Admin orgs + sources UI: SSRF-checked URLs, CSV import, Run now | Done |
 | HE-092 | Source health dashboard (red/amber/green with reason) | Done |
 | HE-093 | Review queue: needs-review events with source snippets, reasons and likely duplicates; Approve, Edit + approve, Merge with, Reject (audited, reminders replanned) | Done |
+| HE-110 | Management dashboard: `GET /dashboard/summary` (Management + Admin; professors 403) with open / closing-this-week / new-this-week counts, who registered for closing events, registrations by person and organiser type; `/dashboard` page, nav link for those roles only | Done |
+| HE-111 | Weekly digest email, Monday 09:00 IST (arq cron 03:30 UTC, scheduler `timezone = UTC`): dashboard summary to active Management + Admin, dates in each recipient's timezone, names only (no addresses); once per IST ISO week via a Redis `SET NX` claim | Done |
+| Feed | Priority feed: only hackathons from Fortune-listed companies (seeded Fortune Global 500 / India 500) and tier 1 colleges (NIRF 1–50) by default (`scope=all` for everything), organisers matched to the seed lists (IIT/NIT expansion, brand aliases such as Google → Alphabet); aggregators and tier 1 sources crawled hourly; feed reloads every 30 min plus a Refresh button; Admin → Changes lists new events, moved deadlines and cancellations, with Refresh now (10 min cooldown) | Done |
 | HE-131 | Ops alerts to Admin (email + in-app): scheduler heartbeat, worker health, disk > 80%, reminder lag; once per incident (2 failed runs), re-armed on recovery; `scripts.send_test_alert` | Done |
 
 Full ticket list: [docs/09-Feature-Ticket-List.md](docs/09-Feature-Ticket-List.md).

@@ -11,6 +11,7 @@ import { downloadIcs } from "./calendar-menu";
 import { loadEvents } from "@/lib/load-events";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { api, type Me } from "@/lib/api";
+import { playChime, shouldChime, soundEnabled } from "@/lib/sound";
 import {
   DEFAULT_TZ,
   type EventItem,
@@ -52,6 +53,14 @@ const NAV: NavItem[] = [
   { href: "/settings", label: "Settings", icon: "settings", soon: false },
 ];
 
+/** Management + Admin get the college dashboard (HE-110); admins also an Admin tab (sources + health). */
+export function navFor(role: string): NavItem[] {
+  const nav = [...NAV];
+  if (role === "management" || role === "admin") nav.push({ href: "/dashboard", label: "Dashboard", icon: "group", soon: false });
+  if (role === "admin") nav.push({ href: "/admin/sources", label: "Admin", icon: "database", soon: false });
+  return nav;
+}
+
 /** Header subtitle under the logo (Stitch shows the current screen's name). */
 function screenName(path: string): string {
   if (path === "/") return "Feed";
@@ -59,6 +68,7 @@ function screenName(path: string): string {
   if (path.startsWith("/calendar")) return "Calendar";
   if (path.startsWith("/notifications")) return "Alerts";
   if (path.startsWith("/settings")) return "Settings";
+  if (path.startsWith("/dashboard")) return "Dashboard";
   if (path.startsWith("/admin")) return "Admin console";
   return "";
 }
@@ -173,10 +183,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       showToast({ message: `${total - prev} new ${total - prev === 1 ? "notification" : "notifications"}` });
   }, [total, showToast]);
 
+  // Sound for new in-app notifications (lib/sound.ts; Settings can turn it off per browser).
+  const inbox = unread ? unread.notifications : null;
+  const lastInbox = useRef<number | null>(null);
+  useEffect(() => {
+    if (inbox === null) return;
+    const prev = lastInbox.current;
+    lastInbox.current = inbox;
+    if (shouldChime(prev, inbox) && soundEnabled()) playChime();
+  }, [inbox]);
+
   if (!me) return <p className="text-muted p-8">Loading…</p>;
   const tz = me.timezone || DEFAULT_TZ;
-  // Design: admins get an Admin tab (sources + health) next to Settings.
-  const nav: NavItem[] = me.role === "admin" ? [...NAV, { href: "/admin/sources", label: "Admin", icon: "database", soon: false }] : NAV;
+  const nav = navFor(me.role);
   const badge = unread ? unread.new_events + unread.notifications : 0;
   const initials = me.name
     .split(/\s+/)
@@ -319,7 +338,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           className="pointer-events-none fixed inset-x-4 bottom-20 z-30 flex justify-center sm:inset-x-auto sm:top-4 sm:right-4 sm:bottom-auto"
         >
           {toast && (
-            <div className="pointer-events-auto flex items-center gap-3 rounded-xl bg-ink px-4 py-2 text-sm text-white ">
+            <div className="pointer-events-auto flex items-center gap-3 rounded-xl bg-ink px-4 py-2 text-sm text-card shadow-lg">
               <span>{toast.message}</span>
               {toast.undo && (
                 <button

@@ -103,7 +103,7 @@ Rules
 
 ## 11. Audit log
 
-Logged: login success/fail, invite create/accept, role change, user deactivate, provider add/edit/delete, cap change, social session upload/delete, source create/edit/delete, review decisions, backup restore. Never stores secret values.
+Logged: login success/fail, invite create/accept, role change, user deactivate, own account delete, provider add/edit/delete, cap change, social session upload/delete, source create/edit/delete, review decisions, backup restore. Never stores secret values.
 
 ## 12. Dependencies and supply chain
 

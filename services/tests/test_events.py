@@ -18,6 +18,7 @@ from api.events import plain_text
 
 NOW = datetime.now(UTC)
 URL = "/api/v1/events"
+ALL = {"scope": "all"}  # most tests use unmatched events; priority scope has its own test
 
 
 def test_plain_text_strips_tags_and_escaped_tags() -> None:
@@ -88,7 +89,7 @@ def event(
 
 
 def ids(c: TestClient, who: Actor, **params: Any) -> list[str]:
-    r = c.get(URL, headers=who.headers, params=params)
+    r = c.get(URL, headers=who.headers, params={**ALL, **params})
     assert r.status_code == 200, r.text
     return [e["id"] for e in r.json()["items"]]
 
@@ -110,13 +111,15 @@ def test_default_hides_closed_cancelled_rejected_and_sorts_by_deadline(
     event("Rejected", NOW + timedelta(days=5), review="rejected")
     review = event("Needs review", NOW + timedelta(days=10), review="needs_review")
     assert ids(clean, a) == [soon, review, later, no_deadline]
-    closed = clean.get(URL, headers=a.headers, params={"status": "closed"}).json()["items"]
+    closed = clean.get(URL, headers=a.headers, params={**ALL, "status": "closed"}).json()["items"]
     assert {e["title"] for e in closed} == {"Closed", "Past deadline, status not refreshed"}
     assert {e["status"] for e in closed} == {"closed"}
     assert stale in ids(clean, a, status="open,closed")
     assert [
         e["title"]
-        for e in clean.get(URL, headers=a.headers, params={"status": "cancelled"}).json()["items"]
+        for e in clean.get(URL, headers=a.headers, params={**ALL, "status": "cancelled"}).json()[
+            "items"
+        ]
     ] == ["Cancelled"]
     assert ids(clean, a, status="closing") == [soon]
 
@@ -145,7 +148,9 @@ def test_each_filter(clean: TestClient, two_users: Pair) -> None:
     assert clean.post(f"{URL}/{e_inst}/registration", headers=a.headers).status_code == 200
     assert ids(clean, a, registered="true") == [e_inst]
     assert ids(clean, a, registered="false") == [e_co, e_none]
-    org_out = clean.get(URL, headers=a.headers, params={"kind": "institution"}).json()["items"][0]
+    org_out = clean.get(URL, headers=a.headers, params={**ALL, "kind": "institution"}).json()[
+        "items"
+    ][0]
     assert org_out["organiser"] == {
         "name": "Example Institute",
         "id": inst,
@@ -153,7 +158,9 @@ def test_each_filter(clean: TestClient, two_users: Pair) -> None:
         "tier": 2,
         "region": "global",
     }
-    unmatched = clean.get(URL, headers=a.headers, params={"mode": "hybrid"}).json()["items"][0]
+    unmatched = clean.get(URL, headers=a.headers, params={**ALL, "mode": "hybrid"}).json()["items"][
+        0
+    ]
     assert unmatched["organiser"] == {
         "name": "Org",
         "id": None,
@@ -193,14 +200,14 @@ def test_region_falls_back_to_location_and_unstop_source(
 def test_bad_filters_and_cursor_use_doc06_error_shape(clean: TestClient, two_users: Pair) -> None:
     a, _ = two_users
     for params in ({"status": "bogus"}, {"tier": "4"}, {"kind": "x"}, {"mode": ""}):
-        r = clean.get(URL, headers=a.headers, params=params)
+        r = clean.get(URL, headers=a.headers, params={**ALL, **params})
         assert r.status_code == 400 and r.json()["error"]["code"] == "invalid_filter", params
-    r = clean.get(URL, headers=a.headers, params={"cursor": "not-a-cursor"})
+    r = clean.get(URL, headers=a.headers, params={**ALL, "cursor": "not-a-cursor"})
     assert r.status_code == 400
     assert r.json() == {
         "error": {"code": "invalid_cursor", "message": "Invalid cursor.", "details": {}}
     }
-    r = clean.get(URL, headers=a.headers, params={"limit": 0})
+    r = clean.get(URL, headers=a.headers, params={**ALL, "limit": 0})
     assert r.status_code == 422 and r.json()["error"]["code"] == "invalid_request"
     assert clean.get(URL).status_code == 401
 
@@ -208,8 +215,10 @@ def test_bad_filters_and_cursor_use_doc06_error_shape(clean: TestClient, two_use
 @needs_stack
 def test_new_only_unread_count_and_seen(clean: TestClient, two_users: Pair) -> None:
     a, b = two_users
-    old = event("Old", first_seen=NOW - timedelta(days=3))
-    event("Closed new", status="closed", first_seen=NOW)
+    p = org("Example Institute", "institution", 1)  # unread-count counts priority events only
+    old = event("Old", first_seen=NOW - timedelta(days=3), org_id=p)
+    event("Closed new", status="closed", first_seen=NOW, org_id=p)
+    event("Not priority", first_seen=NOW)  # no matched organisation: never counted
     # Never visited: everything open is new.
     assert clean.get("/api/v1/me/unread-count", headers=a.headers).json() == {
         "new_events": 1,
@@ -220,8 +229,8 @@ def test_new_only_unread_count_and_seen(clean: TestClient, two_users: Pair) -> N
     # HE-052 acceptance: the badge clears after seen.
     assert clean.get("/api/v1/me/unread-count", headers=a.headers).json()["new_events"] == 0
     assert ids(clean, a, new_only="true") == []
-    fresh = event("Fresh", first_seen=datetime.now(UTC) + timedelta(seconds=1))
-    assert ids(clean, a, new_only="true") == [fresh]
+    fresh = event("Fresh", first_seen=datetime.now(UTC) + timedelta(seconds=1), org_id=p)
+    assert ids(clean, a, new_only="true", scope="priority") == [fresh]
     flags = {e["id"]: e["is_new"] for e in clean.get(URL, headers=a.headers).json()["items"]}
     assert flags == {old: False, fresh: True}
     for who, n in ((a, 2), (b, 1)):
@@ -254,7 +263,7 @@ def test_cursor_paging_is_stable_with_ties(clean: TestClient, two_users: Pair) -
         params: dict[str, Any] = {"limit": 2}
         if cursor:
             params["cursor"] = cursor
-        page = clean.get(URL, headers=a.headers, params=params).json()
+        page = clean.get(URL, headers=a.headers, params={**ALL, **params}).json()
         seen += [e["id"] for e in page["items"]]
         cursor = page["next_cursor"]
         if cursor is None:
@@ -289,7 +298,7 @@ def test_detail_source_block_plain_text_utc(clean: TestClient, two_users: Pair) 
     assert src["snippet"] == "Registrations close 5 Jan"
     assert "<" not in src["snippet"] and ">" not in src["snippet"]
     assert src["found_at"].endswith("Z")
-    listed = clean.get(URL, headers=a.headers).json()["items"][0]
+    listed = clean.get(URL, headers=a.headers, params=ALL).json()["items"][0]
     assert listed["sources"] == body["sources"]
     for key in ("registration_deadline", "event_start"):
         assert listed[key].endswith("Z")
@@ -325,7 +334,7 @@ def test_interest_is_idempotent_and_per_user(
 
     assert flag_for(a) is True
     assert flag_for(b) is False  # A's row never shows as B's flag
-    assert clean.get(URL, headers=b.headers).json()["items"][0][flag] is False
+    assert clean.get(URL, headers=b.headers, params=ALL).json()["items"][0][flag] is False
     # B's DELETE only ever touches B's own (absent) row.
     assert clean.delete(url, headers=b.headers).json() == {flag: False}
     assert sql(rows, e=eid) == [(a.id,)]
@@ -387,9 +396,27 @@ def test_default_list_p95_under_300ms_on_5k_events(clean: TestClient, two_users:
     timings = []
     for _ in range(50):
         start = time.perf_counter()
-        r = clean.get(URL, headers=a.headers)
+        r = clean.get(URL, headers=a.headers, params=ALL)
         timings.append(time.perf_counter() - start)
         assert r.status_code == 200 and len(r.json()["items"]) == 50
     p95 = statistics.quantiles(timings, n=20)[-1] * 1000
     print(f"GET /events p95 = {p95:.1f} ms over 50 runs on 5k events")
     assert p95 < 300
+
+
+@needs_stack
+def test_default_scope_is_priority_fortune_companies_and_tier1_colleges(
+    clean: TestClient, two_users: Pair
+) -> None:
+    """Owner decision 2026-11-19: the feed shows Fortune-listed companies (any tier) and
+    tier 1 colleges only; `scope=all` shows everything."""
+    a, _ = two_users
+    company3 = event("Company tier 3", org_id=org("Big Co", "company", 3))
+    college1 = event("College tier 1", org_id=org("Top College", "institution", 1))
+    college2 = event("College tier 2", org_id=org("Mid College", "institution", 2))
+    unmatched = event("Unmatched organiser")
+    r = clean.get(URL, headers=a.headers)
+    assert r.status_code == 200
+    assert {e["id"] for e in r.json()["items"]} == {company3, college1}
+    assert set(ids(clean, a)) == {company3, college1, college2, unmatched}  # scope=all
+    assert clean.get(URL, headers=a.headers, params={"scope": "x"}).status_code == 422

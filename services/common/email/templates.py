@@ -20,6 +20,8 @@ SUBJECTS = {
     "source_health_red": "HackEvents: a source needs attention",
     "ops_alert": "HackEvents ops alert: {problem}",  # HE-131
     "reminder": "{headline}: {title}",  # HE-071; fields flattened to one line below
+    "weekly_digest": "HackEvents weekly digest",  # HE-111
+    "new_event": "New hackathon: {title}",  # HE-078
 }
 # Invite links expire after 72 h (Security doc §4).
 DEFAULTS: dict[str, dict[str, Any]] = {"invite": {"expires_hours": 72}}

@@ -75,7 +75,7 @@ Store `MASTER_KEY` in a password manager **separately** from backups.
 2. In the same Google Cloud project as Calendar OAuth: enable **Gmail API**, add scope `gmail.send`, set consent screen to **In production**.
 3. Run `docker compose exec api python -m scripts.gmail_authorize` once, sign in as the sender, store the refresh token in `.env` (`GMAIL_OAUTH_REFRESH_TOKEN`).
 4. Send a test email to a Gmail and a college address; confirm Inbox, not spam.
-5. Fallback if the token keeps expiring: Gmail SMTP `smtp.gmail.com:587` with an app password.
+5. Simpler alternative (or fallback if the token keeps expiring): SMTP. On the sender account turn on 2-step verification, create an **App password** (Google Account → Security → App passwords), and set in `infra/.env`: `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587`, `SMTP_USERNAME=<sender>@gmail.com`, `SMTP_PASSWORD=<app password>`. With `SMTP_HOST` set, every email goes through SMTP (steps 2–3 are then not needed). Restart `api` and `worker-notify`, then `docker compose exec api python -m scripts.send_test_email --to <your address>`.
 
 **Firebase (FCM):** create a Firebase project → add a Web app → Cloud Messaging → generate Web Push certificate key pair → create a service account with the Firebase Messaging role → add `APP_DOMAIN` to authorised domains. (Native Android app later: register the Android app in the same Firebase project.)
 

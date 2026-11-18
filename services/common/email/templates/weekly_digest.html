@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block body %}
+<p style="margin:0 0 8px;font-size:20px;font-weight:bold">Weekly digest, week of {{ week_of }}</p>
+<p style="margin:0 0 24px"><strong>{{ open_events }}</strong> open events &middot; <strong>{{ closing_this_week }}</strong> closing this week &middot; <strong>{{ new_this_week }}</strong> new this week</p>
+<p style="margin:0 0 8px;font-weight:bold">Closing this week</p>
+{% if closing %}
+<ul style="margin:0 0 24px;padding-left:20px">
+{% for e in closing %}
+<li style="margin:0 0 8px"><a href="{{ app_url(e.path) }}" style="color:#2563EB">{{ e.title }}</a> ({{ e.organiser }})<br>Registration closes: {{ e.when }}<br>{% if e.registered %}Registered: {{ e.registered }}{% else %}Nobody registered yet{% endif %}</li>
+{% endfor %}
+</ul>
+{% else %}
+<p style="margin:0 0 24px">No open event closes in the next 7 days.</p>
+{% endif %}
+<p style="margin:0 0 8px;font-weight:bold">Registrations by person</p>
+{% if people %}
+<ul style="margin:0 0 24px;padding-left:20px">
+{% for p in people %}<li>{{ p.name }}: {{ p.registrations }}</li>
+{% endfor %}
+</ul>
+{% else %}
+<p style="margin:0 0 24px">No registrations yet.</p>
+{% endif %}
+{% if by_kind %}
+<p style="margin:0 0 8px;font-weight:bold">Registrations by organiser type</p>
+<ul style="margin:0 0 24px;padding-left:20px">
+{% for k in by_kind %}<li>{{ k.label }}: {{ k.registrations }}</li>
+{% endfor %}
+</ul>
+{% endif %}
+<p style="margin:0 0 24px"><a href="{{ app_url('/dashboard') }}" style="display:inline-block;padding:10px 16px;background:#2563EB;color:#FFFFFF;text-decoration:none;border-radius:8px">Open the dashboard</a></p>
+<p style="margin:0;color:#475569;font-size:13px">You get this every Monday because you have a Management or Admin account.</p>
+{% endblock %}
