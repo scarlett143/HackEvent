@@ -59,7 +59,8 @@ Version 0.1 · 2026-11-13 · Domain: `APP_DOMAIN` = DuckDNS subdomain (Q19 decid
 | `web` | Next.js standalone build | 512 MB |
 | `api` | FastAPI (uvicorn, 2 workers) | 512 MB |
 | `scheduler` | ARQ cron: tier jobs, reminder sweep, digests, backups | 256 MB |
-| `worker-scrape` | httpx + Playwright; concurrency 2 | 1.5 GB |
+| `worker-scrape` | httpx + Playwright client; concurrency 2 | 512 MB |
+| `browser` | Headless Chromium (`playwright run-server`), internal network only (HE-027) | 1 GB |
 | `worker-llm` | Extraction + verification; concurrency 4 | 512 MB |
 | `worker-notify` | Channel plugins | 256 MB |
 | `postgres` | Data | 1 GB |

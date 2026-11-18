@@ -120,13 +120,35 @@ services:
   worker-scrape:
     <<: *py
     command: ["arq", "workers.settings.ScrapeWorker"]
-    mem_limit: 1536m
+    mem_limit: 512m
     cpus: 1.0
+    environment:
+      <<: *py-env
+      BROWSER_WS_URL: ws://browser:3000/
+    networks: [default, browser]
     depends_on:
       redis: { condition: service_healthy }
+      browser: { condition: service_healthy }
     healthcheck:
       <<: *worker-health
       test: ["CMD", "arq", "--check", "workers.settings.ScrapeWorker"]
+
+  # HE-027: headless Chromium for JS-rendered sources (Security doc §7-8). On the
+  # `browser` network only, which is internal (no egress, no Redis/Postgres): every request
+  # the page makes is intercepted by worker-scrape and fetched through the SSRF guard.
+  browser:
+    <<: *base
+    image: hackevents/browser:local
+    build: { context: .., dockerfile: services/Dockerfile, target: browser }
+    pull_policy: missing
+    mem_limit: 1024m
+    cpus: 1.0
+    networks: [browser]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1', 3000), 2)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   worker-llm:
     <<: *py
@@ -204,6 +226,11 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+
+networks:
+  default:
+  browser:
+    internal: true
 
 volumes:
   pgdata:

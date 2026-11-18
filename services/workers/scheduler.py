@@ -45,6 +45,7 @@ def scrape_payload(
     last_modified: str | None,
     content_hash: str | None,
     kind: str,
+    selector_config: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """The `scrape_source` argument; the scheduler and Admin "Run now" (HE-091) share it."""
     return {
@@ -54,6 +55,7 @@ def scrape_payload(
         "last_modified": last_modified,
         "content_hash": content_hash,
         "respect_robots": kind != "social",  # TRD §4.1: robots for non-social
+        "render": (selector_config or {}).get("render") is True,  # HE-027 JS pages
     }
 
 
@@ -78,7 +80,7 @@ async def schedule_due(ctx: dict[str, Any]) -> int:
             await conn.execute(
                 text(
                     "SELECT id::text, url, etag, last_modified, content_hash, kind::text,"
-                    " next_run_at FROM sources WHERE is_enabled AND next_run_at <= now()"
+                    " selector_config, next_run_at FROM sources WHERE is_enabled AND next_run_at <= now()"
                     " ORDER BY next_run_at LIMIT :n FOR UPDATE SKIP LOCKED"
                 ),
                 {"n": BATCH},  # ponytail: 100/min ceiling; ~400 jobs/day fits easily
@@ -96,7 +98,9 @@ async def schedule_due(ctx: dict[str, Any]) -> int:
         for r in rows:
             await redis.enqueue_job(
                 "scrape_source",
-                scrape_payload(r.id, r.url, r.etag, r.last_modified, r.content_hash, r.kind),
+                scrape_payload(
+                    r.id, r.url, r.etag, r.last_modified, r.content_hash, r.kind, r.selector_config
+                ),
                 _job_id=f"scrape:{r.id}:{r.next_run_at.isoformat()}",
                 _queue_name=SCRAPE_QUEUE,
             )

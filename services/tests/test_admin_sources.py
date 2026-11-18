@@ -217,6 +217,7 @@ def test_source_create_validates_and_audits(c: TestClient, admin: Actor) -> None
         ({"kind": "aggregator", "organisation_id": acme}, "Aggregator"),
         ({"adapter": "api"}, "parser"),
         ({"adapter": "api", "selector_config": {"parser": "rss"}}, "parser"),
+        ({"adapter": "llm", "selector_config": {"render": "yes"}}, "render"),
         ({"organisation_id": "00000000-0000-0000-0000-000000000000"}, "Organisation"),
     ):
         r = new_source(c, admin, url="https://example.org/feed", **body)
@@ -356,6 +357,7 @@ def test_run_now_payload_matches_scheduler(c: TestClient, admin: Actor) -> None:
             "last_modified": None,
             "content_hash": "h",
             "respect_robots": False,  # social
+            "render": False,  # HE-027: no selector_config.render
         },
     )
 
