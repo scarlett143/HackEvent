@@ -31,6 +31,9 @@ PUBLIC = {
     ("GET", "/api/v1/health/live"),  # Docker healthcheck
     ("POST", "/api/v1/auth/login"),  # obtains the session
     ("GET", "/api/v1/auth/csrf"),  # CSRF token for pre-login writes (HE-015)
+    ("GET", "/api/v1/auth/providers"),  # which sign-in buttons to show (HE-012)
+    ("GET", "/api/v1/auth/google/start"),  # starts Google sign-in (HE-012)
+    ("GET", "/api/v1/auth/google/callback"),  # state cookie + PKCE are the credential
     ("GET", "/api/v1/invites/{token}"),  # the invite token is the credential
     ("POST", "/api/v1/invites/{token}/accept"),  # likewise; creates the session
 }

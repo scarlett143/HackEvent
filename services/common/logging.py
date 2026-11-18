@@ -55,6 +55,9 @@ _PLAIN_KV = re.compile(
 )
 # Invite links carry the bearer token in the path: /invite/<t> (web), /api/v1/invites/<t>.
 _INVITE_PATH = re.compile(r"(?P<pre>/invites?/)" + _NOT_REDACTED + r"[A-Za-z0-9_-]{20,}")
+# OAuth callbacks (HE-012/080) carry the authorization code in the query string. (`state`
+# stays: it is useless without the browser's HttpOnly state cookie.)
+_OAUTH_QUERY = re.compile(r"(?P<pre>[?&]code=)" + _NOT_REDACTED + r"[^\s&#\"']+")
 _SHAPES = re.compile(
     r"AIza[0-9A-Za-z_-]{35}"  # Google API key
     r"|\bAQ\.[0-9A-Za-z_-]{30,}"  # Gemini API key, newer "AQ." format
@@ -82,6 +85,7 @@ _RULES: tuple[tuple[re.Pattern[str], Callable[[re.Match[str]], str]], ...] = (
     (_QUOTED_KV, _keep_prefix),
     (_PLAIN_KV, _keep_prefix),
     (_INVITE_PATH, lambda m: m.group("pre") + REDACTED),
+    (_OAUTH_QUERY, lambda m: m.group("pre") + REDACTED),
     (_SHAPES, lambda m: REDACTED),
 )
 

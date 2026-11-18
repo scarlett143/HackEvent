@@ -12,6 +12,7 @@ from api import (
     auth,
     dashboard,
     events,
+    google,
     health,
     invites,
     me,
@@ -30,6 +31,7 @@ app.add_exception_handler(ApiError, handle_api_error)
 app.add_exception_handler(RequestValidationError, handle_validation_error)
 app.add_middleware(CSRFMiddleware, session_cookie=auth.SESSION_COOKIE)
 app.include_router(auth.router)
+app.include_router(google.router)
 app.include_router(totp.router)
 app.include_router(admin.router)
 app.include_router(admin_sources.router)
