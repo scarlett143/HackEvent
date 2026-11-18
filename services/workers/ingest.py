@@ -28,6 +28,7 @@ from typing import Any
 from arq import Retry
 from sqlalchemy import text
 
+from common import new_event_alerts
 from common.llm import NoProviderAvailable
 from workers import scheduler
 from workers.dedupe import upsert_candidate
@@ -95,7 +96,9 @@ async def ingest_document(ctx: dict[str, Any], raw_document_id: str) -> str:
 
     raw_uuid = uuid.UUID(raw_document_id)
     for cand in candidates:
-        await upsert_candidate(engine, cand, source_url=doc.url, raw_document_id=raw_uuid)
+        up = await upsert_candidate(engine, cand, source_url=doc.url, raw_document_id=raw_uuid)
+        if up.outcome == "created":  # HE-078; needs_review events alert on approval instead
+            await new_event_alerts.notify(engine, ctx["redis"], up.event_id)
     async with engine.begin() as conn:
         await conn.execute(
             text("UPDATE raw_documents SET status = 'parsed' WHERE id = CAST(:id AS uuid)"),

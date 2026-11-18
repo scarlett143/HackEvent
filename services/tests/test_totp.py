@@ -11,6 +11,7 @@ from typing import Any
 
 import pytest
 import redis
+import segno
 from alembic import command
 from alembic.config import Config
 from fastapi.testclient import TestClient
@@ -157,7 +158,14 @@ def test_admin_without_2fa_is_blocked_then_enrol_unlocks(client: TestClient) -> 
     r = client.post("/api/v1/auth/2fa/enrol", headers=h)
     assert r.status_code == 200
     secret = r.json()["secret"]
-    assert r.json()["otpauth_uri"].startswith("otpauth://totp/")
+    uri = r.json()["otpauth_uri"]
+    assert uri.startswith("otpauth://totp/") and f"secret={secret}" in uri
+    # QR (scan) and key (type) are the same secret: the QR encodes exactly that URI.
+    qr = r.json()["qr_data_uri"]
+    assert qr.startswith("data:image/svg+xml")
+    assert qr == segno.make(uri, error="m").svg_data_uri(
+        scale=6, border=2, dark="#111111", light="#FFFFFF"
+    )
     assert err(client.get(ADMIN, headers=h)) == (403, "totp_enrolment_required")  # pending
 
     # Stored encrypted, bound to the row; plaintext never in the DB.

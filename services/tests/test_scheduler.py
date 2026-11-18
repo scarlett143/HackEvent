@@ -35,15 +35,15 @@ SERVICES = Path(__file__).resolve().parents[1]
 # --- cadence ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize(("tier", "hours"), [(1, 24), (2, 72), (3, 168)])
+@pytest.mark.parametrize(("tier", "hours"), [(1, 1), (2, 72), (3, 168)])
 def test_cadence_per_tier(tier: int, hours: int) -> None:
     assert scheduler.cadence_hours_for("official", tier, None) == hours
 
 
 def test_cadence_override_aggregator_and_missing_tier() -> None:
-    assert scheduler.cadence_hours_for("official", 3, 1) == 24  # tier_override wins
-    assert scheduler.cadence_hours_for("aggregator", None, None) == 4  # every few hours
-    assert scheduler.cadence_hours_for("aggregator", None, 1) == 4
+    assert scheduler.cadence_hours_for("official", 3, 1) == 1  # tier_override wins
+    assert scheduler.cadence_hours_for("aggregator", None, None) == 1  # hourly
+    assert scheduler.cadence_hours_for("aggregator", None, 1) == 1
     assert scheduler.cadence_hours_for("reddit", None, None) == 168  # no tier → politest
 
 
@@ -85,6 +85,7 @@ def test_enqueued_job_names_are_registered_on_the_right_worker() -> None:
     assert "extract" in names(settings.LlmWorker)
     assert {"send_email", "send_reminder"} <= names(settings.NotifyWorker)
     assert "cron:dispatch_reminders" in names(settings.SchedulerWorker)
+    assert "cron:weekly_digest" in names(settings.SchedulerWorker)  # HE-111; sends via send_email
 
 
 # --- scrape job (mocked fetch, fake redis)---------------------------------------------

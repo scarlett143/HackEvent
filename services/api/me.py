@@ -4,7 +4,8 @@
   and end, both or neither; may cross midnight, e.g. 22:00-07:00).
 - `GET/PUT /me/notification-prefs`: deadline/event offsets (0-30 days, deduped, sorted
   descending) and per-channel on/off. No row yet -> the documented defaults
-  (PRD: 3, 2, 1, 0 days; email + in-app on).
+  (PRD: 3, 2, 1, 0 days; email + in-app on). Also new-event alerts (HE-078): on/off and
+  filters `{region, kind, mode}` (lists; empty = any); omitted in a PUT = unchanged.
 - `POST /me/password`: current + new; new must pass `check_password_policy`. All OTHER
   sessions are revoked (doc 07 §4), the caller's is kept. Wrong current password -> 400 and
   counts against the per-account login limit, so a stolen session can't brute-force it.
@@ -17,18 +18,19 @@ Every route acts on the caller's own rows only; there is no user id in any path 
 
 from datetime import time
 from functools import cache
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 from zoneinfo import available_timezones
 
 from arq.connections import ArqRedis
-from fastapi import APIRouter, Depends
-from pydantic import BaseModel, Field, field_validator, model_validator
+from fastapi import APIRouter, Depends, Request, Response
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from redis.asyncio import Redis
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import (
+    SESSION_COOKIE,
     Auth,
     MeOut,
     _consume_attempt,
@@ -41,10 +43,22 @@ from api.auth import (
     current_user,
     hash_password,
 )
+from api.csrf import clear_csrf_cookie
 from api.deps import get_db, get_redis
 from api.errors import ApiError
+from api.invites import _ip
 from common import reminders
-from common.models import NotificationPrefs, Session, User
+from common.audit import AuditAction, record
+from common.models import (
+    EventMode,
+    Invite,
+    NotificationPrefs,
+    OrgKind,
+    OrgRegion,
+    Session,
+    User,
+    UserRole,
+)
 from common.notifiers import Endpoint, InAppNotifier
 from common.queues import NOTIFY_QUEUE
 
@@ -134,10 +148,21 @@ async def update_me(body: MePatch, user: Me, db: Db) -> MeOut:  # role: any, own
 # --- notification prefs ---
 
 
+class NewEventFilters(BaseModel):
+    """Same values as the feed's region / kind / mode filters (common.new_event_alerts)."""
+
+    model_config = ConfigDict(extra="forbid")
+    region: list[OrgRegion] = Field(default_factory=list, max_length=len(OrgRegion))
+    kind: list[OrgKind] = Field(default_factory=list, max_length=len(OrgKind))
+    mode: list[EventMode] = Field(default_factory=list, max_length=len(EventMode))
+
+
 class PrefsIn(BaseModel):
     deadline_offsets_days: list[int] = Field(max_length=MAX_OFFSET_DAYS + 1)
     event_offsets_days: list[int] = Field(max_length=MAX_OFFSET_DAYS + 1)
     channels: dict[ChannelName, bool]
+    new_event_alerts: bool | None = None  # None (omitted) = keep
+    new_event_filters: NewEventFilters | None = None
 
     @field_validator("deadline_offsets_days", "event_offsets_days")
     @classmethod
@@ -158,6 +183,8 @@ def _prefs_out(row: NotificationPrefs | None) -> PrefsOut:
                 "deadline_offsets_days": DEFAULT_OFFSETS,
                 "event_offsets_days": DEFAULT_OFFSETS,
                 "channels": DEFAULT_CHANNELS,
+                "new_event_alerts": True,
+                "new_event_filters": {},
             }
         )
     return PrefsOut.model_validate(
@@ -165,6 +192,8 @@ def _prefs_out(row: NotificationPrefs | None) -> PrefsOut:
             "deadline_offsets_days": row.deadline_offsets_days,
             "event_offsets_days": row.event_offsets_days,
             "channels": DEFAULT_CHANNELS | row.channels,
+            "new_event_alerts": row.new_event_alerts,
+            "new_event_filters": row.new_event_filters or {},
         }
     )
 
@@ -177,14 +206,18 @@ async def get_prefs(user: Me, db: Db) -> PrefsOut:  # role: any, own row only
 
 @router.put("/me/notification-prefs")
 async def put_prefs(body: PrefsIn, user: Me, db: Db) -> PrefsOut:  # role: any, own row only
-    values = {
+    values: dict[str, Any] = {
         "deadline_offsets_days": body.deadline_offsets_days,
         "event_offsets_days": body.event_offsets_days,
         "channels": dict(body.channels),
     }
+    if body.new_event_alerts is not None:
+        values["new_event_alerts"] = body.new_event_alerts
+    if body.new_event_filters is not None:
+        values["new_event_filters"] = body.new_event_filters.model_dump(mode="json")
     row = await db.scalar(
         insert(NotificationPrefs)
-        .values(user_id=user.id, new_event_filters={}, **values)
+        .values(user_id=user.id, **({"new_event_filters": {}} | values))
         .on_conflict_do_update(index_elements=["user_id"], set_=values)
         .returning(NotificationPrefs)
     )
@@ -218,6 +251,62 @@ async def change_password(
         delete(Session).where(Session.user_id == user.id, Session.id != auth.session.id)
     )
     await db.commit()
+
+
+# --- delete own account ---
+
+DELETE_PHRASE = "delete my account"
+
+
+class DeleteIn(BaseModel):
+    password: str = Field(min_length=1, max_length=1024)
+    confirm: str = Field(max_length=100)  # must be the phrase, typed by the user
+
+
+@router.post("/me/delete", status_code=204)
+async def delete_account(
+    body: DeleteIn,
+    request: Request,
+    response: Response,
+    auth: Annotated[Auth, Depends(current_auth)],
+    db: Db,
+    redis: Rds,
+) -> None:  # role: any; deletes only the caller's own account
+    """Doc 06 A2 / doc 07: removes the user and everything that is theirs (sessions, prefs,
+    endpoints, registrations, tracks, reminders, notifications, calendar items cascade;
+    invites they sent are deleted); audit entries stay with actor_id set to NULL."""
+    user = auth.user
+    if " ".join(body.confirm.split()).lower() != DELETE_PHRASE:
+        raise ApiError(422, "confirm_phrase", f'Type "{DELETE_PHRASE}" to confirm.')
+    keys = _login_keys(user.email)
+    await _consume_attempt(redis, keys)  # same 5 / 15 min limit as login: no password guessing
+    if user.password_hash is None or not _verify(user.password_hash, body.password):
+        raise ApiError(400, "invalid_password", "Password is incorrect.")
+    await _refund_attempt(redis, keys)
+    if user.role == UserRole.admin:
+        admins = await db.scalar(
+            select(func.count())
+            .select_from(User)
+            .where(User.role == UserRole.admin, User.is_active)
+        )
+        if (admins or 0) <= 1:
+            raise ApiError(
+                409, "last_admin", "You are the only admin. Make someone else admin first."
+            )
+    await record(
+        db,
+        action=AuditAction.ACCOUNT_DELETE,
+        actor_id=user.id,
+        target_type="user",
+        target_id=user.id,
+        ip=_ip(request),
+        meta={"role": user.role.value},
+    )
+    await db.execute(delete(Invite).where(Invite.created_by == user.id))
+    await db.delete(user)
+    await db.commit()
+    response.delete_cookie(SESSION_COOKIE, path="/", secure=True, httponly=True, samesite="lax")
+    clear_csrf_cookie(response)
 
 
 # --- channel tests ---
