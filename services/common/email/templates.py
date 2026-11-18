@@ -18,6 +18,7 @@ SUBJECTS = {
     "invite": "Your HackEvents invite",
     "test": "HackEvents test email",
     "source_health_red": "HackEvents: a source needs attention",
+    "ops_alert": "HackEvents ops alert: {problem}",  # HE-131
     "reminder": "{headline}: {title}",  # HE-071; fields flattened to one line below
 }
 # Invite links expire after 72 h (Security doc §4).

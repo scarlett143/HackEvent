@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block body %}
+<p><strong>HackEvents ops alert: {{ problem }}</strong></p>
+<p>{{ detail }}</p>
+<p>Check <code>docker compose ps</code>, then the logs of the failing service (Runbook Part H).</p>
+<p><a href="{{ app_url('/api/v1/health') }}" style="color:#2563EB">Health status</a></p>
+<p style="color:#475569;font-size:13px">You get this once; it re-arms when the check passes again.</p>
+{% endblock %}

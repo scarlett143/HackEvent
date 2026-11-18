@@ -91,6 +91,12 @@ async def send_reminder(ctx: dict[str, Any], reminder_id: str) -> str:
     return await reminders.send_reminder(ctx, reminder_id)
 
 
+async def check_ops(ctx: dict[str, Any]) -> list[str]:
+    from workers import alerts
+
+    return await alerts.check_ops(ctx)
+
+
 async def install_log_redaction(ctx: dict[str, Any]) -> None:
     """arq on_startup: its CLI runs dictConfig after importing this module."""
     configure_logging()
@@ -128,6 +134,8 @@ class NotifyWorker:
     health_check_interval = HEALTH_CHECK_INTERVAL
     on_startup = install_log_redaction
     functions: ClassVar[list[Any]] = [ping, send_email, send_reminder]
+    # HE-131: here, not on the scheduler, so a stalled scheduler is still reported.
+    cron_jobs: ClassVar[list[CronJob]] = [cron(check_ops, second=45)]
 
 
 class SchedulerWorker:

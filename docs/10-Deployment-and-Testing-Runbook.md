@@ -135,6 +135,8 @@ Record date and result in `docs/ops-log.md`.
 | Social session | Expired / banned | Admin |
 | Backup | Job failed or missing | Admin |
 
+Built-in checks (HE-131, `services/workers/alerts.py`): worker-notify checks every minute for a stale scheduler heartbeat (> 2 min), a missing worker health key, disk > 80% and reminder lag, and alerts all active Admins by email + in-app notification after 2 failed runs, once per incident (re-armed when the check passes). Telegram is added with HE-075. Test it: `docker compose exec api python -m scripts.send_test_alert`.
+
 External uptime pings are for **monitoring only** — they do not prevent Oracle idle reclamation (PAYG handles that).
 
 ## Part G — Testing strategy
