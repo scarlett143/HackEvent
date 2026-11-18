@@ -19,6 +19,7 @@ const ACTIONS = [
   "invite.accept",
   "user.role_change",
   "user.deactivate",
+  "user.delete",
   "provider.add",
   "provider.edit",
   "provider.delete",

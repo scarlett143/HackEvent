@@ -10,7 +10,7 @@ import pytest
 from arq import Retry
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import create_async_engine
-from tests.stack import DB_URL, needs_stack, sql
+from tests.stack import DB_URL, make_actor, needs_stack, sql
 
 from common.llm import NoProviderAvailable
 from workers import ingest
@@ -34,9 +34,24 @@ def test_parser_for() -> None:
 class _FakeRedis:
     def __init__(self) -> None:
         self.jobs: list[str] = []
+        self.keys: set[str] = set()
+        self.counts: dict[str, int] = {}
 
     async def enqueue_job(self, name: str, *args: Any, **kwargs: Any) -> None:
         self.jobs.append(name)
+
+    async def set(self, key: str, value: str, *, nx: bool = False, ex: int = 0) -> bool:
+        if nx and key in self.keys:
+            return False
+        self.keys.add(key)
+        return True
+
+    async def incr(self, key: str) -> int:  # new-event email daily cap (HE-078)
+        self.counts[key] = self.counts.get(key, 0) + 1
+        return self.counts[key]
+
+    async def expire(self, key: str, seconds: int) -> bool:
+        return True
 
 
 @pytest.fixture
@@ -146,6 +161,48 @@ async def test_llm_document_goes_through_extract(
     _, rid = await _doc("llm", "<html>careers page</html>")
     assert await ingest.ingest_document(ctx, rid) == "parsed"
     assert await _state(rid) == ("parsed", 0, 1, "h")  # 0 candidates -> empty run
+
+
+@needs_stack
+async def test_new_trusted_events_alert_users_once(
+    ctx: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """HE-078: a created auto event alerts; needs_review and merged ones do not."""
+    deadline = datetime(2027, 1, 10, tzinfo=UTC)
+
+    async def fake_extract(engine: Any, redis: Any, **kw: Any) -> ExtractionResult:
+        return ExtractionResult(
+            is_hackathon=True,
+            events=[
+                ExtractedCandidate(title="Sure Hack", organiser="Org A",
+                                   registration_deadline=deadline, confidence=0.95,
+                                   extractor="gemini:test"),
+                ExtractedCandidate(title="Unsure Hack", organiser="Org B",
+                                   registration_deadline=deadline, confidence=0.5,
+                                   extractor="gemini:test", needs_review=True),
+            ],
+        )  # fmt: skip
+
+    monkeypatch.setattr(ingest, "extract", fake_extract)
+    # Alerts are for priority events: "Org A" is a listed company, so dedupe links it.
+    await q(
+        "INSERT INTO organisations (name, kind, region, tier, rank_source, website, is_active)"
+        " VALUES ('Org A', 'company', 'global', 2, 'test', 'https://x', true)"
+    )
+    user = await asyncio.to_thread(make_actor, "prof@example.com")
+    alerts = "SELECT e.title FROM notifications n JOIN events e ON e.id = n.event_id"
+    alerts += " WHERE n.type = 'new_event' AND n.user_id = CAST(:u AS uuid)"
+    _, rid = await _doc("llm", "<html>Hackathons</html>")
+    assert await ingest.ingest_document(ctx, rid) == "parsed"
+    assert await q(alerts, u=user.id) == [("Sure Hack",)]
+    assert ctx["redis"].jobs.count("send_email") == 1
+    linked = "SELECT e.title, o.name FROM events e LEFT JOIN organisations o"
+    linked += " ON o.id = e.organisation_id ORDER BY e.title"
+    assert await q(linked) == [("Sure Hack", "Org A"), ("Unsure Hack", None)]
+    _, rid = await _doc("llm", "<html>Hackathons again</html>")  # same events, new page
+    assert await ingest.ingest_document(ctx, rid) == "parsed"
+    assert await q(alerts, u=user.id) == [("Sure Hack",)]  # merged: no second alert
+    assert ctx["redis"].jobs.count("send_email") == 1
 
 
 @needs_stack

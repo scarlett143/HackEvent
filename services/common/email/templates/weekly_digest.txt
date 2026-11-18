@@ -1,0 +1,30 @@
+Weekly digest, week of {{ week_of }}
+
+{{ open_events }} open events · {{ closing_this_week }} closing this week · {{ new_this_week }} new this week
+
+Closing this week
+{% for e in closing %}
+- {{ e.title }} ({{ e.organiser }})
+  Registration closes: {{ e.when }}
+  {% if e.registered %}Registered: {{ e.registered }}{% else %}Nobody registered yet{% endif %}
+  {{ app_url(e.path) }}
+{% else %}
+No open event closes in the next 7 days.
+{% endfor %}
+
+Registrations by person
+{% for p in people %}
+- {{ p.name }}: {{ p.registrations }}
+{% else %}
+No registrations yet.
+{% endfor %}
+{% if by_kind %}
+Registrations by organiser type
+{% for k in by_kind %}
+- {{ k.label }}: {{ k.registrations }}
+{% endfor %}
+{% endif %}
+Dashboard: {{ app_url('/dashboard') }}
+
+--
+You get this every Monday because you have a Management or Admin account.

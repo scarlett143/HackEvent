@@ -4,11 +4,13 @@ from fastapi.exceptions import RequestValidationError
 from api import (
     admin,
     admin_audit,
+    admin_changes,
     admin_llm,
     admin_review,
     admin_sources,
     admin_telemetry,
     auth,
+    dashboard,
     events,
     health,
     invites,
@@ -35,10 +37,12 @@ app.include_router(admin_telemetry.router)
 app.include_router(admin_llm.router)
 app.include_router(admin_review.router)
 app.include_router(admin_audit.router)
+app.include_router(admin_changes.router)
 app.include_router(invites.router)
 app.include_router(events.router)
 app.include_router(me.router)
 app.include_router(notifications.router)
+app.include_router(dashboard.router)
 
 
 @app.get("/api/v1/health/live")

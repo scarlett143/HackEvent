@@ -24,6 +24,7 @@ from datetime import UTC, datetime
 from typing import Annotated, cast
 from urllib.parse import quote, urlencode
 
+import segno
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from redis.asyncio import Redis
@@ -176,6 +177,10 @@ class CodeIn(BaseModel):
 class EnrolOut(BaseModel):
     secret: str
     otpauth_uri: str
+    # The otpauth URI as a QR code (SVG data URL) for authenticator apps to scan. Built on
+    # the server, so the secret goes to no third-party script; shown via <img>, which
+    # cannot run scripts (CSP img-src allows data:).
+    qr_data_uri: str
 
 
 class VerifiedOut(BaseModel):
@@ -194,7 +199,9 @@ async def enrol(
     user.totp_secret_enc = _encrypt_secret(user, secret)
     user.totp_last_step = None
     await db.commit()
-    return EnrolOut(secret=secret, otpauth_uri=provisioning_uri(secret, user.email))
+    uri = provisioning_uri(secret, user.email)
+    qr = segno.make(uri, error="m").svg_data_uri(scale=6, border=2, dark="#111111", light="#FFFFFF")
+    return EnrolOut(secret=secret, otpauth_uri=uri, qr_data_uri=qr)
 
 
 @router.post("/confirm")

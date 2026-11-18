@@ -5,8 +5,9 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
+import redis
 from fastapi.testclient import TestClient
-from tests.stack import Actor, Pair, make_actor, needs_stack, sql
+from tests.stack import REDIS_URL, Actor, Pair, make_actor, needs_stack, sql
 
 URL = "/api/v1/admin/review"
 SOON = (datetime.now(UTC) + timedelta(days=20)).replace(hour=17, minute=0, second=0, microsecond=0)
@@ -194,3 +195,29 @@ def test_merge_target_must_be_another_live_event(c: TestClient, admin: Actor) ->
         ).status_code
         == 404
     )
+
+
+@needs_stack
+def test_approve_sends_new_event_alerts_reject_does_not(
+    c: TestClient, admin: Actor, two_users: Pair
+) -> None:
+    a, _ = two_users
+    approved, rejected = event("Good Hack"), event("Spam Hack")
+    (org_id,) = sql(  # alerts go out for priority events only (tier 1 college here)
+        "INSERT INTO organisations (name, kind, region, tier, rank_source, website, is_active)"
+        " VALUES (:n, 'institution', 'india', 1, 'test', 'https://x', true) RETURNING id::text",
+        n=uuid.uuid4().hex,
+    )[0]
+    sql("UPDATE events SET organisation_id = CAST(:o AS uuid)", o=org_id)
+    assert c.post(f"{URL}/{rejected}", json={"action": "reject"}, headers=admin.headers).is_success
+    assert c.post(f"{URL}/{approved}", json={"action": "approve"}, headers=admin.headers).is_success
+    rows = sql(
+        "SELECT event_id::text, count(*) FROM notifications WHERE type = 'new_event'"
+        " AND user_id = CAST(:u AS uuid) GROUP BY event_id",
+        u=a.id,
+    )
+    assert rows == [(approved, 1)]  # HE-078: needs_review alerted nobody until approved
+    assert REDIS_URL
+    r = redis.Redis.from_url(REDIS_URL)
+    assert r.exists(f"arq:job:new_event:{approved}:{a.id}")  # email queued after commit
+    assert not r.exists(f"arq:job:new_event:{rejected}:{a.id}")

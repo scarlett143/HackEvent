@@ -10,10 +10,11 @@ const TABS = [
   { label: "Sources", icon: "rss_feed", href: "/admin/sources#sources-heading", page: "sources" },
   { label: "Users", icon: "group", href: "/admin/users", page: "users" },
   { label: "Review", icon: "warning", href: "/admin/review", page: "review" },
+  { label: "Changes", icon: "history", href: "/admin/changes", page: "changes" },
   { label: "Audit", icon: "verified_user", href: "/admin/audit", page: "audit" },
 ] as const;
 
-export function AdminNav({ current }: { current: "sources" | "users" | "review" | "audit" }) {
+export function AdminNav({ current }: { current: "sources" | "users" | "review" | "changes" | "audit" }) {
   return (
     <nav aria-label="Admin sections" className="flex flex-wrap gap-2">
       {TABS.map((t) => (

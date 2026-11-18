@@ -5,6 +5,7 @@
 // ponytail: email + in-app channels only; Telegram / ntfy / push rows join with HE-074..076.
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { api, type Me } from "@/lib/api";
 import {
   type Channel,
@@ -21,6 +22,7 @@ import { matchSettings, type SectionId, SUGGESTIONS } from "@/lib/settings-searc
 import { downloadIcs, downloadXls } from "../calendar-menu";
 import { Icon } from "../symbol";
 import { AppShell, Avatar, useShell } from "../ui";
+import { playChime, setSoundEnabled, soundEnabled } from "@/lib/sound";
 
 const MIN_PASSWORD = 12;
 
@@ -133,6 +135,7 @@ function Settings() {
       )}
       {vis("quiet") && <QuietHoursSection me={me} saveMe={saveMe} />}
       {vis("export") && <ExportSection />}
+      {vis("delete") && <DeleteAccountSection />}
     </main>
   );
 }
@@ -495,7 +498,45 @@ function ChannelsSection({
           );
         })}
       </ul>
+      <SoundToggle />
     </Section>
+  );
+}
+
+/** Per-browser chime for new in-app notifications (lib/sound.ts). */
+function SoundToggle() {
+  const [on, setOn] = useState(true);
+  useEffect(() => {
+    // Mount-time read of this browser's choice (localStorage is not available on the server).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setOn(soundEnabled());
+  }, []);
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line p-4">
+      <div className="min-w-48">
+        <p className="font-medium">Notification sound</p>
+        <p className="text-muted text-sm">Plays a short chime when a new in-app notification arrives (this browser only).</p>
+      </div>
+      <div className="flex items-center gap-2">
+        <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 px-1 text-sm font-medium">
+          <input
+            type="checkbox"
+            role="switch"
+            className="focus-ring size-5 accent-primary"
+            checked={on}
+            onChange={(e) => {
+              setOn(e.target.checked);
+              setSoundEnabled(e.target.checked);
+              if (e.target.checked) playChime();
+            }}
+          />
+          Play sound
+        </label>
+        <button type="button" className="btn-secondary" onClick={playChime}>
+          Preview
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -550,5 +591,75 @@ function QuietHoursSection({ me, saveMe }: { me: Me; saveMe: SaveMe }) {
         </button>
       </form>
     </Section>
+  );
+}
+
+const DELETE_PHRASE = "delete my account";
+
+/** Bottom of Settings: delete own account. Needs the typed phrase + password (POST /me/delete). */
+function DeleteAccountSection() {
+  const router = useRouter();
+  const [phrase, setPhrase] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const ready = phrase.trim().replace(/\s+/g, " ").toLowerCase() === DELETE_PHRASE && password.length > 0;
+
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!ready) return;
+    setBusy(true);
+    setError(null);
+    const r = await api("/api/v1/me/delete", "POST", { password, confirm: phrase });
+    setBusy(false);
+    if (r.ok) {
+      router.replace("/login");
+      return;
+    }
+    setError(r.error.message);
+  }
+
+  return (
+    <section aria-labelledby="delete-heading" className="card flex flex-col gap-3 border-urgent/40 p-4">
+      <h2 id="delete-heading" className="font-display text-xl font-semibold text-urgent">
+        Delete my account
+      </h2>
+      <p className="text-sm">
+        This <strong className="text-urgent">permanently deletes</strong> your account and everything in it: registrations,
+        reminders, calendar items, notifications and settings. <strong className="text-urgent">This cannot be undone.</strong>
+      </p>
+      <form onSubmit={submit} className="flex flex-col gap-3" noValidate>
+        <label className="flex flex-col gap-1 text-sm font-medium">
+          <span>
+            Type <span className="font-mono text-urgent">{DELETE_PHRASE}</span> to confirm
+          </span>
+          <input
+            className="field"
+            value={phrase}
+            onChange={(e) => setPhrase(e.target.value)}
+            autoComplete="off"
+            spellCheck={false}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm font-medium">
+          Your password
+          <input
+            className="field"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
+          />
+        </label>
+        {error && (
+          <p role="alert" className="text-urgent text-sm">
+            {error}
+          </p>
+        )}
+        <button type="submit" className="btn-secondary self-start border-urgent text-urgent" disabled={!ready || busy}>
+          {busy ? "Deleting…" : "Delete my account"}
+        </button>
+      </form>
+    </section>
   );
 }

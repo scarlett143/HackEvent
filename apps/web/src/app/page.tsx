@@ -13,6 +13,8 @@ import {
   type EventItem,
   deadlineUpdated,
   eventsQuery,
+  FEED_REFRESH_MS,
+  feedIsStale,
   FILTER_OPTIONS,
   type Filters,
   filtersToSearch,
@@ -223,15 +225,72 @@ function Results({ query }: { query: string }) {
     [query],
   );
 
-  useEffect(() => {
-    fetchPage(null).then((r) =>
-      setState(
-        r.ok
-          ? { kind: "ready", items: r.data.items, cursor: r.data.next_cursor, more: "idle" }
+  // Owner decision 2026-11-19: the feed reloads itself every 30 min (sources are crawled
+  // hourly) and on demand. A reload replaces the list with page 1, like a fresh visit.
+  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const inFlight = useRef(false);
+  const reload = useCallback(async () => {
+    if (inFlight.current) return true; // a tick or click while loading: let that one finish
+    inFlight.current = true;
+    setRefreshing(true);
+    const r = await fetchPage(null);
+    inFlight.current = false;
+    setRefreshing(false);
+    if (r.ok) setUpdatedAt(new Date());
+    setState((s) =>
+      r.ok
+        ? { kind: "ready", items: r.data.items, cursor: r.data.next_cursor, more: "idle" }
+        : s.kind === "ready"
+          ? s // keep what is on screen; the bar says the refresh failed
           : { kind: "error", message: r.error.message },
-      ),
     );
+    return r.ok;
   }, [fetchPage]);
+  const [refreshFailed, setRefreshFailed] = useState(false);
+  const refresh = useCallback(() => reload().then((ok) => setRefreshFailed(!ok)), [reload]);
+
+  useEffect(() => {
+    reload();
+  }, [reload]);
+
+  useEffect(() => {
+    const tick = () => {
+      if (document.visibilityState === "visible" && feedIsStale(updatedAt, new Date())) refresh();
+    };
+    const t = setInterval(tick, 60_000); // checks each minute; reloads once 30 min old
+    document.addEventListener("visibilitychange", tick); // back on the tab after a while
+    return () => {
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, [updatedAt, refresh]);
+
+  const bar = (
+    <div className="text-muted flex flex-wrap items-center justify-end gap-3 text-sm" aria-live="polite">
+      {refreshFailed ? (
+        <span role="alert" className="text-urgent">
+          Could not refresh. Showing the last loaded list.
+        </span>
+      ) : (
+        updatedAt && (
+          <span>
+            Updated {updatedAt.toLocaleTimeString("en-IN", { timeZone: tz, hour: "2-digit", minute: "2-digit" })}
+            {" · "}refreshes every {FEED_REFRESH_MS / 60_000} min
+          </span>
+        )
+      )}
+      <button
+        type="button"
+        className="btn-secondary inline-flex min-h-11 items-center gap-2"
+        onClick={refresh}
+        disabled={refreshing}
+      >
+        <Icon name="refresh" size={18} className={refreshing ? "animate-spin" : undefined} />
+        {refreshing ? "Refreshing…" : "Refresh"}
+      </button>
+    </div>
+  );
 
   // App Flow F2 step 3: once the feed has been visible for 3 s, mark it seen.
   const ready = state.kind === "ready";
@@ -282,11 +341,17 @@ function Results({ query }: { query: string }) {
     );
   if (!state.items.length)
     return (
-      <div className="surface flex flex-col items-start gap-2 rounded-xl p-6">
-        <p className="font-medium">No events match these filters.</p>
-        <Link className="link" href="/">
-          Clear filters
-        </Link>
+      <div className="flex flex-col gap-3">
+        {bar}
+        <div className="surface flex flex-col items-start gap-2 rounded-xl p-6">
+          <p className="font-medium">No events match these filters.</p>
+          <p className="text-muted text-sm">
+            The feed lists hackathons from Fortune-listed companies and tier 1 colleges only.
+          </p>
+          <Link className="link" href="/">
+            Clear filters
+          </Link>
+        </div>
       </div>
     );
 
@@ -314,6 +379,7 @@ function Results({ query }: { query: string }) {
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_28rem]">
       <div className="flex min-w-0 flex-col gap-6">
+        {bar}
         {section(
           `New since last visit (${fresh.length})`,
           fresh,

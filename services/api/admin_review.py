@@ -11,6 +11,8 @@
     `merge_into`; the duplicate is deleted.
   Every decision is audited (`review.decision`) and replans the affected reminders
   (HE-072) in the same transaction. Only `needs_review` events can be decided (409).
+  Approving is when the event first counts as new: matching users get their new-event
+  alert (HE-078, common.new_event_alerts) in-app in the same transaction, email after it.
 
 Admin + 2FA on every route (router dependency, doc 07 §3).
 """
@@ -19,18 +21,20 @@ import uuid
 from datetime import UTC, datetime
 from typing import Annotated, Any, Literal
 
+from arq.connections import ArqRedis
 from fastapi import APIRouter, Depends, Request
 from pydantic import AfterValidator, BaseModel, Field, model_validator
+from redis.asyncio import Redis
 from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import Auth
-from api.deps import get_db
+from api.deps import get_db, get_redis
 from api.errors import ApiError
 from api.events import plain_text
 from api.invites import _ip
 from api.totp import require_admin_2fa
-from common import reminders
+from common import new_event_alerts, reminders
 from common.audit import AuditAction, record
 from common.models import Event, EventMode, EventSource, EventStatus, ReviewStatus
 from workers.scrape.adapters.base import safe_url
@@ -38,6 +42,7 @@ from workers.scrape.adapters.base import safe_url
 router = APIRouter(prefix="/api/v1/admin", dependencies=[Depends(require_admin_2fa)])
 Db = Annotated[AsyncSession, Depends(get_db)]
 AdminAuth = Annotated[Auth, Depends(require_admin_2fa)]
+Rds = Annotated[Redis, Depends(get_redis)]
 
 QUEUE_MAX = 50
 DUPLICATES_MAX = 3
@@ -234,7 +239,7 @@ async def _merge(db: AsyncSession, dup: Event, target_id: uuid.UUID) -> None:
 
 @router.post("/review/{event_id}")
 async def decide(
-    event_id: uuid.UUID, body: DecisionIn, request: Request, auth: AdminAuth, db: Db
+    event_id: uuid.UUID, body: DecisionIn, request: Request, auth: AdminAuth, db: Db, redis: Rds
 ) -> DecisionOut:  # role: admin + 2FA
     ev = await db.scalar(select(Event).where(Event.id == event_id).with_for_update())
     if ev is None:
@@ -243,6 +248,7 @@ async def decide(
         raise ApiError(409, "already_decided", "This event was already reviewed.")
     meta: dict[str, Any] = {"action": body.action}
     now = datetime.now(UTC)
+    alerts: list[new_event_alerts.EmailAlert] = []
 
     if body.action == "merge":
         assert body.merge_into is not None
@@ -279,6 +285,8 @@ async def decide(
             ev.review_status = ReviewStatus.rejected
         await db.flush()
         await reminders.replan_event(db, ev.id)
+        if body.action == "approve":
+            alerts = await new_event_alerts.alert(await db.connection(), ev.id, now=now)
         out = DecisionOut(id=ev.id, action=body.action, review_status=ev.review_status)
 
     await record(
@@ -291,4 +299,5 @@ async def decide(
         meta=meta,
     )
     await db.commit()
+    await new_event_alerts.enqueue(ArqRedis(redis.connection_pool), event_id, alerts)
     return out
