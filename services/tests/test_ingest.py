@@ -184,6 +184,11 @@ async def test_new_trusted_events_alert_users_once(
         )  # fmt: skip
 
     monkeypatch.setattr(ingest, "extract", fake_extract)
+    # Alerts are for priority events: "Org A" is a listed company, so dedupe links it.
+    await q(
+        "INSERT INTO organisations (name, kind, region, tier, rank_source, website, is_active)"
+        " VALUES ('Org A', 'company', 'global', 2, 'test', 'https://x', true)"
+    )
     user = await asyncio.to_thread(make_actor, "prof@example.com")
     alerts = "SELECT e.title FROM notifications n JOIN events e ON e.id = n.event_id"
     alerts += " WHERE n.type = 'new_event' AND n.user_id = CAST(:u AS uuid)"
@@ -191,6 +196,9 @@ async def test_new_trusted_events_alert_users_once(
     assert await ingest.ingest_document(ctx, rid) == "parsed"
     assert await q(alerts, u=user.id) == [("Sure Hack",)]
     assert ctx["redis"].jobs.count("send_email") == 1
+    linked = "SELECT e.title, o.name FROM events e LEFT JOIN organisations o"
+    linked += " ON o.id = e.organisation_id ORDER BY e.title"
+    assert await q(linked) == [("Sure Hack", "Org A"), ("Unsure Hack", None)]
     _, rid = await _doc("llm", "<html>Hackathons again</html>")  # same events, new page
     assert await ingest.ingest_document(ctx, rid) == "parsed"
     assert await q(alerts, u=user.id) == [("Sure Hack",)]  # merged: no second alert

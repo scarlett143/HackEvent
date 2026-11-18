@@ -33,7 +33,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
 
-from common import reminders
+from common import org_match, reminders
 from common.models import Event, EventMode, EventSource, EventStatus, ReviewStatus
 from workers.scrape.adapters.base import EventCandidate
 
@@ -182,12 +182,16 @@ async def upsert_candidate(
                     outcome = "merged_fuzzy"
                 else:
                     review = True  # possible duplicate: an admin decides (HE-093)
+        org_id = org_match.best_match(
+            cand.organiser, await org_match.active_orgs(await db.connection())
+        )
         if ev is None:
             event_id = await db.scalar(
                 insert(Event)
                 .values(
                     title=cand.title,
                     organiser_name=cand.organiser,
+                    organisation_id=org_id,  # priority feed (Fortune / tier 1 college)
                     description=cand.description or "",
                     # '' = unknown, so a later source can fill it; UI falls back to event_sources
                     registration_url=cand.registration_url or "",
@@ -215,6 +219,8 @@ async def upsert_candidate(
             outcome = "merged_exact"
         before = (ev.registration_deadline, ev.event_start, ev.status)
         _merge(ev, cand, now)
+        if ev.organisation_id is None:
+            ev.organisation_id = org_id
         await db.flush()
         if (ev.registration_deadline, ev.event_start, ev.status) != before:
             await reminders.replan_event(db, ev.id, now=now)  # HE-072

@@ -59,6 +59,14 @@ export type Page<T> = { items: T[]; next_cursor: string | null };
 export type UnreadCount = { new_events: number; notifications: number };
 
 export const DEFAULT_TZ = "Asia/Kolkata";
+
+/** The feed reloads itself this often (owner decision 2026-11-19; sources crawl hourly). */
+export const FEED_REFRESH_MS = 30 * 60_000;
+
+/** True once the list on screen is FEED_REFRESH_MS old (or was never loaded). */
+export function feedIsStale(updatedAt: Date | null, now: Date): boolean {
+  return updatedAt === null || now.getTime() - updatedAt.getTime() >= FEED_REFRESH_MS;
+}
 const DAY = 86_400_000;
 
 // ── Deadlines ────────────────────────────────────────────────────────────────

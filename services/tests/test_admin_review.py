@@ -203,6 +203,12 @@ def test_approve_sends_new_event_alerts_reject_does_not(
 ) -> None:
     a, _ = two_users
     approved, rejected = event("Good Hack"), event("Spam Hack")
+    (org_id,) = sql(  # alerts go out for priority events only (tier 1 college here)
+        "INSERT INTO organisations (name, kind, region, tier, rank_source, website, is_active)"
+        " VALUES (:n, 'institution', 'india', 1, 'test', 'https://x', true) RETURNING id::text",
+        n=uuid.uuid4().hex,
+    )[0]
+    sql("UPDATE events SET organisation_id = CAST(:o AS uuid)", o=org_id)
     assert c.post(f"{URL}/{rejected}", json={"action": "reject"}, headers=admin.headers).is_success
     assert c.post(f"{URL}/{approved}", json={"action": "approve"}, headers=admin.headers).is_success
     rows = sql(

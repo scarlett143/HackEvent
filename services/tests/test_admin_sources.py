@@ -153,7 +153,7 @@ def test_list_filter_and_patch_organisations(c: TestClient, admin: Actor) -> Non
     }
     # Tier change re-derives cadence for sources following the org tier, not pinned ones.
     assert dict(sql("SELECT url, cadence_hours FROM sources")) == {
-        "https://example.org/acme": 24,
+        "https://example.org/acme": 1,
         pinned["url"]: 168,
     }
     assert c.patch(f"{ORGS}/{acme}", json={"tier": 4}, headers=admin.headers).status_code == 422
@@ -246,12 +246,12 @@ def test_source_create_validates_and_audits(c: TestClient, admin: Actor) -> None
     assert r.status_code == 201
     agg = r.json()
     assert agg["url"] == "https://example.org/hackathons"
-    assert agg["cadence_hours"] == 4  # aggregator
+    assert agg["cadence_hours"] == 1  # aggregator, hourly
     assert agg["is_enabled"] is True and agg["organisation_name"] is None
     r = new_source(
         c, admin, url="https://example.org/a", organisation_id=acme, kind="official", adapter="llm"
     )
-    assert r.json()["cadence_hours"] == 24 and r.json()["organisation_name"] == "Acme"
+    assert r.json()["cadence_hours"] == 1 and r.json()["organisation_name"] == "Acme"
     r = new_source(
         c,
         admin,
@@ -287,7 +287,7 @@ def test_source_edit_and_delete(c: TestClient, admin: Actor) -> None:
         assert c.patch(path, json=body, headers=admin.headers).status_code == 422, body
 
     r = c.patch(path, json={"tier_override": 1}, headers=admin.headers)
-    assert r.status_code == 200 and r.json()["cadence_hours"] == 24
+    assert r.status_code == 200 and r.json()["cadence_hours"] == 1
     assert sql("SELECT etag, content_hash FROM sources") == [("e", "h")]  # same URL
     r = c.patch(
         path, json={"url": "https://example.org/new", "cadence_hours": 12}, headers=admin.headers
@@ -301,10 +301,10 @@ def test_source_edit_and_delete(c: TestClient, admin: Actor) -> None:
     )  # no-op
     edits = [m for a, _, t, m in audit() if a == "source.edit" and t == s["id"]]
     assert edits == [
-        {"tier_override": {"from": None, "to": 1}, "cadence_hours": {"from": 72, "to": 24}},
+        {"tier_override": {"from": None, "to": 1}, "cadence_hours": {"from": 72, "to": 1}},
         {
             "url": {"from": "https://example.org/feed", "to": "https://example.org/new"},
-            "cadence_hours": {"from": 24, "to": 12},
+            "cadence_hours": {"from": 1, "to": 12},
         },
         {"tier_override": {"from": 1, "to": None}, "cadence_hours": {"from": 12, "to": 72}},
     ]
