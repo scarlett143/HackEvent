@@ -67,9 +67,14 @@ Store `MASTER_KEY` in a password manager **separately** from backups.
 ### B6. Domain (DuckDNS)
 1. Sign in at duckdns.org with the **admin's dedicated Google account**, claim `<name>`, set its IP to the VM public IP (reserve a **static public IP** in Oracle first).
 2. `ntfy.<name>.duckdns.org` resolves automatically (sub-subdomains follow the main record); Caddy gets its own certificate for it.
-3. Safety net if the IP ever changes: cron every 5 min
-   `curl -s "https://www.duckdns.org/update?domains=<name>&token=$DUCKDNS_TOKEN&ip="` (token from `.env`, never in the crontab line itself — read it from the file).
-4. Google Search Console → add property `https://<name>.duckdns.org` → **HTML file** verification (serve the file via Caddy). The single DuckDNS TXT value stays free.
+3. Safety net if the IP ever changes (HE-133): put `DUCKDNS_TOKEN=<token from duckdns.org>` in `infra/.env`
+   (with `APP_DOMAIN=<name>.duckdns.org`), run `~/hackevents/infra/duckdns-update.sh` once (silent + exit 0 = OK),
+   then `crontab -e` as `deploy`: `*/5 * * * * ~/hackevents/infra/duckdns-update.sh >/dev/null 2>&1`.
+   The script reads the token from `.env` and hands the URL to curl on stdin, so it is in neither the crontab nor `ps`.
+4. Check: `dig +short <name>.duckdns.org` = the VM IP, then `https://<name>.duckdns.org` shows a valid Let's Encrypt
+   certificate (Caddy issues it on first request; `docker compose logs caddy` if not). Google sign-in needs
+   `APP_DOMAIN` in the OAuth consent screen's authorised domains and the redirect URI from B7.
+5. Google Search Console → add property `https://<name>.duckdns.org` → **HTML file** verification (serve the file via Caddy). The single DuckDNS TXT value stays free.
 
 ### B7. Email (Gmail API)
 1. Create a dedicated Gmail account for sending (`<sender>@gmail.com`), 2-step verification on.

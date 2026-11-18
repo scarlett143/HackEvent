@@ -70,6 +70,7 @@ Design docs: [docs/](docs/README.md) — PRD, TRD, schema, API, security, AI gua
 | HE-096 | Audit log viewer: newest first, filter by actor and action, cursor paging; meta shown as text | Done |
 | HE-131 | Ops alerts to Admin (email + in-app): scheduler heartbeat, worker health, disk > 80%, reminder lag; once per incident (2 failed runs), re-armed on recovery; `scripts.send_test_alert` | Done |
 | HE-132 | `infra/provision.sh` (Runbook B3+B4): idempotent Ubuntu 24.04 hardening + Docker, `--check` dry run, lock-out guards; `docker-compose.prod.yml` runs the GHCR arm64 images; `scripts.create_admin` for the first Admin | Done |
+| HE-133 | DuckDNS: `infra/duckdns-update.sh` IP updater for cron (token read from `.env`, kept out of crontab and `ps`), runbook B6 setup + checks. Firebase authorised domain waits for push (web-first) | Done |
 
 Full ticket list: [docs/09-Feature-Ticket-List.md](docs/09-Feature-Ticket-List.md).
 
