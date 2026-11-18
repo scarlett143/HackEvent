@@ -29,24 +29,21 @@ Version 0.1 · 2026-11-13 · Target: Oracle Cloud single VM, Docker Compose
 4. Add your SSH public key; no password auth.
 5. Security list ingress: TCP 80, 443 from `0.0.0.0/0`; TCP 22 from your IP only.
 
-### B3. Host hardening
+### B3. Host hardening + B4. Docker (`infra/provision.sh`, HE-132)
+On the new VM only (never on a shared server), as the default `ubuntu` user:
 ```bash
-sudo apt update && sudo apt -y upgrade
-sudo apt -y install ufw fail2ban unattended-upgrades
-sudo adduser --disabled-password deploy && sudo usermod -aG sudo deploy
-# copy authorized_keys to deploy, then in /etc/ssh/sshd_config:
-#   PermitRootLogin no
-#   PasswordAuthentication no
-sudo systemctl restart ssh
-sudo ufw default deny incoming
-sudo ufw allow 22/tcp && sudo ufw allow 80/tcp && sudo ufw allow 443/tcp
-sudo ufw enable
-sudo dpkg-reconfigure -plow unattended-upgrades
+git clone <repo-url> ~/hackevents && cd ~/hackevents/infra
+sudo ./provision.sh --check   # lists what it would change, changes nothing
+sudo ./provision.sh           # apply; re-running changes nothing (idempotent)
 ```
-Oracle Ubuntu images also ship their own iptables rules — confirm 80/443 are open in both iptables and the security list (`sudo iptables -L INPUT -n`).
-
-### B4. Docker
-Install Docker Engine + Compose plugin from Docker's official apt repository (not the convenience script). Add `deploy` to the `docker` group.
+It does, each step only if not already done: `apt upgrade`; installs ufw, fail2ban,
+unattended-upgrades (enabled); creates `deploy` (no password, sudo + docker groups) with
+your `authorized_keys`; sshd drop-in `PermitRootLogin no` + `PasswordAuthentication no`
+(validated with `sshd -t`, refuses if no SSH key is present, so you cannot lock yourself out);
+ufw deny incoming, allow 22/80/443; accepts 80/443 in Oracle's own iptables rules and saves
+them (`netfilter-persistent`); Docker Engine + Compose plugin from Docker's apt repository.
+**Keep your current SSH session open** until a new `ssh deploy@<ip>` works. Then confirm
+80/443 in both `sudo iptables -L INPUT -n` and the Oracle security list.
 
 ### B5. App
 ```bash
@@ -56,11 +53,15 @@ cp .env.example .env && chmod 600 .env
 # fill .env: APP_DOMAIN, MASTER_KEY (openssl rand -base64 32), SESSION_SECRET,
 #            Firebase config + FCM VAPID key, email provider, Telegram token, Google client
 # copy Firebase service-account JSON to ~/hackevents/secrets/firebase.json (chmod 600, never in git)
+# production: run the arm64 images CI publishes to GHCR (publish-images.yml), not local builds.
+# In .env uncomment COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml and set GHCR_OWNER.
+echo <PAT with read:packages> | docker login ghcr.io -u <github-user> --password-stdin  # packages are private
 docker compose pull && docker compose up -d
 docker compose exec api alembic upgrade head
 docker compose exec api python -m seeds.load
-docker compose exec api python -m scripts.create_admin --email <admin-email>
+docker compose exec api python -m scripts.create_admin --email <admin-email> --name "<name>"  # asks for the password
 ```
+Update later: `docker compose pull && docker compose up -d` (latest), or set `IMAGE_TAG=sha-<short>` in `.env` to pin or roll back.
 Store `MASTER_KEY` in a password manager **separately** from backups.
 
 ### B6. Domain (DuckDNS)

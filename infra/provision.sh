@@ -126,6 +126,9 @@ for port in 80 443; do
 done
 if ((!CHECK)) && command -v netfilter-persistent >/dev/null; then
   netfilter-persistent save >/dev/null
+elif ((!CHECK)); then
+  echo "WARNING: netfilter-persistent missing: the 80/443 rules are lost on reboot." >&2
+  echo "         Install it (apt-get install iptables-persistent) and re-run." >&2
 fi
 
 # Same file `dpkg-reconfigure -plow unattended-upgrades` writes, without the prompt.
