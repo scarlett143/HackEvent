@@ -1,0 +1,24 @@
+# Production override (HE-132, Runbook B5/C): run the arm64 images that
+# .github/workflows/publish-images.yml pushes to GHCR instead of building on the VM.
+# Enable it in infra/.env:  COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml
+# and set GHCR_OWNER (lowercase GitHub owner). Packages are private: `docker login ghcr.io` once.
+x-services: &services
+  image: ghcr.io/${GHCR_OWNER:?set GHCR_OWNER in infra/.env}/hackevents-services:${IMAGE_TAG:-latest}
+  pull_policy: missing
+
+services:
+  web:
+    image: ghcr.io/${GHCR_OWNER:?set GHCR_OWNER in infra/.env}/hackevents-web:${IMAGE_TAG:-latest}
+    build: !reset null
+    pull_policy: missing
+  browser:
+    image: ghcr.io/${GHCR_OWNER:?set GHCR_OWNER in infra/.env}/hackevents-browser:${IMAGE_TAG:-latest}
+    build: !reset null
+    pull_policy: missing
+  api:
+    <<: *services
+    build: !reset null
+  scheduler: *services
+  worker-scrape: *services
+  worker-llm: *services
+  worker-notify: *services
