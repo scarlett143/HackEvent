@@ -70,6 +70,7 @@ Design docs: [docs/](docs/README.md) — PRD, TRD, schema, API, security, AI gua
 | HE-096 | Audit log viewer: newest first, filter by actor and action, cursor paging; meta shown as text | Done |
 | HE-131 | Ops alerts to Admin (email + in-app): scheduler heartbeat, worker health, disk > 80%, reminder lag; once per incident (2 failed runs), re-armed on recovery; `scripts.send_test_alert` | Done |
 | HE-132 | `infra/provision.sh` (Runbook B3+B4): idempotent Ubuntu 24.04 hardening + Docker, `--check` dry run, lock-out guards; `docker-compose.prod.yml` runs the GHCR arm64 images; `scripts.create_admin` for the first Admin | Done |
+| HE-123 | Data export: `GET /me/export` JSON download of the caller's own rows (profile, prefs, sessions, endpoints, registrations, tracks, calendar, reminders, notifications, invites sent, own audit entries), hashes / encrypted columns / audit meta dropped; Settings → Export "Download all my data". Delete shipped in #80 | Done |
 
 Full ticket list: [docs/09-Feature-Ticket-List.md](docs/09-Feature-Ticket-List.md).
 

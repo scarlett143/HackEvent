@@ -17,7 +17,7 @@ const INDEX: [SectionId, string][] = [
   ["reminders", "reminders offsets before deadline notify days hours"],
   ["channels", "channels push notifications email digest in-app test alerts"],
   ["quiet", "quiet hours mute sleep night"],
-  ["export", "export my data xls excel spreadsheet ics download tracked calendar"],
+  ["export", "export my data xls excel spreadsheet ics download tracked calendar json personal data dpdp"],
   ["delete", "delete my account remove close account danger"],
 ];
 
