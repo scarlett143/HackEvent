@@ -70,3 +70,15 @@ export function serializeRead(read: Set<string>): string {
 }
 
 export const unreadCount = (alerts: Alert[], read: Set<string>) => alerts.filter((a) => !read.has(a.id)).length;
+
+/** `GET /notifications` (HE-073): the in-app channel's server-side inbox (reminders, tests). */
+export type InboxItem = {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  event_id: string | null;
+  created_at: string;
+  read_at: string | null;
+};
+export type Inbox = { items: InboxItem[]; unread: number };

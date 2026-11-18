@@ -1,14 +1,15 @@
 "use client";
 
-// Notifications centre (Stitch "Alerts"): deadline, new-event and registration alerts derived from
-// the events API (lib/alerts.ts), with per-item and bulk mark-read. Read state is per browser.
+// Notifications centre (Stitch "Alerts"): server-side reminders from the in-app channel
+// (GET /notifications, HE-073; read state on the server) plus deadline, new-event and
+// registration alerts derived from the events API (lib/alerts.ts; read state per browser).
 // Squad invites / system trust items have no data source yet and are not shown.
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
-import { type Alert, type AlertKind, buildAlerts, newActionAlerts, parseRead, READ_KEY, serializeRead, unreadCount } from "@/lib/alerts";
-import { safeHttpUrl } from "@/lib/events";
+import { type Alert, type AlertKind, type Inbox, type InboxItem, buildAlerts, newActionAlerts, parseRead, READ_KEY, serializeRead, unreadCount } from "@/lib/alerts";
+import { formatWhen, safeHttpUrl } from "@/lib/events";
 import { loadEvents } from "@/lib/load-events";
 import { Icon } from "../symbol";
 import { AppShell, Avatar, EventMeta, useShell } from "../ui";
@@ -43,6 +44,12 @@ function Notifications() {
   const [failed, setFailed] = useState(false);
   const [read, setRead] = useState<Set<string>>(new Set());
   const [tab, setTab] = useState<Tab>("all");
+  const [inbox, setInbox] = useState<Inbox | null>(null);
+
+  const loadInbox = useCallback(
+    () => api<Inbox>("/api/v1/notifications").then((r) => r.ok && setInbox(r.data)),
+    [],
+  );
 
   useEffect(() => {
     // Mount-time loads: state is set after an await / from storage, once.
@@ -61,9 +68,14 @@ function Notifications() {
           toast({ message: fresh.length === 1 ? `${fresh[0].title}: ${fresh[0].detail}` : `${fresh.length} deadlines need action` });
       });
     load();
-    const id = setInterval(() => document.visibilityState === "visible" && load(), 60_000);
+    loadInbox();
+    const id = setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      load();
+      loadInbox();
+    }, 60_000);
     return () => clearInterval(id);
-  }, [tz, toast]);
+  }, [tz, toast, loadInbox]);
 
   const persist = useCallback((next: Set<string>) => {
     setRead(next);
@@ -75,15 +87,24 @@ function Notifications() {
   }, []);
 
   const markRead = (ids: string[]) => persist(new Set([...read, ...ids]));
+  async function readInbox(body: { ids: string[] } | { all: true }) {
+    const r = await api("/api/v1/notifications/read", "POST", body);
+    if (!r.ok) return toast({ message: "Could not mark notifications read. Try again." });
+    await loadInbox();
+    refreshUnread();
+  }
   async function markAllRead() {
     markRead((alerts ?? []).map((a) => a.id));
+    if (inbox?.unread) await readInbox({ all: true });
     const r = await api("/api/v1/me/seen", "POST"); // also clears the server-side "new" badge
     if (r.ok) refreshUnread();
   }
 
   const shown = useMemo(() => (alerts ?? []).filter((a) => tab === "all" || a.kind === tab), [alerts, tab]);
-  const unread = alerts ? unreadCount(alerts, read) : 0;
-  const count = (t: Tab) => (alerts ?? []).filter((a) => t === "all" || a.kind === t).length;
+  const unread = (alerts ? unreadCount(alerts, read) : 0) + (inbox?.unread ?? 0);
+  const total = (alerts?.length ?? 0) + (inbox?.items.length ?? 0);
+  const count = (t: Tab) =>
+    (alerts ?? []).filter((a) => t === "all" || a.kind === t).length + (t === "all" ? (inbox?.items.length ?? 0) : 0);
   const urgentGroup = shown.filter((a) => a.level !== "info");
   const updates = shown.filter((a) => a.level === "info");
 
@@ -93,7 +114,7 @@ function Notifications() {
         <div>
           <h1 className="font-display text-[1.75rem] leading-8 font-bold">Notifications</h1>
           <p className="text-muted text-sm" aria-live="polite">
-            {alerts ? `${unread} unread of ${alerts.length}` : "Loading…"}
+            {alerts ? `${unread} unread of ${total}` : "Loading…"}
           </p>
         </div>
         <button className="btn-secondary inline-flex items-center gap-2" disabled={!alerts || unread === 0} onClick={markAllRead}>
@@ -116,7 +137,21 @@ function Notifications() {
         </p>
       )}
       {!alerts && !failed && <div aria-busy="true" aria-label="Loading notifications" className="skeleton h-48" />}
-      {alerts && shown.length === 0 && (
+      {inbox && inbox.items.length > 0 && tab === "all" && (
+        <section aria-label="Reminders" className="flex flex-col gap-3">
+          <h2 className="font-display flex items-center gap-3 text-xl font-semibold">
+            Reminders
+            <span className="chip">{inbox.items.length}</span>
+            <span aria-hidden className="h-px flex-1 bg-line" />
+          </h2>
+          <ul className="flex flex-col gap-3">
+            {inbox.items.map((n) => (
+              <InboxCard key={n.id} n={n} tz={tz} onRead={() => readInbox({ ids: [n.id] })} />
+            ))}
+          </ul>
+        </section>
+      )}
+      {alerts && shown.length === 0 && !(tab === "all" && inbox?.items.length) && (
         <div className="card flex flex-col items-start gap-2 p-6">
           <p className="font-display text-xl font-semibold">All caught up!</p>
           <p className="text-muted text-sm">
@@ -202,6 +237,45 @@ function AlertCard({ a, isRead, onRead }: { a: Alert; isRead: boolean; onRead: (
             </button>
           )}
         </div>
+      </div>
+    </li>
+  );
+}
+
+/** One server-side notification. Title / body are plain text: rendered as text, never HTML. */
+function InboxCard({ n, tz, onRead }: { n: InboxItem; tz: string; onRead: () => void }) {
+  const unread = n.read_at === null;
+  const href = n.event_id ? `/events/${encodeURIComponent(n.event_id)}` : null;
+  return (
+    <li className={`card flex gap-3 p-4 ${unread ? "" : "opacity-60"}`}>
+      <span aria-hidden className="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface">
+        <Icon name={n.type === "reminder" ? "alarm" : "notifications"} />
+      </span>
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-muted">{formatWhen(n.created_at, tz)}</span>
+          {unread && (
+            <span className="flex items-center gap-1 font-semibold">
+              <span aria-hidden className="size-2 rounded-full bg-new" />
+              Unread
+            </span>
+          )}
+        </div>
+        <h3 className="font-display text-lg font-semibold">
+          {href ? (
+            <Link href={href} className="focus-ring rounded hover:underline" onClick={() => unread && onRead()}>
+              {n.title}
+            </Link>
+          ) : (
+            n.title
+          )}
+        </h3>
+        <p className="text-sm">{n.body}</p>
+        {unread && (
+          <button className="link focus-ring min-h-11 self-start text-sm" onClick={onRead}>
+            Mark read<span className="sr-only">: {n.title}</span>
+          </button>
+        )}
       </div>
     </li>
   );

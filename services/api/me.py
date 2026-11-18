@@ -44,7 +44,8 @@ from api.auth import (
 from api.deps import get_db, get_redis
 from api.errors import ApiError
 from common import reminders
-from common.models import Notification, NotificationPrefs, Session, User
+from common.models import NotificationPrefs, Session, User
+from common.notifiers import Endpoint, InAppNotifier
 from common.queues import NOTIFY_QUEUE
 
 router = APIRouter(prefix="/api/v1")
@@ -253,13 +254,6 @@ async def test_channel(
             "send_email", user.email, "test", {}, _queue_name=NOTIFY_QUEUE
         )
         return TestOut(channel=channel, status="queued")
-    db.add(
-        Notification(
-            user_id=user.id,
-            type="test",
-            title="Test notification",
-            body="In-app notifications work.",
-        )
-    )
+    await InAppNotifier(await db.connection()).test(Endpoint(user.id))  # HE-073 plugin
     await db.commit()
     return TestOut(channel=channel, status="delivered")

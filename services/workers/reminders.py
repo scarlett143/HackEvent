@@ -7,10 +7,12 @@
 - `send_reminder` (worker-notify) claims the row *before* delivering: one UPDATE flips
   it pending -> sent only if it is still pending and due. A crash after the claim loses
   that one message rather than sending it twice (PRD: "Reminders sent twice: 0").
+  Delivery goes through the channel's notifier plugin (common.notifiers, HE-073):
   - in_app: the notification row is written in the same transaction as the claim;
-  - email: Gmail; a failure puts the row back to pending with backoff, and after
-    MAX_ATTEMPTS (or a revoked token) it becomes `failed` with the error;
-  - channels without a sender yet (fcm, telegram, ntfy, gcal): `failed`, reason given.
+  - others (email today): after the claim commits; a failed SendResult puts the row back
+    to pending with backoff, and after MAX_ATTEMPTS (or `permanent_failure`) it becomes
+    `failed` with the error;
+  - channels without a plugin yet (fcm, telegram, ntfy, gcal): `failed`, reason given.
   A reminder whose user is inactive or whose event no longer qualifies (cancelled,
   rejected, deadline passed / registration closed) is `cancelled`, not sent.
 """
@@ -23,7 +25,8 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy import text
 
-from common.email import EmailError, GmailSender, TokenRevoked, render
+from common import notifiers
+from common.notifiers import Endpoint, Message
 from common.queues import NOTIFY_QUEUE
 from common.reminders import DEFAULT_TZ
 from workers import scheduler
@@ -132,49 +135,43 @@ async def send_reminder(
         if not _still_wanted(r, now):
             await _set(conn, r.id, "cancelled", None)
             return "cancelled"
-        msg = message(r, now)
-        if r.channel == "in_app":
-            await conn.execute(
-                text(
-                    "INSERT INTO notifications (user_id, type, title, body, event_id)"
-                    " VALUES (:u, 'reminder', :t, :b, :e)"
-                ),
-                {
-                    "u": r.user_id,
-                    "t": f"{msg['headline']}: {msg['title']}",
-                    "b": f"{msg['when_label']}: {msg['when']}",
-                    "e": r.event_id,
-                },
-            )
-            return "sent"
-        if r.channel != "email":
+        msg = Message(**message(r, now), event_id=r.event_id)
+        notifier = notifiers.build(r.channel, ctx, conn)
+        if notifier is None:
             await _set(conn, r.id, "failed", f"no sender for channel {r.channel} yet")
             return "failed"
-    # email: the claim is committed; deliver outside the transaction.
-    try:
-        if "gmail" not in ctx:
-            ctx["gmail"] = GmailSender.from_settings()
-        await ctx["gmail"].send(r.email, render("reminder", **msg))
-    except (EmailError, ValueError) as exc:
-        permanent = isinstance(exc, TokenRevoked) or r.attempts >= MAX_ATTEMPTS
-        error = f"{type(exc).__name__}: {exc}"[:ERROR_MAX]
-        async with engine.begin() as conn:
-            if permanent:
-                await _set(conn, r.id, "failed", error)
-            else:
-                await conn.execute(
-                    text(
-                        "UPDATE reminders SET status = 'pending', sent_at = NULL,"
-                        " scheduled_at = :at, last_error = :err, updated_at = now()"
-                        " WHERE id = :id"
-                    ),
-                    {"id": r.id, "at": now + BACKOFF * r.attempts, "err": error},
-                )
-        log.warning(
-            "reminder.email_failed id=%s attempt=%d permanent=%s", r.id, r.attempts, permanent
-        )
-        return "failed" if permanent else "retry"
-    return "sent"
+        if r.channel == "in_app":  # delivered inside the claim transaction
+            result = await notifier.send(Endpoint(r.user_id), msg)
+            if result.ok:
+                return "sent"
+            await _set(conn, r.id, "failed", result.error)
+            return "failed"
+    # Other channels deliver after the claim is committed (never inside a DB transaction).
+    result = await notifier.send(Endpoint(r.user_id, r.email), msg)
+    if result.ok:
+        return "sent"
+    permanent = result.permanent_failure or r.attempts >= MAX_ATTEMPTS
+    error = (result.error or "send failed")[:ERROR_MAX]
+    async with engine.begin() as conn:
+        if permanent:
+            await _set(conn, r.id, "failed", error)
+        else:
+            await conn.execute(
+                text(
+                    "UPDATE reminders SET status = 'pending', sent_at = NULL,"
+                    " scheduled_at = :at, last_error = :err, updated_at = now()"
+                    " WHERE id = :id"
+                ),
+                {"id": r.id, "at": now + BACKOFF * r.attempts, "err": error},
+            )
+    log.warning(
+        "reminder.send_failed id=%s channel=%s attempt=%d permanent=%s",
+        r.id,
+        r.channel,
+        r.attempts,
+        permanent,
+    )
+    return "failed" if permanent else "retry"
 
 
 async def _set(conn: Any, rid: uuid.UUID, status: str, error: str | None) -> None:
