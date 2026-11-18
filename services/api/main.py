@@ -4,6 +4,7 @@ from fastapi.exceptions import RequestValidationError
 from api import (
     admin,
     admin_llm,
+    admin_review,
     admin_sources,
     admin_telemetry,
     auth,
@@ -31,6 +32,7 @@ app.include_router(admin.router)
 app.include_router(admin_sources.router)
 app.include_router(admin_telemetry.router)
 app.include_router(admin_llm.router)
+app.include_router(admin_review.router)
 app.include_router(invites.router)
 app.include_router(events.router)
 app.include_router(me.router)
