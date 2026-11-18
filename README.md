@@ -53,6 +53,7 @@ Design docs: [docs/](docs/README.md) — PRD, TRD, schema, API, security, AI gua
 | HE-053 | Feed filters with URL state (reload keeps filters) | Done |
 | HE-054 | Event detail: two dated countdowns, needs-review banner, source block with plain-text snippet | Done |
 | HE-055 | I registered / Remind me (optimistic, 10 s undo), "Did you register?" prompt when returning from the organiser's page; reminder recompute hook filled by HE-070 | Done |
+| HE-060 | Calendar items API: `GET/POST /calendar-items`, `PATCH/DELETE /calendar-items/:id`, own rows only (404 cross-user); registering adds the user's own copy of the event run, unregistering removes it | Done |
 | HE-070 | Reminder planner: register -> event-date offsets, Remind me -> deadline offsets, at the user's send hour in their timezone, quiet hours respected; unique (user, event, kind, offset, channel), sent reminders never re-armed; replans on prefs / timezone / quiet hours / deactivation | Done |
 | HE-071 | Reminder dispatcher: scheduler sweep every minute (SKIP LOCKED) -> notify worker; at-most-once claim before delivery; in-app + email (Gmail, backoff, 5 attempts); stale reminders cancelled | Done |
 | HE-072 | Deadline / start / status change at the source replans every registered or tracking user's reminders (pending replaced, sent kept); "Deadline updated" chip for 48 h | Done |
