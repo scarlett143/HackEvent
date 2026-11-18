@@ -189,7 +189,10 @@ function ExportSection() {
 
   return (
     <Section id="export" title="Export my data">
-      <p className="text-muted text-sm">Everything you track or registered for, as an Excel sheet or a calendar file.</p>
+      <p className="text-muted text-sm">
+        Everything you track or registered for, as an Excel sheet or a calendar file. Or everything the app holds about
+        you (profile, settings, registrations, reminders, notifications, sign-ins) as one JSON file.
+      </p>
       <div className="flex flex-wrap gap-2">
         <button className="btn-secondary" disabled={busy} onClick={() => run("xls")}>
           Export .xls
@@ -197,6 +200,10 @@ function ExportSection() {
         <button className="btn-secondary" disabled={busy} onClick={() => run("ics")}>
           Export .ics
         </button>
+        {/* HE-123: a plain GET; the server sends it as an attachment, no script needed. */}
+        <a className="btn-secondary" href="/api/v1/me/export" download>
+          Download all my data (.json)
+        </a>
       </div>
     </Section>
   );

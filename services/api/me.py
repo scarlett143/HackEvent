@@ -9,6 +9,7 @@
 - `POST /me/password`: current + new; new must pass `check_password_policy`. All OTHER
   sessions are revoked (doc 07 §4), the caller's is kept. Wrong current password -> 400 and
   counts against the per-account login limit, so a stolen session can't brute-force it.
+- `GET /me/export` (HE-123): JSON download of the caller's own data; secrets dropped.
 - `POST /channels/{channel}/test`: email (queues the `test` template to the user's own
   address) and in_app (one notifications row). 5 / hour per user (doc 06 A8). Telegram, ntfy
   and push join here with their tickets (HE-074..076).
@@ -16,7 +17,8 @@
 Every route acts on the caller's own rows only; there is no user id in any path or body.
 """
 
-from datetime import time
+import json
+from datetime import UTC, datetime, time
 from functools import cache
 from typing import Annotated, Any, Literal
 from zoneinfo import available_timezones
@@ -50,12 +52,21 @@ from api.invites import _ip
 from common import reminders
 from common.audit import AuditAction, record
 from common.models import (
+    AuditLog,
+    CalendarFeed,
+    CalendarItem,
+    ChannelEndpoint,
+    Event,
     EventMode,
     Invite,
+    Notification,
     NotificationPrefs,
     OrgKind,
     OrgRegion,
+    Registration,
+    Reminder,
     Session,
+    Track,
     User,
     UserRole,
 )
@@ -307,6 +318,68 @@ async def delete_account(
     await db.commit()
     response.delete_cookie(SESSION_COOKIE, path="/", secure=True, httponly=True, samesite="lax")
     clear_csrf_cookie(response)
+
+
+# --- data export (HE-123, doc 06 A2, doc 07 DPDP note) ---
+
+# Everything that is the caller's: their user row and every table keyed by user_id, plus
+# invites they sent and audit entries they made. Secrets never leave: hashes, encrypted
+# columns (TOTP secret, channel addresses) and the TOTP replay counter are dropped. Audit
+# `meta` is dropped too, since it can name other people (an invite's email).
+_EXPORT_OWNED: tuple[tuple[str, Any], ...] = (
+    ("sessions", Session),
+    ("notification_prefs", NotificationPrefs),
+    ("channel_endpoints", ChannelEndpoint),
+    ("registrations", Registration),
+    ("tracks", Track),
+    ("calendar_items", CalendarItem),
+    ("calendar_feeds", CalendarFeed),
+    ("reminders", Reminder),
+    ("notifications", Notification),
+)
+_EXPORT_DROP = {"password_hash", "token_hash", "totp_last_step", "meta"}
+
+
+def _export_row(row: Any) -> dict[str, Any]:
+    out: dict[str, Any] = {}
+    for col in row.__table__.columns:
+        if col.key in _EXPORT_DROP or col.key.endswith("_enc"):
+            continue
+        value = getattr(row, col.key)
+        out[col.key] = value.isoformat() if hasattr(value, "isoformat") else value
+    return out
+
+
+@router.get("/me/export")
+async def export_me(user: Me, db: Db) -> Response:  # role: any, own rows only
+    data: dict[str, Any] = {
+        "exported_at": datetime.now(UTC).isoformat(),
+        "user": _export_row(user),
+    }
+    for name, model in _EXPORT_OWNED:
+        rows = await db.scalars(select(model).where(model.user_id == user.id))
+        data[name] = [_export_row(r) for r in rows]
+    invites = await db.scalars(select(Invite).where(Invite.created_by == user.id))
+    data["invites_sent"] = [_export_row(r) for r in invites]
+    audit = await db.scalars(
+        select(AuditLog).where(AuditLog.actor_id == user.id).order_by(AuditLog.at)
+    )
+    data["audit_log"] = [_export_row(r) for r in audit]
+    event_ids = {
+        r["event_id"] for k in ("registrations", "tracks", "reminders", "notifications")
+        for r in data[k] if r.get("event_id")
+    }  # fmt: skip
+    titles = await db.execute(select(Event.id, Event.title).where(Event.id.in_(event_ids)))
+    data["events"] = {str(i): t for i, t in titles}
+    day = datetime.now(UTC).strftime("%Y%m%d")
+    return Response(
+        content=json.dumps(data, default=str, ensure_ascii=False, indent=2),
+        media_type="application/json",
+        headers={
+            "Content-Disposition": f'attachment; filename="hackevents-export-{day}.json"',
+            "Cache-Control": "no-store",
+        },
+    )
 
 
 # --- channel tests ---

@@ -68,6 +68,7 @@ Design docs: [docs/](docs/README.md) — PRD, TRD, schema, API, security, AI gua
 | HE-111 | Weekly digest email, Monday 09:00 IST (arq cron 03:30 UTC, scheduler `timezone = UTC`): dashboard summary to active Management + Admin, dates in each recipient's timezone, names only (no addresses); once per IST ISO week via a Redis `SET NX` claim | Done |
 | Feed | Priority feed: only hackathons from Fortune-listed companies (seeded Fortune Global 500 / India 500) and tier 1 colleges (NIRF 1–50) by default (`scope=all` for everything), organisers matched to the seed lists (IIT/NIT expansion, brand aliases such as Google → Alphabet); aggregators and tier 1 sources crawled hourly; feed reloads every 30 min plus a Refresh button; Admin → Changes lists new events, moved deadlines and cancellations, with Refresh now (10 min cooldown) | Done |
 | HE-131 | Ops alerts to Admin (email + in-app): scheduler heartbeat, worker health, disk > 80%, reminder lag; once per incident (2 failed runs), re-armed on recovery; `scripts.send_test_alert` | Done |
+| HE-123 | Data export: `GET /me/export` JSON download of the caller's own rows (profile, prefs, sessions, endpoints, registrations, tracks, calendar, reminders, notifications, invites sent, own audit entries), hashes / encrypted columns / audit meta dropped; Settings → Export "Download all my data". Delete shipped in #80 | Done |
 
 Full ticket list: [docs/09-Feature-Ticket-List.md](docs/09-Feature-Ticket-List.md).
 
