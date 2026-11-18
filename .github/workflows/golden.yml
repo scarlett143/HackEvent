@@ -60,7 +60,6 @@ jobs:
       GOLDEN_API_KEY: ${{ secrets[matrix.secret] }}
       GOLDEN_MODEL: ${{ vars[matrix.model_var] }}
       GOLDEN_BASE_URL: ${{ matrix.provider == 'openai_compatible' && vars.GOLDEN_OPENAI_BASE_URL || '' }}
-      GOLDEN_REPORT: ${{ runner.temp }}/golden-${{ matrix.provider }}.json
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -82,7 +81,7 @@ jobs:
       - if: steps.have.outputs.run == 'true'
         run: uv sync --frozen
       - if: steps.have.outputs.run == 'true'
-        run: uv run pytest -m golden -s services/tests/test_golden.py
+        run: GOLDEN_REPORT="$RUNNER_TEMP/golden-$GOLDEN_PROVIDER.json" uv run pytest -m golden -s services/tests/test_golden.py
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && steps.have.outputs.run == 'true'
         with:
