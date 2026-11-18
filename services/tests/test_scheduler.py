@@ -83,7 +83,7 @@ def test_enqueued_job_names_are_registered_on_the_right_worker() -> None:
         "cron:schedule_sources",
     } <= names(settings.SchedulerWorker)
     assert "extract" in names(settings.LlmWorker)
-    assert {"send_email", "send_reminder"} <= names(settings.NotifyWorker)
+    assert {"send_email", "send_reminder", "cron:check_ops"} <= names(settings.NotifyWorker)
     assert "cron:dispatch_reminders" in names(settings.SchedulerWorker)
     assert "cron:weekly_digest" in names(settings.SchedulerWorker)  # HE-111; sends via send_email
 

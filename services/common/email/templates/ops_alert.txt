@@ -1,0 +1,11 @@
+HackEvents ops alert: {{ problem }}
+
+{{ detail }}
+
+Check `docker compose ps`, then the logs of the failing service (Runbook Part H).
+Status: {{ app_url('/api/v1/health') }}
+
+You get this once; it re-arms when the check passes again.
+
+--
+HackEvents · {{ app_url('/') }}
