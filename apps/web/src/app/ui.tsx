@@ -26,7 +26,8 @@ import {
 
 // ── Shell ────────────────────────────────────────────────────────────────────
 
-type Toast = { message: string; undo?: () => void };
+/** `undo` runs from the toast button, labelled `actionLabel` (default "Undo"). */
+type Toast = { message: string; undo?: () => void; actionLabel?: string };
 type Shell = {
   me: Me;
   setMe: (me: Me) => void;
@@ -328,7 +329,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     setToast(null);
                   }}
                 >
-                  Undo
+                  {toast.actionLabel ?? "Undo"}
                 </button>
               )}
             </div>
@@ -477,6 +478,21 @@ export function TrackStar({
   );
 }
 
+/** Run `onReturn` once, the next time the tab becomes visible again (App Flow F4 step 2).
+ * Returns a cancel function. */
+export function onNextReturn(
+  doc: Pick<Document, "addEventListener" | "removeEventListener" | "visibilityState">,
+  onReturn: () => void,
+): () => void {
+  const handler = () => {
+    if (doc.visibilityState !== "visible") return;
+    doc.removeEventListener("visibilitychange", handler);
+    onReturn();
+  };
+  doc.addEventListener("visibilitychange", handler);
+  return () => doc.removeEventListener("visibilitychange", handler);
+}
+
 /** Register / I registered (and, on the detail page, Remind me). */
 export function EventActions({
   ev,
@@ -490,11 +506,35 @@ export function EventActions({
 }) {
   const flip = useEventFlags(ev, onPatch);
   const url = safeHttpUrl(ev.registration_url);
+  const { toast } = useShell();
+  // Latest render's values, so the "Did you register?" answer acts on current state.
+  const latest = useRef({ ev, flip });
+  useEffect(() => {
+    latest.current = { ev, flip };
+  });
+  const pending = useRef<(() => void) | null>(null);
+  useEffect(() => () => pending.current?.(), []);
+
+  /** App Flow F4: Register opens a new tab; when the user comes back, ask. */
+  function askOnReturn() {
+    if (ev.is_registered) return;
+    pending.current?.();
+    pending.current = onNextReturn(document, () => {
+      pending.current = null;
+      const { ev: now, flip: flipNow } = latest.current;
+      if (now.is_registered) return;
+      toast({
+        message: `Did you register for ${now.title}?`,
+        actionLabel: "I registered",
+        undo: () => void flipNow("is_registered"),
+      });
+    });
+  }
 
   return (
     <div className="flex flex-wrap items-center gap-2">
       {url && (
-        <a className="btn-primary inline-flex flex-1 items-center justify-center gap-2" href={url} target="_blank" rel="noopener noreferrer">
+        <a className="btn-primary inline-flex flex-1 items-center justify-center gap-2" href={url} target="_blank" rel="noopener noreferrer" onClick={askOnReturn}>
           Register <Icon name="arrow_outward" />
           <span className="sr-only"> (opens the registration page in a new tab)</span>
         </a>
