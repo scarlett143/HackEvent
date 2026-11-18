@@ -1,0 +1,8 @@
+New hackathon: {{ title }} ({{ organiser }})
+
+Registration closes: {{ when }}
+
+Details: {{ app_url(path) }}
+
+--
+You get this because new-event alerts are on and this event matches your filters. Change alerts in Settings: {{ app_url('/settings') }}

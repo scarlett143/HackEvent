@@ -11,6 +11,8 @@ import {
   sectionize,
   tMinus,
   urgency,
+  FEED_REFRESH_MS,
+  feedIsStale,
 } from "./events";
 
 const IST = "Asia/Kolkata";
@@ -141,5 +143,17 @@ describe("deadlineUpdated (HE-072)", () => {
     expect(deadlineUpdated({ deadline_changed_at: "2026-12-01T12:00:00Z" }, now)).toBe(false);
     expect(deadlineUpdated({ deadline_changed_at: null }, now)).toBe(false);
     expect(deadlineUpdated({}, now)).toBe(false);
+  });
+});
+
+describe("feedIsStale (30 min auto refresh)", () => {
+  const t0 = new Date("2026-11-19T00:00:00Z");
+  it("reloads a never-loaded feed and one that is 30 min old", () => {
+    expect(feedIsStale(null, t0)).toBe(true);
+    expect(feedIsStale(t0, new Date(t0.getTime() + FEED_REFRESH_MS))).toBe(true);
+  });
+  it("leaves a fresher feed alone", () => {
+    expect(feedIsStale(t0, new Date(t0.getTime() + FEED_REFRESH_MS - 1))).toBe(false);
+    expect(FEED_REFRESH_MS).toBe(30 * 60_000);
   });
 });

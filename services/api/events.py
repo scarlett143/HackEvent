@@ -4,7 +4,9 @@
   `status=open,closed`): `kind, tier, region` (of the matched organisation), `mode`,
   `status` (`open` | `closing` | `closed` | `cancelled`; default `open`, so closed and
   cancelled events are hidden unless asked), `deadline_before`, `deadline_after`,
-  `registered` (true/false), `q` (title/organiser substring), `new_only`.
+  `registered` (true/false), `q` (title/organiser substring), `new_only`,
+  `scope` (`priority` default: Fortune companies + tier 1 colleges only, see
+  common.org_match.is_priority; `all`: every event).
   Order: `registration_deadline` ascending, no-deadline events last, `id` breaks ties.
   Keyset cursor = opaque urlsafe base64 of JSON `[deadline ISO | null, id]`.
 - `GET /events/{id}`: same object + description, prize. Every event carries `sources`
@@ -33,14 +35,10 @@ from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy import (
     ColumnElement,
-    String,
     and_,
-    case,
-    cast,
     delete,
     exists,
     func,
-    literal,
     or_,
     select,
     true,
@@ -52,7 +50,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.deps import get_db
 from api.errors import ApiError
 from api.roles import require_role
-from common import reminders
+from common import org_match, reminders
 from common.models import (
     Event,
     EventMode,
@@ -68,6 +66,7 @@ from common.models import (
     User,
     UserRole,
 )
+from common.new_event_alerts import region_expr
 
 router = APIRouter(prefix="/api/v1")
 
@@ -171,26 +170,6 @@ def _now() -> datetime:
 
 def _visible() -> ColumnElement[bool]:
     return Event.review_status != ReviewStatus.rejected
-
-
-def _region_expr() -> Any:
-    """Event region for the India/Global filter.
-
-    The matched organisation's region wins (doc 06). Most scraped events have no matched
-    organisation, so fall back to the event itself: a location naming India, or a source on
-    Unstop (an India-only platform), means "india"; anything else is "global" (= outside India).
-    ponytail: heuristic; replace with an extracted event-level region if one is added (doc 08).
-    """
-    from_unstop = exists().where(
-        EventSource.event_id == Event.id,
-        EventSource.source_url.op("~*")(r"^https?://([a-z0-9-]+\.)*unstop\.com(/|$)"),
-    )
-    return case(
-        (Organisation.region.is_not(None), cast(Organisation.region, String)),
-        (Event.location.ilike("%india%"), literal("india")),
-        (from_unstop, literal("india")),
-        else_=literal("global"),
-    )
 
 
 def _status_clause(status: FeedStatus, now: datetime) -> ColumnElement[bool]:
@@ -380,6 +359,7 @@ async def list_events(  # role: any (doc 07 §3)
     registered: bool | None = None,
     q: Annotated[str | None, Query(max_length=200)] = None,
     new_only: bool = False,
+    scope: Literal["priority", "all"] = "priority",
     cursor: Annotated[str | None, Query(max_length=500)] = None,
     limit: Annotated[int, Query(ge=1, le=MAX_LIMIT)] = DEFAULT_LIMIT,
 ) -> EventPage:
@@ -387,6 +367,8 @@ async def list_events(  # role: any (doc 07 §3)
     stmt = _base(user)
     statuses: list[FeedStatus] = _csv(status, _parse_status, "status") or ["open"]
     stmt = stmt.where(or_(*(_status_clause(s, now) for s in statuses)))
+    if scope == "priority":
+        stmt = stmt.where(org_match.is_priority())
     kinds: list[OrgKind] | None = _csv(kind, OrgKind, "kind")
     if kinds:
         stmt = stmt.where(Organisation.kind.in_(kinds))
@@ -395,7 +377,7 @@ async def list_events(  # role: any (doc 07 §3)
         stmt = stmt.where(Organisation.tier.in_(tiers))
     regions: list[OrgRegion] | None = _csv(region, OrgRegion, "region")
     if regions:
-        stmt = stmt.where(_region_expr().in_([r.value for r in regions]))
+        stmt = stmt.where(region_expr().in_([r.value for r in regions]))
     modes: list[EventMode] | None = _csv(mode, EventMode, "mode")
     if modes:
         stmt = stmt.where(Event.mode.in_(modes))
@@ -501,7 +483,8 @@ async def unread_count(user: AnyUser, db: Db) -> UnreadCount:  # role: any, own 
     new_events = await db.scalar(
         select(func.count())
         .select_from(Event)
-        .where(_visible(), _status_clause("open", _now()), _is_new(user))
+        .outerjoin(Organisation, Organisation.id == Event.organisation_id)
+        .where(_visible(), _status_clause("open", _now()), _is_new(user), org_match.is_priority())
     )
     notifications = await db.scalar(
         select(func.count())

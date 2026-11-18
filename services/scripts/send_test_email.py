@@ -2,18 +2,18 @@
 
     docker compose exec api python -m scripts.send_test_email --to <address>
 
-Exit 0 and a Gmail message id = accepted by Gmail; then check the recipient's Inbox.
+Exit 0 and a message id = accepted by Gmail / the SMTP server; then check the recipient's Inbox.
 """
 
 import argparse
 import asyncio
 
-from common.email import EmailError, GmailSender, render
+from common.email import EmailError, render, sender_from_settings
 from common.logging import configure_logging
 
 
 async def _send(to: str) -> str:
-    sender = GmailSender.from_settings()
+    sender = sender_from_settings()
     try:
         return await sender.send(to, render("test"))
     finally:
@@ -29,7 +29,7 @@ def main() -> None:
         message_id = asyncio.run(_send(args.to))
     except EmailError as exc:
         raise SystemExit(f"FAILED: {exc}") from None
-    print(f"Sent. Gmail message id: {message_id}. Now check the Inbox (not Spam) of {args.to}.")
+    print(f"Sent. Message id: {message_id}. Now check the Inbox (not Spam) of {args.to}.")
 
 
 if __name__ == "__main__":

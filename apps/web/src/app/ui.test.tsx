@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { onNextReturn, SourceBlock } from "./ui";
+import { navFor, onNextReturn, SourceBlock } from "./ui";
 
 describe("SourceBlock", () => {
   it("renders the scraped snippet as plain text, never HTML", () => {
@@ -69,5 +69,15 @@ describe("onNextReturn", () => {
     set("hidden");
     set("visible");
     expect(calls).toBe(0);
+  });
+});
+
+describe("navFor", () => {
+  const hrefs = (role: string) => navFor(role).map((n) => n.href);
+  it("links the dashboard for management and admin only", () => {
+    expect(hrefs("professor")).not.toContain("/dashboard");
+    expect(hrefs("management")).toContain("/dashboard");
+    expect(hrefs("management")).not.toContain("/admin/sources");
+    expect(hrefs("admin")).toEqual(expect.arrayContaining(["/dashboard", "/admin/sources"]));
   });
 });

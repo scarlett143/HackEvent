@@ -18,8 +18,12 @@ from common.source_health import HealthStatus, source_health
 
 log = logging.getLogger(__name__)
 
-TIER_CADENCE_HOURS = {1: 24, 2: 72, 3: 168}  # PRD: daily / every 3 days / weekly
-AGGREGATOR_CADENCE_HOURS = 4  # PRD: "aggregators every few hours"
+# Owner decision 2026-11-19: the priority feed must refresh at least hourly, so tier 1
+# pages and aggregators (where nearly all events come from) are polled every hour.
+# Conditional GET (etag / content hash) keeps an unchanged page to one cheap request.
+# Tier 2/3 keep the PRD's every-3-days / weekly politeness.
+TIER_CADENCE_HOURS = {1: 1, 2: 72, 3: 168}
+AGGREGATOR_CADENCE_HOURS = 1
 BATCH = 100
 LAST_ERROR_MAX = 1000
 

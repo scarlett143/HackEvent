@@ -75,7 +75,7 @@ Store `MASTER_KEY` in a password manager **separately** from backups.
 2. In the same Google Cloud project as Calendar OAuth: enable **Gmail API**, add scope `gmail.send`, set consent screen to **In production**.
 3. Run `docker compose exec api python -m scripts.gmail_authorize` once, sign in as the sender, store the refresh token in `.env` (`GMAIL_OAUTH_REFRESH_TOKEN`).
 4. Send a test email to a Gmail and a college address; confirm Inbox, not spam.
-5. Fallback if the token keeps expiring: Gmail SMTP `smtp.gmail.com:587` with an app password.
+5. Simpler alternative (or fallback if the token keeps expiring): SMTP. On the sender account turn on 2-step verification, create an **App password** (Google Account → Security → App passwords), and set in `infra/.env`: `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587`, `SMTP_USERNAME=<sender>@gmail.com`, `SMTP_PASSWORD=<app password>`. With `SMTP_HOST` set, every email goes through SMTP (steps 2–3 are then not needed). Restart `api` and `worker-notify`, then `docker compose exec api python -m scripts.send_test_email --to <your address>`.
 
 **Firebase (FCM):** create a Firebase project → add a Web app → Cloud Messaging → generate Web Push certificate key pair → create a service account with the Firebase Messaging role → add `APP_DOMAIN` to authorised domains. (Native Android app later: register the Android app in the same Firebase project.)
 
@@ -134,6 +134,8 @@ Record date and result in `docs/ops-log.md`.
 | Reminder lag | Pending reminders > 10 min past due | Admin |
 | Social session | Expired / banned | Admin |
 | Backup | Job failed or missing | Admin |
+
+Built-in checks (HE-131, `services/workers/alerts.py`): worker-notify checks every minute for a stale scheduler heartbeat (> 2 min), a missing worker health key, disk > 80% and reminder lag, and alerts all active Admins by email + in-app notification after 2 failed runs, once per incident (re-armed when the check passes). Telegram is added with HE-075. Test it: `docker compose exec api python -m scripts.send_test_alert`.
 
 External uptime pings are for **monitoring only** — they do not prevent Oracle idle reclamation (PAYG handles that).
 

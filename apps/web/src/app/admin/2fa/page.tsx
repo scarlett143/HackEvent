@@ -8,7 +8,12 @@ import { api, safeNext } from "@/lib/api";
 // Admin routes answer 403 totp_enrolment_required / totp_required until this session
 // has passed a code (HE-014). This page walks the admin through whichever applies.
 type State = "loading" | "enrol" | "verify" | "done" | "forbidden";
-type Enrol = { secret: string; otpauth_uri: string };
+type Enrol = { secret: string; otpauth_uri: string; qr_data_uri: string };
+
+/** "JBSWY3DPEHPK3PXP" -> "JBSW Y3DP EHPK 3PXP": easier to type; apps ignore the spaces. */
+function groupKey(secret: string): string {
+  return secret.replace(/(.{4})(?=.)/g, "$1 ");
+}
 
 // The admin page that sent us here (?next=), to return to once verified. Read from
 // window.location in handlers rather than useSearchParams, so no Suspense boundary.
@@ -21,6 +26,16 @@ export default function TwoFactorPage() {
   const [state, setState] = useState<State>("loading");
   const [enrol, setEnrol] = useState<Enrol | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  async function copyKey(secret: string) {
+    try {
+      await navigator.clipboard.writeText(secret);
+      setCopied(true);
+    } catch {
+      setCopied(false); // clipboard blocked: the key is still shown to type
+    }
+  }
 
   useEffect(() => {
     const to = nextPath();
@@ -73,11 +88,27 @@ export default function TwoFactorPage() {
         </>
       )}
       {state === "enrol" && enrol && (
-        <div className="flex flex-col gap-2">
-          <p>Add this key to your authenticator app, then enter the 6-digit code it shows.</p>
-          <code className="surface break-all rounded-xl p-3 text-sm">{enrol.secret}</code>
+        <div className="flex flex-col gap-3">
+          <p>Scan this QR code with your authenticator app, then enter the 6-digit code it shows.</p>
+          {/* eslint-disable-next-line @next/next/no-img-element -- one-off inline data: URL, nothing to optimise */}
+          <img
+            src={enrol.qr_data_uri}
+            alt="QR code for your authenticator app. Can't scan it? Use the setup key below."
+            width={220}
+            height={220}
+            className="rounded-xl border border-line bg-white p-2"
+          />
+          <p className="text-sm font-medium">Can&apos;t scan? Type this setup key instead (time-based, 6 digits):</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <code className="surface break-all rounded-xl p-3 font-mono text-base tracking-wider" aria-label="Setup key">
+              {groupKey(enrol.secret)}
+            </code>
+            <button type="button" className="btn-secondary" onClick={() => copyKey(enrol.secret)}>
+              {copied ? "Copied" : "Copy key"}
+            </button>
+          </div>
           <a className="link text-sm" href={enrol.otpauth_uri}>
-            Open in authenticator app
+            Open in authenticator app (on this device)
           </a>
         </div>
       )}
