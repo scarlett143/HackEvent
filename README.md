@@ -36,6 +36,7 @@ Design docs: [docs/](docs/README.md) — PRD, TRD, schema, API, security, AI gua
 | HE-028 | Reddit via the official API: app-only OAuth token (Redis-cached), `oauth.reddit.com/r/<sub>/new` through the guarded fetch, listing adapter; needs REDDIT_CLIENT_ID/SECRET to run | Done |
 | HE-029 | Substack `/feed` via the RSS adapter; feed items without a doc 08 hackathon keyword are dropped | Done |
 | HE-030 | Gmail API email sender (refresh-token OAuth, retries, revoked-token alert) + autoescaped invite/test templates | Done |
+| HE-030 SMTP | SMTP sender (runbook B7.5, e.g. Gmail app password): STARTTLS 587 / TLS 465 with verified certificates, retries, rejected login = permanent; `SMTP_HOST` set switches every email to SMTP | Done |
 | HE-031 | Source health: green/amber/red with reason; one admin alert on 3 errors / 5 empty runs | Done |
 | HE-040 | LLM adapter (JSON-only, no tools, single call_llm choke point) + Gemini provider, contract-tested | Done |
 | HE-041 | Anthropic Haiku provider (structured outputs, effort low), same contract suite | Done |

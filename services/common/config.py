@@ -31,6 +31,13 @@ class Settings(BaseSettings):
     gmail_oauth_refresh_token: SecretStr = SecretStr("")
     google_client_id: str = ""
     google_client_secret: SecretStr = SecretStr("")
+    # SMTP alternative to the Gmail API (runbook B7.5), e.g. smtp.gmail.com:587 + an app
+    # password. SMTP_HOST set = SMTP is used for every email; empty = Gmail API.
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: SecretStr = SecretStr("")
+    smtp_from: str = ""  # defaults to smtp_username
 
     @field_validator("master_key", mode="before")
     @classmethod

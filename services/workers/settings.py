@@ -19,7 +19,7 @@ from arq.cron import CronJob, cron
 from arq.worker import func
 
 from common.config import get_settings
-from common.email import GmailSender, render
+from common.email import EmailSender, render, sender_from_settings
 from common.logging import configure_logging
 from common.queues import (
     LLM_QUEUE,
@@ -51,8 +51,8 @@ async def send_email(
     TokenRevoked / EmailError fail the job (no arq retry: it needs a human or is logged).
     """
     if "gmail" not in ctx:
-        ctx["gmail"] = GmailSender.from_settings()
-    sender: GmailSender = ctx["gmail"]
+        ctx["gmail"] = sender_from_settings()  # SMTP or Gmail API (runbook B7)
+    sender: EmailSender = ctx["gmail"]
     return await sender.send(to, render(template, **(context or {})))
 
 
