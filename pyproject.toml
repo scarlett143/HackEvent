@@ -36,6 +36,7 @@ pythonpath = ["services"]
 testpaths = ["services/tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
+markers = ["golden: billed per-provider golden-set run (HE-048); needs GOLDEN_* env"]
 
 [tool.ruff]
 line-length = 100
