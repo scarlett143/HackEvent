@@ -62,11 +62,17 @@ async def dispatch_due(ctx: dict[str, Any], *, now: datetime | None = None) -> i
     return len(rows)
 
 
-def _zone(name: str | None) -> ZoneInfo:
+def zone(name: str | None) -> ZoneInfo:
     try:
         return ZoneInfo(name or DEFAULT_TZ)
     except (ZoneInfoNotFoundError, ValueError):
         return ZoneInfo(DEFAULT_TZ)
+
+
+def local_when(at: datetime, tz: ZoneInfo) -> str:
+    """'3 Dec 2026, 11:59 PM (Asia/Kolkata)'."""
+    local = at.astimezone(tz)
+    return f"{local.day} {local:%b %Y}, {local:%I:%M %p}".replace(" 0", " ") + f" ({tz.key})"
 
 
 def _days_word(days: int) -> str:
@@ -75,7 +81,7 @@ def _days_word(days: int) -> str:
 
 def message(r: Any, now: datetime) -> dict[str, str]:
     """Headline / when line for reminder row `r` (App Flow F7: "2 days left to register")."""
-    tz = _zone(r.timezone)
+    tz = zone(r.timezone)
     anchor: datetime = r.registration_deadline if r.kind == "deadline" else r.event_start
     days = max(0, (anchor.astimezone(tz).date() - now.astimezone(tz).date()).days)
     if r.kind == "deadline":
@@ -88,12 +94,11 @@ def message(r: Any, now: datetime) -> dict[str, str]:
     else:
         headline = f"Starts {_days_word(days)}"
         when_label = "Starts"
-    local = anchor.astimezone(tz)
     return {
         "headline": headline,
         "title": " ".join(r.title.split()),
         "when_label": when_label,
-        "when": f"{local.day} {local:%b %Y}, {local:%I:%M %p}".replace(" 0", " ") + f" ({tz.key})",
+        "when": local_when(anchor, tz),
         "path": f"/events/{r.event_id}",
     }
 
