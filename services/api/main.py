@@ -11,6 +11,7 @@ from api import (
     health,
     invites,
     me,
+    notifications,
     totp,
 )
 from api.csrf import CSRFMiddleware
@@ -33,6 +34,7 @@ app.include_router(admin_llm.router)
 app.include_router(invites.router)
 app.include_router(events.router)
 app.include_router(me.router)
+app.include_router(notifications.router)
 
 
 @app.get("/api/v1/health/live")
