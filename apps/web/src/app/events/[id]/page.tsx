@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { daysBetween, type EventDetail, type EventItem, formatDeadline, formatStart, formatWhen, tMinus, urgency } from "@/lib/events";
+import { daysBetween, deadlineUpdated, type EventDetail, type EventItem, formatDeadline, formatStart, formatWhen, tMinus, urgency } from "@/lib/events";
 import { AddToCalendar } from "../../calendar-menu";
 import { Icon } from "../../symbol";
 import { AppShell, Chips, Avatar, EventActions, EventMeta, SourceBlock, useNow, useShell } from "../../ui";
@@ -93,6 +93,7 @@ function Detail() {
           {ev.is_new && (
             <span className="w-fit rounded bg-new px-1.5 py-0.5 text-xs font-bold text-white">NEW</span>
           )}
+          {deadlineUpdated(ev, now) && <span className="chip w-fit border-warning/40 text-warning-ink text-xs font-semibold">Deadline updated</span>}
           <h1 className="font-display text-[1.75rem] leading-8 font-bold">{ev.title}</h1>
           <EventMeta ev={ev} />
         </div>

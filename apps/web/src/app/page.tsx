@@ -11,6 +11,7 @@ import {
   daysBetween,
   type EventDetail,
   type EventItem,
+  deadlineUpdated,
   eventsQuery,
   FILTER_OPTIONS,
   type Filters,
@@ -404,6 +405,7 @@ function EventCard({
             </span>
             <ul className="flex flex-wrap gap-1.5" aria-label="Tags">
               {ev.is_new && <li className="rounded bg-new px-1.5 py-0.5 text-xs font-bold tracking-wide text-white">NEW</li>}
+              {deadlineUpdated(ev, now) && <li className="chip border-warning/40 text-warning-ink text-xs font-semibold">Deadline updated</li>}
               <li className="chip">{MODE_LABEL[ev.mode]}</li>
               {ev.location && <li className="chip">{ev.location}</li>}
             </ul>
@@ -489,6 +491,7 @@ function EventPreview({
     <div className="card flex flex-col gap-4 p-4">
       <div className="flex flex-col gap-1">
         {ev.is_new && <span className="w-fit rounded bg-new px-1.5 py-0.5 text-xs font-bold text-white">NEW</span>}
+        {deadlineUpdated(ev, now) && <span className="chip w-fit border-warning/40 text-warning-ink text-xs font-semibold">Deadline updated</span>}
         <h2 className="font-display text-2xl font-bold">{ev.title}</h2>
         <EventMeta ev={ev} />
       </div>

@@ -32,7 +32,18 @@ export type EventItem = {
   is_new: boolean;
   is_registered: boolean;
   is_tracked: boolean;
+  /** Set when a source moved the deadline (HE-072). */
+  deadline_changed_at?: string | null;
 };
+
+const DEADLINE_UPDATED_MS = 48 * 3600 * 1000; // App Flow: chip shows for 48 h
+
+/** App Flow edge case: "Deadline updated" chip for 48 h after the deadline moved. */
+export function deadlineUpdated(ev: Pick<EventItem, "deadline_changed_at">, now: Date): boolean {
+  if (!ev.deadline_changed_at) return false;
+  const age = now.getTime() - new Date(ev.deadline_changed_at).getTime();
+  return age >= 0 && age < DEADLINE_UPDATED_MS;
+}
 
 /** `GET /events/:id`: the list item plus sources/snippets and long-form fields (doc 05 events). */
 export type EventDetail = EventItem & {

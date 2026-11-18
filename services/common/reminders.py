@@ -2,7 +2,7 @@
 
 `plan(db, user_id, event_ids=None)` recomputes the user's *pending* reminders inside the
 caller's transaction (register / track toggles, prefs / timezone / quiet-hours changes;
-HE-072 calls it when an event's dates move):
+`replan_event` when an event's dates or status move, HE-072):
 
 - registered event -> kind `event`, anchored on `event_start` (event offsets);
   tracked ("Remind me"), not registered, still open -> kind `deadline`, anchored on
@@ -192,3 +192,21 @@ async def plan(
             )
         )
     return len(want)
+
+
+async def replan_event(
+    db: AsyncSession, event_id: uuid.UUID, *, now: datetime | None = None
+) -> int:
+    """HE-072: an event's dates or status changed -> replan it for every user who
+    registered or tracked it (TRD §4.2.5: pending replaced, sent kept). Same transaction
+    as the change. Returns the number of users replanned."""
+    users = (
+        await db.scalars(
+            select(Registration.user_id)
+            .where(Registration.event_id == event_id)
+            .union(select(Track.user_id).where(Track.event_id == event_id))
+        )
+    ).all()
+    for user_id in users:
+        await plan(db, user_id, [event_id], now=now)
+    return len(users)

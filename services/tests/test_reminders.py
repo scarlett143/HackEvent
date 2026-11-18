@@ -269,3 +269,79 @@ def test_deactivated_user_has_no_pending_reminders(clean: TestClient, two_users:
     r = clean.patch(f"/api/v1/admin/users/{a.id}", json={"is_active": True}, headers=admin.headers)
     assert r.status_code == 200, r.text
     assert len(_rows(a.id)) == 8  # reactivated: planned again from the kept track
+
+
+# --- HE-072: dates change at the source -------------------------------------------------------
+
+
+def _upsert(deadline: datetime, start: datetime, source: str) -> str:
+    import asyncio
+
+    from sqlalchemy.ext.asyncio import create_async_engine
+    from sqlalchemy.pool import NullPool
+    from tests.stack import DB_URL
+
+    from workers.dedupe import upsert_candidate
+    from workers.scrape.adapters.base import EventCandidate
+
+    async def run() -> str:
+        engine = create_async_engine(DB_URL or "", poolclass=NullPool)
+        try:
+            cand = EventCandidate(
+                title="Moving Hack",
+                organiser="Example Org",
+                registration_deadline=deadline,
+                event_start=start,
+                confidence=0.9,
+                extractor="devpost",
+            )
+            res = await upsert_candidate(engine, cand, source_url=source)
+            return str(res.event_id)
+        finally:
+            await engine.dispose()
+
+    return asyncio.run(run())
+
+
+@needs_stack
+def test_deadline_moved_at_source_replaces_pending_keeps_sent(
+    clean: TestClient, two_users: Pair
+) -> None:
+    a, b = two_users
+    start = FUTURE + timedelta(days=10)
+    eid = _upsert(FUTURE, start, "https://a.example/hack")
+    clean.post(f"/api/v1/events/{eid}/track", headers=a.headers)
+    clean.post(f"/api/v1/events/{eid}/registration", headers=b.headers)
+    sql(
+        "UPDATE reminders SET status = 'sent', sent_at = now() WHERE user_id = CAST(:u AS uuid)"
+        " AND offset_days = 3 AND channel = 'email'",
+        u=a.id,
+    )
+    before_a = {(r[2], r[3]): (r[4], r[5]) for r in _rows(a.id)}
+    before_b = _rows(b.id)
+
+    moved = FUTURE + timedelta(days=5)
+    assert _upsert(moved, start, "https://b.example/hack") == eid  # same event, new deadline
+
+    after_a = {(r[2], r[3]): (r[4], r[5]) for r in _rows(a.id)}
+    assert after_a.keys() == before_a.keys()  # same keys: nothing duplicated
+    assert after_a[(3, "email")] == before_a[(3, "email")]  # sent: kept as it was
+    for key, (status, at) in after_a.items():
+        if key == (3, "email"):
+            continue
+        assert status == "pending"
+        assert at == before_a[key][1] + timedelta(days=5)  # replanned on the new deadline
+    assert _rows(b.id) == before_b  # B's event-date reminders: event_start did not move
+    r = clean.get(f"/api/v1/events/{eid}", headers=a.headers)
+    assert r.json()["deadline_changed_at"] is not None  # drives the "Deadline updated" chip
+
+
+@needs_stack
+def test_unchanged_dates_do_not_touch_reminders(clean: TestClient, two_users: Pair) -> None:
+    a, _ = two_users
+    start = FUTURE + timedelta(days=10)
+    eid = _upsert(FUTURE, start, "https://a.example/same")
+    clean.post(f"/api/v1/events/{eid}/track", headers=a.headers)
+    stamp = sql("SELECT max(updated_at) FROM reminders")
+    _upsert(FUTURE, start, "https://b.example/same")  # second source, same dates
+    assert sql("SELECT max(updated_at) FROM reminders") == stamp

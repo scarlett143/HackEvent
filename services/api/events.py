@@ -128,6 +128,7 @@ class EventOut(BaseModel):
     status: Literal["open", "closed", "cancelled"]
     review_status: ReviewStatus
     needs_review: bool
+    deadline_changed_at: datetime | None  # HE-072: "Deadline updated" chip for 48 h
     is_new: bool
     is_registered: bool
     is_tracked: bool
@@ -339,6 +340,7 @@ def _event_fields(row: Any, sources: list[SourceOut], now: datetime) -> dict[str
         "status": _effective_status(ev, now),
         "review_status": ev.review_status,
         "needs_review": ev.review_status == ReviewStatus.needs_review,
+        "deadline_changed_at": ev.deadline_changed_at,
         "is_new": bool(row.is_new),
         "is_registered": bool(row.is_registered),
         "is_tracked": bool(row.is_tracked),
