@@ -30,15 +30,16 @@ import { Icon } from "./symbol";
 import { AppShell, Avatar, Chips, Countdown, EventActions, EventMeta, SourceBlock, TrackStar, useNow, useShell } from "./ui";
 
 const SEEN_AFTER_MS = 3_000;
-const LATER_SHOWN = 5;
 // Stitch quick-filter chips: label, filter key, value.
 const QUICK = [
   ["Online", "mode", "online", "wifi"],
   ["Closing soon", "status", "closing", "alarm"],
   ["Registered", "registered", true, "check_circle"],
+  ["Companies", "kind", "company", null],
+  ["Institutions", "kind", "institution", null],
 ] as const;
-// Organisation-based filters are not offered; ignore them if an old link still carries them.
-const HIDDEN_FILTERS = ["kind", "tier", "region"] as const;
+// Tier and region filters are not offered; ignore them if an old link still carries them.
+const HIDDEN_FILTERS = ["tier", "region"] as const;
 
 const LABELS: { [K in keyof typeof FILTER_OPTIONS]: [string, Record<string, string>] } = {
   kind: ["Type", { company: "Company", institution: "Institution" }],
@@ -145,7 +146,7 @@ function FilterBar({ filters, apply }: { filters: Filters; apply: (f: Filters) =
             aria-pressed={filters[key] === value}
             onClick={() => set({ [key]: filters[key] === value ? undefined : value })}
           >
-            <Icon name={icon} size={16} className="mr-1" />
+            {icon && <Icon name={icon} size={16} className="mr-1" />}
             {label}
           </button>
         ))}
@@ -191,6 +192,15 @@ function FilterBar({ filters, apply }: { filters: Filters; apply: (f: Filters) =
             />
             New only
           </label>
+          <label className="flex min-h-11 items-center gap-2 text-sm font-medium">
+            <input
+              type="checkbox"
+              className="size-5"
+              checked={filters.scope === "priority"}
+              onChange={(e) => set({ scope: e.target.checked ? "priority" : undefined })}
+            />
+            Fortune companies and tier 1 colleges only
+          </label>
           {Object.keys(filters).length > 0 && (
             <button type="button" className="link min-h-11" onClick={() => apply({})}>
               Clear all
@@ -214,7 +224,6 @@ function Results({ query }: { query: string }) {
   const now = useNow();
   const [state, setState] = useState<State>({ kind: "loading" });
   const [selected, setSelected] = useState<string | null>(null);
-  const [showAllLater, setShowAllLater] = useState(false);
   const seen = useRef(false);
 
   const fetchPage = useCallback(
@@ -345,9 +354,6 @@ function Results({ query }: { query: string }) {
         {bar}
         <div className="surface flex flex-col items-start gap-2 rounded-xl p-6">
           <p className="font-medium">No events match these filters.</p>
-          <p className="text-muted text-sm">
-            The feed lists hackathons from Fortune-listed companies and tier 1 colleges only.
-          </p>
           <Link className="link" href="/">
             Clear filters
           </Link>
@@ -374,7 +380,6 @@ function Results({ query }: { query: string }) {
         )}
       </section>
     );
-  const laterShown = showAllLater ? later : later.slice(0, LATER_SHOWN);
 
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_28rem]">
@@ -388,21 +393,7 @@ function Results({ query }: { query: string }) {
           </button>,
         )}
         {section("Closing this week", closing)}
-        {section(
-          "Later",
-          laterShown,
-          later.length > LATER_SHOWN && (
-            <button
-              type="button"
-              className="link focus-ring min-h-11 text-sm font-medium"
-              aria-expanded={showAllLater}
-              onClick={() => setShowAllLater((v) => !v)}
-            >
-              {showAllLater ? "Show fewer" : `View ${later.length - LATER_SHOWN} more`}
-            </button>
-          ),
-          true,
-        )}
+        {section("Later", later, undefined, true)}
         {state.cursor && (
           <div className="flex flex-col items-center gap-2">
             <button className="btn-secondary" disabled={state.more === "loading"} onClick={loadMore}>
@@ -481,11 +472,14 @@ function EventCard({
             <TrackStar ev={ev} onPatch={onPatch} ghost />
           </div>
         </div>
-        <h3 className="font-display text-xl font-semibold">
-          <Link href={`/events/${encodeURIComponent(ev.id)}`} className="focus-ring rounded hover:underline">
-            {ev.title}
-          </Link>
-        </h3>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <h3 className="font-display min-w-0 text-xl font-semibold">
+            <Link href={`/events/${encodeURIComponent(ev.id)}`} className="focus-ring rounded hover:underline">
+              {ev.title}
+            </Link>
+          </h3>
+          <Organiser ev={ev} />
+        </div>
         <Chips ev={ev} />
       </div>
       <div className="surface flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-3">
@@ -496,6 +490,21 @@ function EventCard({
         <EventActions ev={ev} onPatch={onPatch} />
       </div>
     </article>
+  );
+}
+
+const KIND_LABEL = { company: "Company", institution: "Institution" } as const;
+
+/** Organiser name shown to the right of the event title, with its company/institution type. */
+function Organiser({ ev }: { ev: EventItem }) {
+  if (!ev.organiser.name) return null;
+  return (
+    <p className="text-muted flex shrink-0 items-center gap-2 text-sm font-medium">
+      <span className="max-w-64 truncate" title={ev.organiser.name}>
+        {ev.organiser.name}
+      </span>
+      {ev.organiser.kind && <span className="chip text-xs">{KIND_LABEL[ev.organiser.kind]}</span>}
+    </p>
   );
 }
 
@@ -515,11 +524,14 @@ function CompactRow({
     <article className="card flex items-center gap-3 p-3">
       <Avatar name={ev.title} />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <h3 className="font-display text-lg font-semibold">
-          <Link href={`/events/${encodeURIComponent(ev.id)}`} className="focus-ring rounded hover:underline">
-            {ev.title}
-          </Link>
-        </h3>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <h3 className="font-display min-w-0 text-lg font-semibold">
+            <Link href={`/events/${encodeURIComponent(ev.id)}`} className="focus-ring rounded hover:underline">
+              {ev.title}
+            </Link>
+          </h3>
+          <Organiser ev={ev} />
+        </div>
         <Countdown deadline={ev.registration_deadline} now={now} tz={tz} />
       </div>
       <TrackStar ev={ev} onPatch={onPatch} />

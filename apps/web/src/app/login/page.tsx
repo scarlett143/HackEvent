@@ -1,9 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { api, safeNext, type Me } from "@/lib/api";
 import { Icon } from "../symbol";
+import { BrandMark } from "../ui";
 
 function LoginForm() {
   const router = useRouter();
@@ -95,20 +97,53 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    // Stitch login: one card on a soft lime glow.
-    <main className="flex flex-1 items-center justify-center bg-[radial-gradient(ellipse_at_center,var(--color-primary-soft)_0%,var(--color-bg)_70%)] p-4">
-      <div className="card flex w-full max-w-xl flex-col gap-6 p-6 shadow-[0_8px_24px_rgba(20,23,17,0.06)] sm:p-10">
-        <div className="flex flex-col gap-2">
-          <h1 className="font-display flex items-center gap-2 text-[1.75rem] leading-8 font-bold">
-            Sign in to HackEvents <span aria-hidden className="size-2 rounded-full bg-primary" />
-          </h1>
-          <p className="text-muted">Never miss a hackathon deadline. Track events, get alerts and keep your calendar in one place.</p>
+    // Split login: Karpagam campus banner (brand side) + sign-in panel. Phones stack them.
+    <main className="grid flex-1 bg-card lg:min-h-dvh lg:grid-cols-[minmax(0,3fr)_minmax(26rem,2fr)]">
+      <section className="relative min-h-56 overflow-hidden lg:min-h-full" aria-label="HackEvents">
+        <Image
+          src="/brand/login-banner.jpg"
+          alt="Karpagam Institutions campus"
+          fill
+          preload
+          unoptimized
+          sizes="(min-width: 1024px) 60vw, 100vw"
+          className="object-cover object-center"
+        />
+        <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/35 to-black/10" />
+        <div className="relative flex h-full flex-col justify-between gap-8 p-6 text-white sm:p-10">
+          <div className="flex items-center gap-3">
+            <BrandMark size={40} />
+            <span className="font-display text-2xl font-bold tracking-[0.12em] uppercase">HackEvents</span>
+          </div>
+          <div className="hidden max-w-xl flex-col gap-3 sm:flex">
+            <p className="font-display text-4xl leading-tight font-bold">Never miss a hackathon deadline.</p>
+            <p className="text-lg text-white/85">
+              Track hackathons from companies and institutions, get alerts and keep your calendar in one place.
+            </p>
+          </div>
         </div>
-        <Suspense fallback={<p className="text-muted">Loading…</p>}>
-          <LoginForm />
-        </Suspense>
-        <p className="text-muted text-center text-sm">Accounts are invite-only. Ask your admin for an invite.</p>
-      </div>
+      </section>
+
+      <section className="flex items-center justify-center p-6 sm:p-10">
+        <div className="flex w-full max-w-md flex-col gap-6">
+          <div className="flex items-center gap-4">
+            <Image src="/brand/karpagam-emblem.png" alt="" width={64} height={64} unoptimized className="shrink-0" />
+            <div className="flex flex-col">
+              <p className="font-display text-2xl leading-tight font-bold text-ok-ink">Karpagam Institutions</p>
+              <p className="text-muted text-sm">Enable | Enlighten | Enrich</p>
+            </div>
+          </div>
+          <div className="h-px bg-line" aria-hidden />
+          <div className="flex flex-col gap-2">
+            <h1 className="font-display text-[1.75rem] leading-8 font-bold">Sign in to HackEvents</h1>
+            <p className="text-muted">Use your work or university account.</p>
+          </div>
+          <Suspense fallback={<p className="text-muted">Loading…</p>}>
+            <LoginForm />
+          </Suspense>
+          <p className="text-muted text-center text-sm">Accounts are invite-only. Ask your admin for an invite.</p>
+        </div>
+      </section>
     </main>
   );
 }

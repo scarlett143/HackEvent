@@ -21,6 +21,8 @@ from common.fetch import ssrf
 from common.models import Source, SourceAdapter, SourceKind
 from workers.scheduler import cadence_hours_for
 
+_UNSTOP = "https://unstop.com/api/public/opportunity/search-result"
+
 # (url, adapter, selector_config)
 PLATFORMS: list[tuple[str, SourceAdapter, dict[str, Any] | None]] = [
     (
@@ -32,6 +34,25 @@ PLATFORMS: list[tuple[str, SourceAdapter, dict[str, Any] | None]] = [
         "https://unstop.com/api/public/opportunity/search-result",
         SourceAdapter.api,
         {"parser": "unstop"},
+    ),
+    # Feed calibration (≥ 75 hackathons): each source is one page, so add the next pages.
+    # Unstop: 10 per page keeps a page under the 200 KB raw-body cap (169 open on 2026-11-19);
+    # Devpost is fixed at 9 per page.
+    *(
+        (
+            f"{_UNSTOP}?opportunity=hackathons&oppstatus=open&per_page=10&page={n}",
+            SourceAdapter.api,
+            {"parser": "unstop"},
+        )
+        for n in range(1, 11)
+    ),
+    *(
+        (
+            f"https://devpost.com/api/hackathons?status[]=upcoming&status[]=open&page={n}",
+            SourceAdapter.api,
+            {"parser": "devpost"},
+        )
+        for n in (2, 3, 4, 5)
     ),
     ("https://devfolio.co/hackathons", SourceAdapter.llm, None),
     ("https://www.mlh.com/seasons/2027/events", SourceAdapter.api, {"parser": "mlh"}),

@@ -64,7 +64,7 @@ describe("urgency", () => {
 
 describe("filters URL state", () => {
   it("round-trips through the query string", () => {
-    const qs = "q=ai+hack&kind=company&tier=1&region=india&mode=online&status=open&within=7&registered=true&new_only=true";
+    const qs = "q=ai+hack&kind=company&tier=1&region=india&mode=online&status=open&within=7&registered=true&new_only=true&scope=priority";
     const f = parseFilters(new URLSearchParams(qs));
     expect(f).toEqual({
       q: "ai hack",
@@ -76,13 +76,14 @@ describe("filters URL state", () => {
       within: "7",
       registered: true,
       new_only: true,
+      scope: "priority",
     });
     expect(parseFilters(new URLSearchParams(filtersToSearch(f)))).toEqual(f);
     expect(filtersToSearch(f)).toBe(qs);
   });
 
   it("drops unknown keys and values", () => {
-    expect(parseFilters(new URLSearchParams("tier=9&mode=<x>&foo=1&registered=yes&q=%20"))).toEqual({});
+    expect(parseFilters(new URLSearchParams("tier=9&mode=<x>&foo=1&registered=yes&scope=all&q=%20"))).toEqual({});
   });
 
   it("resolves the deadline window for the API", () => {
@@ -91,7 +92,9 @@ describe("filters URL state", () => {
     expect(sp.get("within")).toBeNull();
     expect(sp.get("region")).toBe("global");
     expect(sp.get("cursor")).toBe("abc");
-    expect(sp.get("limit")).toBe("50");
+    expect(sp.get("limit")).toBe("100"); // one page holds the ≥ 75 the feed must show
+    expect(sp.get("scope")).toBe("all");
+    expect(new URLSearchParams(eventsQuery({ scope: "priority" }, NOW, null)).get("scope")).toBe("priority");
   });
 });
 
