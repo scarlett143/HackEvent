@@ -126,12 +126,15 @@ export default function LoginPage() {
 
       <section className="flex items-center justify-center p-6 sm:p-10">
         <div className="flex w-full max-w-md flex-col gap-6">
-          <div className="flex items-center gap-4">
-            <Image src="/brand/karpagam-emblem.png" alt="" width={64} height={64} unoptimized className="shrink-0" />
-            <div className="flex flex-col">
-              <p className="font-display text-2xl leading-tight font-bold text-ok-ink">Karpagam Institutions</p>
-              <p className="text-muted text-sm">Enable | Enlighten | Enrich</p>
-            </div>
+          {/* White tile keeps the logo's grey "INSTITUTIONS" line readable in the dark theme. */}
+          <div className="w-fit rounded-xl bg-white p-2">
+            <Image
+              src="/brand/karpagam-lockup.png"
+              alt="Karpagam Institutions — Fostering Knowledge… Enduring Values…"
+              width={320}
+              height={98}
+              unoptimized
+            />
           </div>
           <div className="h-px bg-line" aria-hidden />
           <div className="flex flex-col gap-2">
