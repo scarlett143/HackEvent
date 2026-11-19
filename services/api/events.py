@@ -303,9 +303,10 @@ def _event_fields(row: Any, sources: list[SourceOut], now: datetime) -> dict[str
         "id": ev.id,
         "title": plain_text(ev.title),
         "organiser": OrganiserOut(
-            name=plain_text(org.name if org else ev.organiser_name),
+            # The organiser as the event names it ("Google", not the listed parent "Alphabet").
+            name=plain_text(ev.organiser_name or (org.name if org else "")),
             id=org.id if org else None,
-            kind=org.kind if org else None,
+            kind=org.kind if org else org_match.guess_kind(ev.organiser_name),
             tier=org.tier if org else None,
             region=org.region if org else None,
         ),
@@ -371,7 +372,7 @@ async def list_events(  # role: any (doc 07 §3)
         stmt = stmt.where(org_match.is_priority())
     kinds: list[OrgKind] | None = _csv(kind, OrgKind, "kind")
     if kinds:
-        stmt = stmt.where(Organisation.kind.in_(kinds))
+        stmt = stmt.where(org_match.kind_expr().in_([k.value for k in kinds]))
     tiers: list[int] | None = _csv(tier, _parse_tier, "tier")
     if tiers:
         stmt = stmt.where(Organisation.tier.in_(tiers))

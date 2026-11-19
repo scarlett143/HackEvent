@@ -22,7 +22,8 @@ def test_platform_list_is_well_formed() -> None:
         if adapter is SourceAdapter.api:
             assert config and config.get("parser") in ADAPTERS, url  # a registered parser
         else:
-            assert adapter is SourceAdapter.llm and config is None, url
+            assert adapter is SourceAdapter.llm and config in (None, {"render": True}), url
+    assert not set(urls) & set(platforms.RETIRED)
 
 
 @needs_stack
@@ -37,10 +38,12 @@ def test_load_is_idempotent_and_uses_aggregator_cadence(
     assert asyncio.run(platforms.load(DB_URL or "")) == {
         "added": len(platforms.PLATFORMS),
         "skipped": 0,
+        "retired": 0,
     }
     assert asyncio.run(platforms.load(DB_URL or "")) == {
         "added": 0,
         "skipped": len(platforms.PLATFORMS),
+        "retired": 0,
     }
     rows = sql("SELECT kind::text, cadence_hours, is_enabled FROM sources")
     assert len(rows) == len(platforms.PLATFORMS)
@@ -59,3 +62,21 @@ def test_a_blocked_url_writes_nothing(
     with pytest.raises(ssrf.BlockedURL):
         asyncio.run(platforms.load(DB_URL or ""))
     assert sql("SELECT count(*) FROM sources")[0][0] == 0
+
+
+@needs_stack
+def test_load_switches_off_retired_sources(
+    stack_client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def resolve(host: str, port: int) -> list[ssrf.IPAddress]:
+        return [ipaddress.ip_address("93.184.216.34")]
+
+    monkeypatch.setattr(ssrf, "resolve", resolve)
+    sql("TRUNCATE sources CASCADE")
+    sql(
+        "INSERT INTO sources (kind, url, adapter, cadence_hours, is_enabled)"
+        " VALUES ('aggregator', 'https://dorahacks.io/hackathon', 'llm', 1, true)"
+    )
+    assert asyncio.run(platforms.load(DB_URL or ""))["retired"] == 1
+    assert sql("SELECT is_enabled FROM sources WHERE url LIKE '%dorahacks%'") == [(False,)]
+    assert asyncio.run(platforms.load(DB_URL or ""))["retired"] == 0

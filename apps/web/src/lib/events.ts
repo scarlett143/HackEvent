@@ -69,6 +69,9 @@ export function feedIsStale(updatedAt: Date | null, now: Date): boolean {
 }
 const DAY = 86_400_000;
 
+/** Events per feed page: the API maximum, so the first screen holds ≥ 75 hackathons. */
+export const FEED_PAGE = 100;
+
 // ── Deadlines ────────────────────────────────────────────────────────────────
 
 /** Calendar-day difference between two instants as seen in `tz` (0 = same local day). */
@@ -184,6 +187,8 @@ export type Filters = { [K in Choice]?: (typeof FILTER_OPTIONS)[K][number] } & {
   q?: string;
   registered?: true;
   new_only?: true;
+  /** `priority` narrows the feed to Fortune companies + tier 1 colleges; default is every event. */
+  scope?: "priority";
 };
 
 const CHOICES = Object.keys(FILTER_OPTIONS) as Choice[];
@@ -199,6 +204,7 @@ export function parseFilters(sp: URLSearchParams): Filters {
   if (q) f.q = q;
   if (sp.get("registered") === "true") f.registered = true;
   if (sp.get("new_only") === "true") f.new_only = true;
+  if (sp.get("scope") === "priority") f.scope = "priority";
   return f as Filters;
 }
 
@@ -209,6 +215,7 @@ export function filtersToSearch(f: Filters): string {
   for (const k of CHOICES) if (f[k]) sp.set(k, f[k]);
   if (f.registered) sp.set("registered", "true");
   if (f.new_only) sp.set("new_only", "true");
+  if (f.scope) sp.set("scope", f.scope);
   return sp.toString();
 }
 
@@ -216,8 +223,9 @@ export function filtersToSearch(f: Filters): string {
 export function eventsQuery(f: Filters, nowUtc: Date, cursor: string | null): string {
   const { within, ...rest } = f;
   const sp = new URLSearchParams(filtersToSearch(rest));
+  if (!rest.scope) sp.set("scope", "all"); // the API defaults to priority; the feed shows everything
   if (within) sp.set("deadline_before", new Date(nowUtc.getTime() + +within * DAY).toISOString());
   if (cursor) sp.set("cursor", cursor);
-  sp.set("limit", "50");
+  sp.set("limit", String(FEED_PAGE));
   return sp.toString();
 }

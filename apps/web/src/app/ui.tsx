@@ -3,6 +3,7 @@
 // Signed-in shell (header, nav, toasts) and the event building blocks shared by the feed
 // (HE-051) and event detail (HE-054). All event text renders as React text — never HTML.
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Icon } from "./symbol";
@@ -218,10 +219,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* Desktop sidebar (Stitch desktop): brand, navigation, export, theme and account. Phones use the bottom tabs. */}
         <aside className="hidden md:sticky md:top-0 md:flex md:h-dvh md:w-64 md:shrink-0 md:flex-col md:gap-6 md:border-r md:border-line md:bg-card md:p-4">
           <Link href="/" className="focus-ring flex items-center gap-2 rounded px-1">
-            <span aria-hidden className="flex size-9 items-center justify-center rounded-lg bg-primary text-on-primary">
-              <Icon name="bolt" fill size={22} />
+            <BrandMark />
+            <span className="flex flex-col leading-tight">
+              <span className="font-display text-xl font-bold tracking-[0.12em] uppercase">HackEvents</span>
+              <span className="text-muted text-xs font-medium">Karpagam Institutions</span>
             </span>
-            <span className="font-display text-xl font-bold tracking-[0.12em] uppercase">HackEvents</span>
           </Link>
           <nav aria-label="Main" className="flex flex-col gap-1">
             <p className="text-muted px-3 pb-1 text-xs font-semibold tracking-[0.12em] uppercase">Navigation</p>
@@ -262,9 +264,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {/* Top bar: brand + account menu on phones; search + timezone on desktop. */}
           <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-3 border-b border-line bg-card px-4 md:bg-bg md:px-6">
             <Link href="/" className="focus-ring flex items-center gap-2 rounded md:hidden">
-              <span aria-hidden className="flex size-9 items-center justify-center rounded-lg bg-primary text-on-primary">
-                <Icon name="bolt" fill size={22} />
-              </span>
+              <BrandMark />
               <span className="flex flex-col leading-tight">
                 <span className="font-display text-xl font-bold">HackEvents</span>
                 <span className="text-muted text-xs">{screenName(pathname)}</span>
@@ -396,6 +396,15 @@ export function Countdown({ deadline, now, tz }: { deadline: string | null; now:
 // ── Event pieces ─────────────────────────────────────────────────────────────
 
 /** Initials tile (Stitch cards): an event title or a person's name -> "EC". Decorative; the name is always next to it. */
+/** HackEvents logo: the Karpagam Institutions emblem on a white tile (reads on both themes). */
+export function BrandMark({ size = 36 }: { size?: number }) {
+  return (
+    <span aria-hidden className="flex shrink-0 items-center justify-center rounded-lg bg-white p-0.5 ring-1 ring-line">
+      <Image src="/brand/karpagam-emblem.png" alt="" width={size} height={size} unoptimized />
+    </span>
+  );
+}
+
 export function Avatar({ name }: { name: string }) {
   const text =
     name

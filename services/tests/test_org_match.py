@@ -67,3 +67,30 @@ def test_longest_contained_name_wins() -> None:
 def test_norm() -> None:
     assert norm("I.I.T. (Main), Delhi") == "i i t delhi"
     assert norm("NIT Trichy") == "national institute of technology trichy"
+
+
+def test_guess_kind_for_unmatched_organisers() -> None:
+    from common.models import OrgKind
+    from common.org_match import guess_kind
+
+    for name in [
+        "Karpagam Academy of Higher Education",
+        "IIT Bombay",
+        "Anna University",
+        "PSG College of Technology",
+        "VIT Chennai",
+        "Delhi Public School",
+    ]:
+        assert guess_kind(name) is OrgKind.institution, name
+    for name in [
+        "Unstop",
+        "Google Developers",
+        "Major League Hacking",
+        "Unity Technologies",
+        "",
+        "Samsung R&D Institute India",
+        "Google Developer Student Club, Anna University",
+        "AWS Student Builder Group",
+        "iQOO",
+    ]:
+        assert guess_kind(name) is OrgKind.company, name

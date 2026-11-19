@@ -20,10 +20,10 @@ import re
 import uuid
 from collections.abc import Iterable
 
-from sqlalchemy import ColumnElement, and_, or_, text
+from sqlalchemy import ColumnElement, String, and_, case, cast, literal, or_, text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from common.models import Organisation, OrgKind
+from common.models import Event, Organisation, OrgKind
 
 MIN_CONTAINED = 8
 _PARENS = re.compile(r"\([^)]*\)")
@@ -44,6 +44,8 @@ ALIASES = {
     "facebook": "meta platforms",
     "ibm": "international business machines",
     "tcs": "tata consultancy services",
+    "amd": "advanced micro devices",
+    "samsung": "samsung electronics",
 }
 
 
@@ -57,6 +59,48 @@ def is_priority() -> ColumnElement[bool]:
     return or_(
         Organisation.kind == OrgKind.company,
         and_(Organisation.kind == OrgKind.institution, Organisation.tier == 1),
+    )
+
+
+# Organiser words that mark an academic institution. `{b}` is a word boundary: Postgres
+# spells it \y, Python \b. Matched case-insensitively.
+_INSTITUTION = (
+    r"universit|college|institut|school|academy|vidya|polytechnic"
+    r"|{b}(iit|iiit|nit|iisc|bits|vit|srm){b}"
+)
+_INSTITUTION_RE = re.compile(_INSTITUTION.format(b=r"\b"), re.IGNORECASE)
+
+
+# Brands that are always companies, even in "Samsung R&D Institute" or "Google Developer
+# Student Club, X University" (owner list 2026-11-19).
+_BRAND = (
+    r"{b}(aws|amazon|google|amd|nvidia|microsoft|snowflake|anthropic|openai|oppo|iqoo|vivo"
+    r"|samsung|meta|ibm|intel|qualcomm){b}"
+)
+_BRAND_RE = re.compile(_BRAND.format(b=r"\b"), re.IGNORECASE)
+
+
+def guess_kind(organiser: str) -> OrgKind:
+    """Company or institution for an organiser that matched no seeded organisation.
+
+    ponytail: name heuristic; a brand wins, then a college-like word means institution,
+    anything else counts as a company.
+    """
+    if _BRAND_RE.search(organiser):
+        return OrgKind.company
+    return OrgKind.institution if _INSTITUTION_RE.search(organiser) else OrgKind.company
+
+
+def kind_expr() -> ColumnElement[str]:
+    """SQL twin of `guess_kind`: the matched organisation's kind wins (needs the outer join)."""
+    return case(
+        (Organisation.kind.is_not(None), cast(Organisation.kind, String)),
+        (Event.organiser_name.op("~*")(_BRAND.format(b=r"\y")), literal(OrgKind.company.value)),
+        (
+            Event.organiser_name.op("~*")(_INSTITUTION.format(b=r"\y")),
+            literal(OrgKind.institution.value),
+        ),
+        else_=literal(OrgKind.company.value),
     )
 
 

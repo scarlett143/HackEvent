@@ -132,8 +132,10 @@ def test_each_filter(clean: TestClient, two_users: Pair) -> None:
     e_co = event("Corp Hack", NOW + timedelta(days=3), org_id=co, mode="online")
     e_inst = event("Institute Hack", NOW + timedelta(days=10), org_id=inst, mode="offline")
     e_none = event("Unmatched 100%_hack", NOW + timedelta(days=40), mode="hybrid")
-    assert ids(clean, a, kind="company") == [e_co]
-    assert ids(clean, a, kind="institution,company") == [e_co, e_inst]
+    # e_none's organiser ("Org") matched nothing and has no college word → guessed company
+    assert ids(clean, a, kind="company") == [e_co, e_none]
+    assert ids(clean, a, kind="institution") == [e_inst]
+    assert ids(clean, a, kind="institution,company") == [e_co, e_inst, e_none]
     assert ids(clean, a, tier="2") == [e_inst]
     # e_none has no organisation, no location, no Unstop source → "global" (outside India)
     assert ids(clean, a, region="global") == [e_inst, e_none]
@@ -152,7 +154,7 @@ def test_each_filter(clean: TestClient, two_users: Pair) -> None:
         "items"
     ][0]
     assert org_out["organiser"] == {
-        "name": "Example Institute",
+        "name": "Org",  # the event's own organiser name, not the matched list name
         "id": inst,
         "kind": "institution",
         "tier": 2,
@@ -164,7 +166,7 @@ def test_each_filter(clean: TestClient, two_users: Pair) -> None:
     assert unmatched["organiser"] == {
         "name": "Org",
         "id": None,
-        "kind": None,
+        "kind": "company",
         "tier": None,
         "region": None,
     }
