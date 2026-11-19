@@ -82,5 +82,15 @@ def test_guess_kind_for_unmatched_organisers() -> None:
         "Delhi Public School",
     ]:
         assert guess_kind(name) is OrgKind.institution, name
-    for name in ["Unstop", "Google Developers", "Major League Hacking", "Unity Technologies", ""]:
+    for name in [
+        "Unstop",
+        "Google Developers",
+        "Major League Hacking",
+        "Unity Technologies",
+        "",
+        "Samsung R&D Institute India",
+        "Google Developer Student Club, Anna University",
+        "AWS Student Builder Group",
+        "iQOO",
+    ]:
         assert guess_kind(name) is OrgKind.company, name

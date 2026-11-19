@@ -13,7 +13,7 @@ Run once per environment:  docker compose exec api python -m seeds.platforms
 import asyncio
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from common.config import get_settings
@@ -22,6 +22,13 @@ from common.models import Source, SourceAdapter, SourceKind
 from workers.scheduler import cadence_hours_for
 
 _UNSTOP = "https://unstop.com/api/public/opportunity/search-result"
+_DEVPOST = "https://devpost.com/api/hackathons?status[]=upcoming&status[]=open"
+# Owner list (2026-11-19): big-tech organisers the feed must carry. Devpost's `search`
+# matches the organiser; only names whose search is exact (meta.fuzzy=false) are listed.
+DEVPOST_COMPANIES = ("aws", "google", "microsoft", "ibm", "meta", "nvidia", "openai")
+# Switched off on load: DoraHacks answers every bot request (robots.txt included) with an
+# AWS WAF human-verification page (HTTP 405), so it can only fail. We do not evade bot walls.
+RETIRED = ("https://dorahacks.io/hackathon", "https://lablab.ai/event")
 
 # (url, adapter, selector_config)
 PLATFORMS: list[tuple[str, SourceAdapter, dict[str, Any] | None]] = [
@@ -54,19 +61,26 @@ PLATFORMS: list[tuple[str, SourceAdapter, dict[str, Any] | None]] = [
         )
         for n in (2, 3, 4, 5)
     ),
+    *(
+        (f"{_DEVPOST}&search={q}", SourceAdapter.api, {"parser": "devpost"})
+        for q in DEVPOST_COMPANIES
+    ),
+    # AMD / NVIDIA / Qualcomm run their contests here (robots.txt allows /contests).
+    ("https://www.hackster.io/contests", SourceAdapter.llm, None),
     ("https://devfolio.co/hackathons", SourceAdapter.llm, None),
     ("https://www.mlh.com/seasons/2027/events", SourceAdapter.api, {"parser": "mlh"}),
     ("https://www.hackerearth.com/challenges/hackathon/", SourceAdapter.llm, None),
     ("https://hack2skill.com/", SourceAdapter.llm, None),
-    ("https://dorahacks.io/hackathon", SourceAdapter.llm, None),
-    ("https://lablab.ai/event", SourceAdapter.llm, None),
+    # lablab.ai moved here (OpenAI / Anthropic hackathons); the list is rendered client-side.
+    ("https://starfieldlabs.ai/ai-hackathons", SourceAdapter.llm, {"render": True}),
     ("https://taikai.network/hackathons", SourceAdapter.llm, None),
     ("https://www.hackathon.com/online", SourceAdapter.llm, None),
 ]
 
 
 async def load(database_url: str) -> dict[str, int]:
-    """Insert the platforms that are not there yet. Returns {"added": n, "skipped": m}."""
+    """Insert the platforms that are not there yet and switch off RETIRED ones.
+    Returns {"added": n, "skipped": m, "retired": r}."""
     for url, _, _ in PLATFORMS:
         await ssrf.check_url(url)  # raises ssrf.BlockedURL: nothing is written if any URL fails
     engine = create_async_engine(database_url)
@@ -93,9 +107,19 @@ async def load(database_url: str) -> dict[str, int]:
                     )
                 )
                 added += 1
+            retired = len(
+                (
+                    await db.scalars(
+                        update(Source)
+                        .where(Source.url.in_(RETIRED), Source.is_enabled)
+                        .values(is_enabled=False)
+                        .returning(Source.id)
+                    )
+                ).all()
+            )
     finally:
         await engine.dispose()
-    return {"added": added, "skipped": skipped}
+    return {"added": added, "skipped": skipped, "retired": retired}
 
 
 def main() -> None:

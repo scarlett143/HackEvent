@@ -154,7 +154,7 @@ def test_each_filter(clean: TestClient, two_users: Pair) -> None:
         "items"
     ][0]
     assert org_out["organiser"] == {
-        "name": "Example Institute",
+        "name": "Org",  # the event's own organiser name, not the matched list name
         "id": inst,
         "kind": "institution",
         "tier": 2,

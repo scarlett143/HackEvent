@@ -303,7 +303,8 @@ def _event_fields(row: Any, sources: list[SourceOut], now: datetime) -> dict[str
         "id": ev.id,
         "title": plain_text(ev.title),
         "organiser": OrganiserOut(
-            name=plain_text(org.name if org else ev.organiser_name),
+            # The organiser as the event names it ("Google", not the listed parent "Alphabet").
+            name=plain_text(ev.organiser_name or (org.name if org else "")),
             id=org.id if org else None,
             kind=org.kind if org else org_match.guess_kind(ev.organiser_name),
             tier=org.tier if org else None,
